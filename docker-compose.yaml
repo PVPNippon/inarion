@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+  api:
+    build: ./api
+    container_name: api_c
+    ports:
+      - '4000:4000'
+   
+  frontend:
+    build: ./frontend
+    container_name: frontend_react
+    ports:
+      - '3000:80'
+    stdin_open: true
