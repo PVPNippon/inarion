@@ -1,2 +1,2 @@
 # Ignore service account keys
-keys/*.json
+keys/
