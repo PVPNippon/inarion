@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y lsb-release && \
 COPY . .
 
 # Copy the service account key file
-COPY sa-key.json /usr/src/app/sa-key.json
+COPY /keys/sa-key.json /usr/src/app/sa-key.json
 
 # Authenticate gcloud SDK using the service account key
 RUN gcloud auth activate-service-account --key-file=/usr/src/app/sa-key.json
