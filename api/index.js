@@ -12,8 +12,9 @@ const cors = require('cors'); // Import the CORS package
 //Importing all Models
 const User = require('./models/User'); 
 const Project = require('./models/Project');
-const ServiceAccount = require('./models/ServiceAccount');
 const Token = require('./models/Token');
+
+const ServiceAccount = require('./models/ServiceAccount');
 
 const app = express();
 app.use(express.json());

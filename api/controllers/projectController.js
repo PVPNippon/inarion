@@ -2,6 +2,8 @@ const googleService = require('../services/googleService');
 const oauth2Client = require('../models/googleAuth');
 const Project = require('../models/Project');
 const url = require('url');
+const User = require('../models/User'); 
+const ServiceAccount = require('../models/ServiceAccount')
 
 
 async function retryAsync(fn, retries = 5, delay = 2000) {
@@ -19,6 +21,13 @@ async function retryAsync(fn, retries = 5, delay = 2000) {
   }
 }
 
+const setOauth2Credentials = (tokens) => {
+  if (!tokens || !tokens.access_token) {
+    throw new Error('No access token provided');
+  }
+  oauth2Client.setCredentials(tokens);
+};
+
 
 exports.createProject = async (req, res) => {
   console.log('Entered the create project route');
@@ -34,6 +43,19 @@ exports.createProject = async (req, res) => {
     }
     oauth2Client.setCredentials(tokens);
 
+    // setOauth2Credentials(tokens);
+
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(404).send('User not found');
+    }
+
+    const userId = user.id;
+    console.log('userId ', userId);
+
+    // Check if the project already exists in the database
+    
+
     const organizations = await googleService.listOrganizations(oauth2Client);
     console.log(organizations);
     if (!organizations || organizations.length === 0) {
@@ -44,6 +66,8 @@ exports.createProject = async (req, res) => {
 
     const organizationId = organizations[0].name.split('/')[1];
     // console.log(organizationId);
+
+    
 
     const projects = await googleService.listProjects(oauth2Client, organizationId);
     // console.log(projects);
@@ -58,10 +82,42 @@ exports.createProject = async (req, res) => {
       console.log('Existing project:', existingProject);
       projectId = existingProject.projectId;
       createdProject = existingProject;
+
+      let project = await Project.findOne({ where: { projectName: projectName, userId: userId } });
+      if (project) {
+        console.log('Project already exists in the database:', project);
+        // return res.status(200).json({ projectData: project });
+      }
+      else{
+        project = await Project.create({
+          projectName: projectName,
+          userId: userId, 
+          projectId: projectId,
+          organizationId: organizationId
+        });
+  
+        console.log('Stored existing project in GCloud in the database:', project);
+      }
     } else {
       projectId = `project-${Date.now()}`;
       createdProject = await googleService.createProject(oauth2Client, projectId, projectName, organizationId);
       console.log('Created new project:', createdProject);
+
+      let project = await Project.findOne({ where: { name: projectName, userId } });
+      if (project) {
+        console.log('Project already exists in the database:', project);
+        // return res.status(200).json({ projectData: project });
+      }
+      else{
+        project = await Project.create({
+          projectName: projectName,
+          userId: userId, 
+          projectId: projectId,
+          organizationId: organizationId
+        });
+  
+        console.log('Stored new project in GCloud in the database:', project);
+      }
 
     }
 
@@ -77,11 +133,47 @@ exports.createProject = async (req, res) => {
       serviceAccounts = [];
     console.log('List of Service accounts: ', serviceAccounts);
     const serviceAccountName = email.replace(/[@.]/g, "-");
+
+    // Checking if service account exists in customer's project
     let serviceAccount = serviceAccounts.find(account => account.displayName === `${email}'s Service Account`);
 
-    if (!serviceAccount) {
-      serviceAccount = await googleService.createServiceAccount(oauth2Client, projectId, serviceAccountName, `${email}'s Service Account`);
+    // Check if the service account already exists in the database
+    let existingServiceAccountInDB = await ServiceAccount.findOne({ where: {  projectId: projectId } });
+
+    if (existingServiceAccountInDB) {
+      console.log('Service account already exists in the database:', existingServiceAccountInDB);
+
+      if (!serviceAccount) {
+        console.log('Service account does not exist in GCloud, creating it...');
+        serviceAccount = await googleService.createServiceAccount(oauth2Client, projectId, serviceAccountName, `${email}'s Service Account`);
+      }
     }
+    else{
+      if (serviceAccount) {
+        console.log('Service account exists in GCloud but not in the database, storing it in the database...');
+        await ServiceAccount.create({
+          projectId: projectId,
+          serviceAccountEmail: serviceAccount.email,
+        });
+      }
+      else{
+        console.log('Service account does not exist in GCloud and in the database, creating it...');
+        serviceAccount = await googleService.createServiceAccount(oauth2Client, projectId, serviceAccountName, `${email}'s Service Account`);
+        // const serviceAccountKey = await googleService.createServiceAccountKey(oauth2Client, projectId, serviceAccountEmail);
+        // const serviceAccountDetails = await googleService.getServiceAccount(oauth2Client, projectId, serviceAccountEmail);
+        await ServiceAccount.create({
+          projectId: projectId,
+          serviceAccountEmail: serviceAccount.email,
+          // clientId: newServiceAccount.clientId,
+          // privateKey: serviceAccountKey.privateKey,
+        });
+      }
+    }
+
+
+    // if (!serviceAccount) {
+    //   serviceAccount = await googleService.createServiceAccount(oauth2Client, projectId, serviceAccountName, `${email}'s Service Account`);
+    // }
 
     const serviceAccountEmail = serviceAccount.email;
     const serviceAccountKey = await googleService.createServiceAccountKey(oauth2Client, projectId, serviceAccountEmail);
@@ -99,7 +191,7 @@ exports.createProject = async (req, res) => {
 
 
     // Redirect to the project details page with query parameters
-    const reactServerUrl = `http://localhost:5000/project-details`;
+    // const reactServerUrl = `http://localhost:5000/project-details`;
     const fetch = await import('node-fetch').then(mod => mod.default);
 
     // const response = await fetch(reactServerUrl, {

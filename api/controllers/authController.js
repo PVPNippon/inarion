@@ -3,6 +3,7 @@ const config = require('../config/config');
 const { google } = require('googleapis');
 const { query } = require('express');
 const url = require('url');
+const User = require('../models/User'); 
 
 
 const getAuthUrl = (email, projectName) => {
@@ -15,16 +16,47 @@ const getAuthUrl = (email, projectName) => {
   });
 };
 
-exports.register = (req, res) => {
+exports.register = async (req, res) => {
   const { email, projectName } = req.body;
 
   if (!email || !projectName) {
     return res.status(400).send('Email and project name are required');
-  } 
+  }
 
-  const authUrl = getAuthUrl(email, projectName);
+  try {
+    console.log('Checking if the user and project already exist...');
+    const existingUser = await User.findOne({ where: { email, projectName } });
 
-  res.status(200).json({ authUrl });
+    if (existingUser) {
+      console.log('User with this project already exists');
+    } else {
+      console.log('Creating a new user or updating existing user with new project...');
+      // Check if the user exists without considering the project
+      const userWithoutProject = await User.findOne({ where: { email } });
+
+      if (userWithoutProject) {
+        // If the user exists, but with a different project, update the project name
+        userWithoutProject.projectName = projectName;
+        await userWithoutProject.save();
+        console.log('Updated existing user with new project');
+      } else {
+        // If the user does not exist, create a new user
+        await User.create({ email, projectName });
+        console.log('New user created');
+      }
+    }
+
+   
+
+    const authUrl = getAuthUrl(email, projectName);
+
+    console.log('Returning authUrl:', authUrl);
+    return res.status(200).json({ authUrl });
+
+  } catch (error) {
+    console.error('Error during registration:', error);
+    return res.status(500).json({ error: 'An error occurred while registering the user' });
+  }
 };
 
 exports.oauth2callback = async (req, res) => {
@@ -39,6 +71,21 @@ exports.oauth2callback = async (req, res) => {
 
     console.log('email', email);
     console.log('project name', projectName);
+    console.log('tokens ', tokens["refresh_token"]);
+    //Storing refresh token if present
+    if (tokens.refresh_token) {
+      console.log('Storing refresh token');
+      const existingUser = await User.findOne({ where: { email } });
+
+      if (existingUser) {
+        console.log('Existing user: ', existingUser);
+        existingUser.tokens = tokens.refresh_token;
+        await existingUser.save();
+      } else {
+        await User.create({ email, projectName, refreshToken: tokens.refresh_token });
+      }
+    }
+
 
     const fetch = await import('node-fetch').then(mod => mod.default);
 

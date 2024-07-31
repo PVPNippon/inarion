@@ -11,7 +11,7 @@ Token.init({
   },
   refreshToken: {
     type: DataTypes.TEXT,
-    allowNull: false
+    allowNull: true
   },
   scope: {
     type: DataTypes.STRING
@@ -25,10 +25,19 @@ Token.init({
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Users', // 'Users' refers to the table name
+      key: 'id'
+    }
   }
 }, {
   sequelize,
-  modelName: 'Token'
+  modelName: 'Token',
+  tableName: 'tokens'
 });
 
 Token.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
