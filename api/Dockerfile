@@ -4,18 +4,43 @@ FROM node:16
 # Create and set the working directory inside the container
 WORKDIR /usr/src/app
 
+# Update package list and install prerequisites
+RUN apt-get update && apt-get install -y \
+    software-properties-common \
+    wget \
+    build-essential \
+    zlib1g-dev \
+    && apt-get clean
+
+# Download and install Python 3.8 from source
+RUN wget https://www.python.org/ftp/python/3.8.0/Python-3.8.0.tgz && \
+    tar xvf Python-3.8.0.tgz && \
+    cd Python-3.8.0 && \
+    ./configure --enable-optimizations && \
+    make -j 4 && \
+    make altinstall && \
+    cd .. && \
+    rm -rf Python-3.8.0 Python-3.8.0.tgz
+
+# Verify Python installation
+RUN python3.8 --version
+
 # Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
 
+
+
 # Install the project dependencies
 RUN npm install
+
+
 
 # Install Google Cloud SDK
 RUN apt-get update && apt-get install -y lsb-release && \
     echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] http://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
     apt-get install -y apt-transport-https ca-certificates gnupg && \
     curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - && \
-    apt-get update && apt-get install -y google-cloud-sdk
+    apt-get update && apt-get install -y google-cloud-cli && apt-get install -y google-cloud-sdk
 
 
 # Copy the rest of the application files to the working directory
