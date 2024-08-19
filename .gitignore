@@ -1,3 +1,6 @@
+./api/node_modules
+./frontend/node_modules
 # Ignore service account keys
+
 keys/
 .env

@@ -7,6 +7,8 @@ COPY package.json package-lock.json ./
 RUN npm install
 
 COPY . .
+# Fix permissions on node_modules
+RUN chmod -R 755 /app/node_modules
 RUN npm run build
 
 # Stage 2: Serve the React application using Nginx
