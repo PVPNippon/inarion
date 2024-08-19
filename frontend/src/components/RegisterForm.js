@@ -21,7 +21,7 @@ const RegisterForm = () => {
 
   return (
     <div>
-      <h1>Register</h1>
+      <h2>Register</h2>
       <form onSubmit={handleSubmit}>
         <input
           type="email"

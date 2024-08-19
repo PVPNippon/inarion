@@ -1,5 +1,13 @@
 const { google } = require('googleapis');
 const { ProjectsClient } = require('@google-cloud/resource-manager').v3;
+const oauth2Client = require('../models/googleAuth');
+
+const setOauth2Credentials = (tokens) => {
+  if (!tokens || !tokens.access_token) {
+    throw new Error('No access token provided');
+  }
+  oauth2Client.setCredentials(tokens);
+};
 
 const listOrganizations = async (authClient) => {
   // console.log(authClient);
@@ -107,6 +115,7 @@ const listServiceAccounts = async (authClient, projectId) => {
 };
 
 module.exports = {
+  setOauth2Credentials,
   listOrganizations,
   createProject,
   listProjects,

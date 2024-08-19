@@ -4,7 +4,7 @@ const config = require('../config/config');
 let refreshTokens = [];
 
 const generateAccessToken = (user) => {
-  return jwt.sign(user, config.JWT_ACCESS_SECRET, { expiresIn: '15m' });
+  return jwt.sign(user, config.JWT_ACCESS_SECRET, { expiresIn: '60s' });
 };
 
 const generateRefreshToken = (user) => {

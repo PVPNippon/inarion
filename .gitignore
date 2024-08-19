@@ -1,2 +1,3 @@
 # Ignore service account keys
 keys/
+.env
