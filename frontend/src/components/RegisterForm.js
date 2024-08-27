@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import axios from 'axios';
+
 
 const RegisterForm = () => {
   const [email, setEmail] = useState('');
   const [projectName, setProjectName] = useState('');
   const [authUrl, setAuthUrl] = useState('');
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -20,13 +20,16 @@ const RegisterForm = () => {
   };
 
   return (
+    
     <div>
       <h2>Register</h2>
       <form onSubmit={handleSubmit}>
         <input
           type="email"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+          }}
           placeholder="Email"
           required
         />
@@ -48,6 +51,7 @@ const RegisterForm = () => {
         </div>
       )}
     </div>
+    
   );
 };
 

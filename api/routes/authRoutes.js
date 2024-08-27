@@ -2,9 +2,10 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-
-router.post('/register', authController.register);
+const userController = require('../controllers/userController');
+// router.post('/register', authController.register);
 router.get('/oauth2callback', authController.oauth2callback);
+router.post('/register', userController.registerUser);
 
 
 

@@ -6,7 +6,7 @@ const authRoutes = require('./routes/authRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const tokenRoutes = require('./routes/tokenRoutes');
 const userRoutes = require('./routes/userRoutes');
-const sequelize = require('./config/database');
+// const sequelize = require('./config/database');
 const cors = require('cors'); // Import the CORS package
 
 //Importing all Models

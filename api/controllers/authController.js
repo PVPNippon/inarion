@@ -1,95 +1,58 @@
-const oauth2Client = require('../models/googleAuth');
-const config = require('../config/config');
-const { google } = require('googleapis');
-const { query } = require('express');
-const url = require('url');
-const User = require('../models/User'); 
 
 
-const getAuthUrl = (email, projectName) => {
-  return oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    // prompt: 'consent',
-    scope: config.SCOPES,
-    state: JSON.stringify({ email, projectName }),
-    redirect_uri: config.REDIRECT_URI
-  });
-};
+const oauth2Client = require('../models/googleAuth'); // Google OAuth2 client setup
+const config = require('../config/config'); // Configuration settings
+const { google } = require('googleapis'); // Google APIs client library
+const User = require('../models/User'); // User model for database operations
 
-exports.register = async (req, res) => {
-  const { email, projectName } = req.body;
+// Retrieve the API base URL from environment variables
+const API_BASE_URL = process.env.API_BASE_URL;
 
-  if (!email || !projectName) {
-    return res.status(400).send('Email and project name are required');
-  }
 
-  try {
-    console.log('Checking if the user and project already exist...');
-    const existingUser = await User.findOne({ where: { email, projectName } });
-
-    if (existingUser) {
-      console.log('User with this project already exists');
-    } else {
-      console.log('Creating a new user or updating existing user with new project...');
-      // Check if the user exists without considering the project
-      const userWithoutProject = await User.findOne({ where: { email } });
-
-      if (userWithoutProject) {
-        // If the user exists, but with a different project, update the project name
-        userWithoutProject.projectName = projectName;
-        await userWithoutProject.save();
-        console.log('Updated existing user with new project');
-      } else {
-        // If the user does not exist, create a new user
-        await User.create({ email, projectName });
-        console.log('New user created');
-      }
-    }
-
-   
-
-    const authUrl = getAuthUrl(email, projectName);
-
-    console.log('Returning authUrl:', authUrl);
-    return res.status(200).json({ authUrl });
-
-  } catch (error) {
-    console.error('Error during registration:', error);
-    return res.status(500).json({ error: 'An error occurred while registering the user' });
-  }
-};
-
+/**
+ * Handle OAuth2 callback to process authentication and create a project.
+ * @param {Object} req - The request object containing query parameters and session.
+ * @param {Object} res - The response object used to send responses to the client.
+ */
 exports.oauth2callback = async (req, res) => {
+  // Extract the authorization code and state from the query parameters
   const code = req.query.code;
   const { email, projectName } = JSON.parse(req.query.state);
 
+  // Exchange the authorization code for tokens
   const { tokens } = await oauth2Client.getToken({ code, redirect_uri: config.REDIRECT_URI });
+  // Store tokens in the session
     req.session.tokens = tokens;
-
+  // Store email in the session
     req.session.email = email;
+  // Store project name in the session
     req.session.projectName = projectName;
 
+  // Log  for debugging 
     console.log('email', email);
     console.log('project name', projectName);
     console.log('tokens ', tokens["refresh_token"]);
-    //Storing refresh token if present
+    // If a refresh token is present, store it in the database
     if (tokens.refresh_token) {
       console.log('Storing refresh token');
       const existingUser = await User.findOne({ where: { email } });
 
       if (existingUser) {
         console.log('Existing user: ', existingUser);
+        // Update the existing user's tokens
         existingUser.tokens = tokens.refresh_token;
-        await existingUser.save();
+        // Save changes to the database
+        await existingUser.save(); 
       } else {
+        // If the user does not exist, create a new user with the provided details
         await User.create({ email, projectName, refreshToken: tokens.refresh_token });
       }
     }
 
-
+    // Dynamically import the 'node-fetch' module for making HTTP requests
     const fetch = await import('node-fetch').then(mod => mod.default);
-
-    const createProjectResponse = await fetch('http://localhost:4000/project/create-project', {
+    // Make a POST request to the create-project endpoint with tokens and user details
+    const createProjectResponse = await fetch(`${API_BASE_URL}/project/create-project`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -101,46 +64,15 @@ exports.oauth2callback = async (req, res) => {
       }),
       credentials: 'include' // Include session cookies
     });
-
+    // Parse the response data
     const createProjectData = await createProjectResponse.json();
+    // Check if the response indicates success; throw an error if not
     if (!createProjectResponse.ok) {
       throw new Error(createProjectData.message);
     }
 
-    // Respond to the client with the create project data
+    // Send the create project data as the response
     res.status(200).json(createProjectData);
 
-    // req.session.projectName = projectName;
-    // res.redirect(`http://localhost:4000/create-project`);
-    // res.redirect(url.format({pathname: "http://localhost:3000/project",
-    //   query: {
-    //     // tokens: JSON.stringify(tokens),
-    //     email: email,
-    //     projectName: projectName
-    //   }
-    // }));
-
-    // res.redirect(`http://localhost:4000/create-project?tokens=${encodeURIComponent(JSON.stringify(tokens))}&email=${encodeURIComponent(email)}&projectName=${encodeURIComponent(projectName)}`);
-
-    // res.send(`Tokens received. You can now use the API. Tokens: ${JSON.stringify(tokens)}`);
-
-  // try {
-  //   const { tokens } = await oauth2Client.getToken({ code, redirect_uri: config.REDIRECT_URI });
-  //   req.session.tokens = tokens;
-
-  //   req.session.email = email;
-  //   req.session.projectName = projectName;
-  //   // res.redirect(`http://localhost:4000/create-project`);
-  //   res.redirect(url.format({pathname: "http://localhost:4000/create-project",
-  //     query: {
-  //       "tokens": tokens
-  //     }
-  //   }))
-
-  //   // res.redirect(`http://localhost:4000/create-project?tokens=${encodeURIComponent(JSON.stringify(tokens))}&email=${encodeURIComponent(email)}&projectName=${encodeURIComponent(projectName)}`);
-
-  //   res.send(`Tokens received. You can now use the API. Tokens: ${JSON.stringify(tokens)}`);
-  // } catch (error) {
-  //   res.status(500).send('Authentication failed');
-  // }
+   
 };
