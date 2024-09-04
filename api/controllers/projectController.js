@@ -93,8 +93,9 @@ exports.createProject = async (req, res) => {
     // Retry enabling APIs for the project
     await retryAsync(() => googleService.enableAPI(oauth2Client, projectId, "serviceusage.googleapis.com"));
     await retryAsync(() => googleService.enableAPI(oauth2Client, projectId, "admin.googleapis.com"));
-
-    // Check for existing service account in Google Cloud
+    await retryAsync(() => googleService.enableAPI(oauth2Client, projectId, "drive.googleapis.com"));
+    
+    //Check for existing service account in the Database
     const serviceAccountName = email.replace(/[@.]/g, "-");
     var serviceAccounts = await googleService.listServiceAccounts(oauth2Client, projectId);
     if(serviceAccounts === undefined)
@@ -129,49 +130,70 @@ exports.createProject = async (req, res) => {
       });
     }
 
-    // Check if service account keys already exist in the database
-    let serviceAccountKeyInDB = await ServiceAccountKeys.findOne({ where: { serviceAccountEmail: serviceAccount.email } });
-    let serviceAccountKey;
+
+        // Variables
+    let serviceAccountDetails;  // Variable to hold service account details
+    let serviceAccountKey;      // Variable to hold the generated service account key
+    let serviceAccountEmail = serviceAccount.email;  // Retrieve the service account email from the provided object
+    let clientServiceAccountId; // Variable to hold the client service account ID
+
+    // Check if the service account key already exists in the database
+    let serviceAccountKeyInDB = await ServiceAccountKeys.findOne({ where: { serviceAccountEmail: serviceAccountEmail } });
+
+    console.log('Does Service Account exist in DB - ', serviceAccountKeyInDB);
 
     if (!serviceAccountKeyInDB) {
-      console.log('Creating service account key in Google Cloud and storing it in the database...');
-      serviceAccountKey = await googleService.createServiceAccountKey(oauth2Client, projectId, serviceAccount.email);
-      console.log('Created key in GCloud: ', serviceAccountKey);
-      const privateKeyId = serviceAccountKey.name.split('/').pop(); // Extract the private key ID
-      console.log('privateKeyId ', privateKeyId);
-      serviceAccountKeyInDB = await ServiceAccountKeys.create({
-        serviceAccountEmail: serviceAccount.email,
-        privateKeyId: privateKeyId,
-        privateKeyData: serviceAccountKey.privateKeyData,
-        validAfterTime: new Date(serviceAccountKey.validAfterTime),
-        validBeforeTime: new Date(serviceAccountKey.validBeforeTime)
-      });
+        console.log('Creating service account key in Google Cloud and storing it in the database...');
+        
+        // If no key exists in the DB, create a new service account key using Google Cloud API
+        serviceAccountKey = await googleService.createServiceAccountKey(oauth2Client, projectId, serviceAccountEmail);
+        console.log('Created key in GCloud: ', serviceAccountKey);
 
-      console.log('Created key in DB ', serviceAccountKeyInDB);
+        const privateKeyData = serviceAccountKey.privateKeyData; // Extract the private key data from the created key
+        const privateKeyId = serviceAccountKey.name.split('/').pop(); // Extract the private key ID from the key name
+
+        // Decode the privateKeyData from base64 to utf8 format
+        const decodedKey = Buffer.from(serviceAccountKey.privateKeyData, 'base64').toString('utf8');
+
+        clientServiceAccountId = decodedKey.client_id; // Extract the client ID from the decoded key
+
+        // Store the service account key details in the database
+        serviceAccountKeyInDB = await ServiceAccountKeys.create({
+            serviceAccountEmail: serviceAccountEmail,
+            privateKeyId: privateKeyId,
+            privateKeyData: privateKeyData,
+            validAfterTime: new Date(serviceAccountKey.validAfterTime),
+            validBeforeTime: new Date(serviceAccountKey.validBeforeTime)
+        });
+
+        console.log('Created key in DB ', serviceAccountKeyInDB);
+    } else {
+        console.log('Existing service account found in DB', serviceAccountKeyInDB);
+
+        // Retrieve existing service account details using Google Cloud API
+        serviceAccountDetails = await googleService.getServiceAccount(oauth2Client, projectId, serviceAccountEmail);
+        clientServiceAccountId = serviceAccountDetails.oauth2ClientId; // Extract the OAuth2 client ID from the details
+
+        // Decode the privateKeyData from base64 to utf8 format
+        const decodedKey = Buffer.from(serviceAccountKeyInDB.privateKeyData, 'base64').toString('utf8');
+        console.log('Decoded key file data is:', decodedKey);
     }
 
-    console.log('existing service account ', serviceAccountKeyInDB);
-
-    // Fetch service account details
-    const serviceAccountEmail = serviceAccount.email;
-    const serviceAccountDetails = await googleService.getServiceAccount(oauth2Client, projectId, serviceAccountEmail);
-    const clientId = serviceAccountDetails.oauth2ClientId;
-
-    // Prepare full project data
+    // Prepare full project data, including project ID, service account email, key, and client ID
     const fullCreateProjectData = {
-      projectId,
-      serviceAccountEmail,
-      serviceAccountKey,
-      clientId,
+        projectId,
+        serviceAccountEmail,
+        serviceAccountKey,
+        clientServiceAccountId,
     };
 
-    req.session.projectData = fullCreateProjectData; // Store project data in session
+    req.session.projectData = fullCreateProjectData; // Store the project data in the session
 
-    const fetch = await import('node-fetch').then(mod => mod.default); // Dynamic import of node-fetch
-    
-    // Respond with project data
+    const fetch = await import('node-fetch').then(mod => mod.default); // Dynamic import of node-fetch module
+
+    // Respond with the full project data as a JSON object
     res.status(201).json({
-      fullCreateProjectData
+        fullCreateProjectData
     });
   } catch (err) {
     // Handle errors

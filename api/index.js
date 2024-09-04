@@ -6,7 +6,8 @@ const authRoutes = require('./routes/authRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const tokenRoutes = require('./routes/tokenRoutes');
 const userRoutes = require('./routes/userRoutes');
-// const sequelize = require('./config/database');
+const driveRoutes = require('./routes/driveRoutes');
+const sequelize = require('./config/database');
 const cors = require('cors'); // Import the CORS package
 
 //Importing all Models
@@ -33,6 +34,7 @@ app.use('/auth', authRoutes);
 app.use('/project', projectRoutes);
 app.use('/token', tokenRoutes);
 app.use('/user', userRoutes);
+app.use('/api/drive', driveRoutes);
 
 app.get("/", (req, res) => {
     res.send("<h1>Home Page</h1>");
@@ -51,4 +53,15 @@ app.get("/", (req, res) => {
 // });
 
 const port = config.PORT;
-app.listen(port, () => console.log(`Listening on port ${port}`));
+// Call the shared drives route on startup
+app.listen(config.PORT, async () => {
+  console.log(`Listening on port ${port}`);
+
+  const fetch = (await import('node-fetch')).default;
+
+  // Trigger the shared drives fetch
+  await fetch(`http://localhost:${port}/api/drive/shared-drives`);
+  // Trigger the personal drives fetch
+  await fetch(`http://localhost:${port}/api/drive/personal-drives`);
+
+});
