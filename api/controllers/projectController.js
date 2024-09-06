@@ -10,7 +10,7 @@ const express = require('express');
 const session = require('express-session');
 const cors = require('cors');
 const app = express();
-
+const dataController = require('../controllers/dataController');
 // Utility function to retry an async function on failure
 async function retryAsync(fn, retries = 5, delay = 2000) {
   for (let i = 0; i < retries; i++) {
@@ -48,6 +48,7 @@ const getOrganizationId = async () => {
 // Get or create a project in Google Cloud
 const getOrCreateProject = async (projectName, organizationId, userId) => {
   const projects = await googleService.listProjects(oauth2Client, organizationId);
+  console.log('Trying to find if user and projects exists in the db');
   const existingProject = projects.find(project => project.displayName.trim() === projectName.trim());
   let projectId, project;
 
@@ -196,11 +197,16 @@ exports.createProject = async (req, res) => {
 };
 
 // Route to get project data from the session
-exports.getProjectData = (req, res) => {
-  if (req.session.projectData) {
-    res.status(200).json(req.session.projectData);
+exports.getProjectData = async (req, res) => {
+
+  const { userEmail } = req.body;
+  let projectData = await dataController.getProjectData(userEmail);
+  let serviceAccountData = await dataController.getServiceAccountData(projectData.projectId);
+  let serviceAccountKeys = await dataController.getServiceAccountKey(serviceAccountData.serviceAccountEmail);
+  if (projectData) {
+    res.status(200).json({projectData, serviceAccountData, serviceAccountKeys});
   } else {
-    res.status(404).json({ error: 'No project data found in session' });
+    res.status(404).json({ error: 'No project data found' });
   }
 };
 

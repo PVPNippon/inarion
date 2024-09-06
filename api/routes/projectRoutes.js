@@ -8,7 +8,7 @@ router.get('/test-project', (req, res)=>{
 });
 router.post('/create-project', projectController.createProject);
 router.get('/projects', projectController.getAllProjects);
-router.get('/get-project-data', projectController.getProjectData);
+router.post('/get-project-data', projectController.getProjectData);
 
 router.post('/get-project-id', projectController.getProjectIdByEmail);
 

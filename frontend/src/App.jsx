@@ -17,6 +17,7 @@ import { NumProvider } from './contexts/NumContext';
 import DisplayNumContextValue from './components/displayContextNum';
 import FileSettings from './components/FileSettings';
 import ListDomainUsers from './components/ListDomainUsers';
+import HomePage from './components/HomePage';
 
 function App() {
   return (
@@ -34,6 +35,8 @@ function App() {
             <Link to="/mydrive-files">List My Drive Files</Link> {/* Link to the logout route */}
             <Link to="/display-num-context">Display Num Context Value</Link>
             <Link to="/users">List All Users</Link> 
+            <Link to="/home-page">Home Page</Link> 
+
 
           </nav>
           <Routes>
@@ -49,6 +52,8 @@ function App() {
             <Route path="/profile" element={<LoggedInUserDetails />} />
             <Route path="/logout" element={<Logout />} /> {/* Logout route */}
             <Route path="/users" element={<ListDomainUsers />} />
+            <Route path="/home-page" element={<HomePage />} />
+
             <Route path="/mydrive-files" element={<ListMyDriveFiles />} /> {/* Home route displays list of files */}
             <Route path="/mydrive-files/file-settings/:fileId" element={< FileSettings />}/>
           </Routes>

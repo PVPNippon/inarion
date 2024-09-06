@@ -1,37 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { useProjectContext } from './ProjectContext';
+import React, { useContext, useEffect, useState } from 'react';
+import axios from 'axios';
+import { LoggedInUserContext } from '../contexts/LoggedInUserContext';
 
-const SuccessPage = () => {
-  const { updateProjectData } = useProjectContext();
+const HomePage = () => {
+  const [projectData, setProjectData ] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { email} = useContext(LoggedInUserContext);
 
   useEffect(() => {
-    const fetchProjectData = async () => {
-      try {
-        // Fetch the project data from the backend
-        const response = await fetch('http://localhost:4000/store-project-data', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+    const fetchProjectData = async (req, res) =>{
+      const response = await axios.post('http://localhost:4000/project/get-project-data', {
+          userEmail : email, 
+      }, {withCredentials: true},
+  );
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch project data');
-        }
-
-        const data = await response.json();
-        updateProjectData(data); // Store the data in context
-        setLoading(false);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
-      }
-    };
+    setProjectData(response.data);
+  };
 
     fetchProjectData();
-  }, [updateProjectData]);
+  }, []);
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>Error: {error}</p>;
@@ -39,4 +27,4 @@ const SuccessPage = () => {
   return <div>Project data has been stored successfully!</div>;
 };
 
-export default SuccessPage;
+export default HomePage;
