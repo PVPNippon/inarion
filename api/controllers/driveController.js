@@ -11,7 +11,6 @@ const { fetchAllSharedDrives, fetchPersonalDriveFiles } = require('../services/d
 exports.getSharedDrives = async (req, res) => {
   try {
     const sharedDrivesWithFiles = await fetchAllSharedDrives();
-    //console.log(sharedDrivesWithFiles);
     res.status(200).json(sharedDrivesWithFiles);
   } catch (error) {
     console.error('Internal server error:', error);
@@ -30,8 +29,6 @@ exports.getSharedDrives = async (req, res) => {
 exports.getPersonalDriveFiles = async (req, res) => {
   try {
     const personalDriveFiles = await fetchPersonalDriveFiles();
-    //console.log(personalDriveFiles);
-
     res.status(200).json(personalDriveFiles);
   } catch (error) {
     console.error('Internal server error:', error);

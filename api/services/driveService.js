@@ -1,4 +1,6 @@
 const { getCredentials, initializeGoogleAuth, impersonateClient } = require('../config/googleDriveConfig');
+const { extractEmails } = require('../utility/utility_functions');
+const config = require('../config/config');
 
 /**
  * Initializes the Google Drive instance for a specified user.
@@ -13,7 +15,7 @@ const { getCredentials, initializeGoogleAuth, impersonateClient } = require('../
 async function getDriveInstance(user) {
   try {
     //TODO(AlexMartinMason): The service account email is hard-coded here. This email is specific to the client's domain and is used to authenticate API requests.
-    const serviceAccountEmail = 'testadmin-pvp-test12-work@project-1724811051563.iam.gserviceaccount.com';
+    const serviceAccountEmail = config.CLIENT_SERVICE_ACCOUNT_EMAIL;
 
     // Fetch the service account credentials from the database and decode them.
     const credentials = await getCredentials(serviceAccountEmail);
@@ -25,8 +27,7 @@ async function getDriveInstance(user) {
     return impersonateClient(user, auth);
   } catch (error) {
     // Log the error if there's an issue initializing the Google Drive instance.
-    console.error('Error initializing Google Drive instance:', error.message);
-    throw error; // Rethrow the error to be handled by the caller.
+    throw new Error(`Failed to initialize Google Drive for user ${user}: ${error.message}`);
   }
 }
 
@@ -40,7 +41,8 @@ async function getDriveInstance(user) {
  */
 const fetchAllSharedDrives = async () => {
   try {
-    const drive = await getDriveInstance('testadmin@pvp-test-domain2.com');
+    //TODO(AlexMartinMason): The super admin's email is hard-coded here. This email is specific to the client's domain and is used to authenticate API requests.
+    const drive = await getDriveInstance(config.SUPER_ADMIN_EMAIL);
         
     // Fetch all shared drives
     const drivesResponse = await drive.drives.list();
@@ -80,14 +82,26 @@ const fetchAllSharedDrives = async () => {
  */
 const fetchPersonalDriveFiles = async () => {
   try {
-    const drive = await getDriveInstance('testadmin@pvp-test-domain2.com');
+    // Extract emails from the response
+    const emailList = extractEmails(config.USERS_LIST_DIRECTORY);
+    const personalDrivesWithFiles = [];
 
-    // Fetch all files in the user's personal drive with metadata
-    const filesResponse = await drive.files.list({
-      fields: 'files(id, name, mimeType, modifiedTime, owners)',
-    });
+    for (const email of emailList) {
+      try {
+          let drive = await getDriveInstance(email);
+          let filesResponse = await drive.files.list({
+              fields: 'files(id, name, mimeType, modifiedTime, owners)',
+          });
+          personalDrivesWithFiles.push({
+            email,
+            files: filesResponse.data.files,
+        });
+      } catch (error) {
+          console.error(`Failed to process email ${email}:`, error);
+      }
+  }
 
-    return filesResponse.data.files || [];
+    return personalDrivesWithFiles;
   } catch (error) {
     console.error('Error fetching personal drive files and their metadata:', error.message);
     throw error;

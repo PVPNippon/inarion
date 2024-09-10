@@ -174,6 +174,8 @@ exports.createProject = async (req, res) => {
         serviceAccountDetails = await googleService.getServiceAccount(oauth2Client, projectId, serviceAccountEmail);
         clientServiceAccountId = serviceAccountDetails.oauth2ClientId; // Extract the OAuth2 client ID from the details
 
+        serviceAccountKey = serviceAccountKeyInDB.privateKeyData;
+
         // Decode the privateKeyData from base64 to utf8 format
         const decodedKey = Buffer.from(serviceAccountKeyInDB.privateKeyData, 'base64').toString('utf8');
         console.log('Decoded key file data is:', decodedKey);

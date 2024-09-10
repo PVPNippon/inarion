@@ -1,6 +1,10 @@
-./api/node_modules
-./frontend/node_modules
-# Ignore service account keys
+# Ignore node_modules folders in both api and frontend
+api/node_modules/
+frontend/node_modules/
 
-credentials/
-.env
+# Ignore service account keys
+api/credentials/
+api/keys/
+
+# Ignore environment files
+api/.env

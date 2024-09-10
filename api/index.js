@@ -57,11 +57,11 @@ const port = config.PORT;
 app.listen(config.PORT, async () => {
   console.log(`Listening on port ${port}`);
 
-  const fetch = (await import('node-fetch')).default;
+  // const fetch = (await import('node-fetch')).default;
 
-  // Trigger the shared drives fetch
-  await fetch(`http://localhost:${port}/api/drive/shared-drives`);
-  // Trigger the personal drives fetch
-  await fetch(`http://localhost:${port}/api/drive/personal-drives`);
+  // // Trigger the shared drives fetch
+  // await fetch(`http://localhost:${port}/api/drive/shared-drives`);
+  // // Trigger the personal drives fetch
+  // await fetch(`http://localhost:${port}/api/drive/personal-drives`);
 
 });
