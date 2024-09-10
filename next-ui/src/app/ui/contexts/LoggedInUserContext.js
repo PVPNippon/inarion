@@ -12,8 +12,6 @@ export const LoggedInUserProvider = ({ children }) => {
     // return window.localStorage.getItem('email') || '';
     if (typeof window !== 'undefined') {
       return window.localStorage.getItem('email') || '';
-    } else {
-      return '';
     }
   });
 

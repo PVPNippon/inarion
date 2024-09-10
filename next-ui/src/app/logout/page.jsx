@@ -1,13 +1,11 @@
 'use client'
 import React, { useContext, useEffect } from 'react';
-// import { useNavigate } from 'react-router-dom';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
-import { LoggedInUserContext } from '../contexts/LoggedInUserContext';
+import { LoggedInUserContext } from '../ui/contexts/LoggedInUserContext';
 
 function Logout() {
-  const { setEmail } = useContext(LoggedInUserContext); // Access the context to clear email
-  // const navigate = useNavigate();
+  const { setEmail } = useContext(LoggedInUserContext)|| ''; // Access the context to clear email
   const navigate = useRouter();
 
   useEffect(() => {
