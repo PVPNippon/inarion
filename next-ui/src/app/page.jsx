@@ -25,6 +25,7 @@ export default function Page() {
             <Link href="/mydrive-files">List My Drive Files</Link>
             <Link href="/users">List All Users</Link>
             <Link href="/home-page">Home Page</Link>
+            <Link href="/logout">Logout</Link>
           </nav>
           <RegisteOrLogin></RegisteOrLogin>
         </main>
