@@ -5,6 +5,10 @@ services:
     container_name: api_c
     ports:
       - '4000:4000'
+    networks:
+      - test
+    depends_on:
+      - ui
    
   frontend:
     build: ./frontend
@@ -22,3 +26,10 @@ services:
     #   - PORT=3000      # Specify the custom port 6000
     #   - HOST=0.0.0.0
     stdin_open: true
+    networks: 
+      - test
+
+
+networks:
+  test:
+    driver: bridge
