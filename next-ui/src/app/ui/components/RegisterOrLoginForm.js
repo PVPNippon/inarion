@@ -57,6 +57,7 @@ import React, { useState, useContext } from 'react';
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext';
 // import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import StoreUserEmail from '../serveractions/storeUserEmail';
 
 
 function RegisteOrLogin() {
@@ -72,6 +73,7 @@ function RegisteOrLogin() {
     console.log('Inside Submit');
     e.preventDefault();
     setEmail(inputEmail); // Store the adminEmail in context
+    await StoreUserEmail(inputEmail);
     // navigate('/display'); // Navigate to the display page
   
     try {
