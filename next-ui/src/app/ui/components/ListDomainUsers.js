@@ -4,11 +4,13 @@ import Link from 'next/link';
 
 import axios from 'axios';
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext';
+import GetUserEmail from '../serveractions/GetUserEmail';
 
 function ListDomainUsers() {
 
     const [usersList, setUsersList] = useState([]);
     const { email} = useContext(LoggedInUserContext);
+    // const email = GetUserEmail();
 
     useEffect(()=>{
         const fetchDomainUsers = async (req, res) =>{
@@ -16,6 +18,7 @@ function ListDomainUsers() {
                 userEmail : email, 
             }, {withCredentials: true},
         );
+        console.log("response.data", response.data);
 
             setUsersList(response.data);
         };
