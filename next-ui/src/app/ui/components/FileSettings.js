@@ -1,19 +1,19 @@
 'use client'
 import axios from 'axios';
 import React, { useState, useEffect, useContext } from 'react';
-// import { useParams } from 'react-router-dom';
+import { useParams } from 'next/navigation';
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext';
 
 
 function FileSettings () {
 
-    const {fileId} = 'dummy-file-id';
-    const [fileDetails, setFileDetails] = useState([]);
-    const { email} = useContext(LoggedInUserContext);
+    const { id } = useParams(); // Get the dynamic route parameter
+    const [fileDetails, setFileDetails] = useState(null);
+    const { email } = useContext(LoggedInUserContext);
 
     useEffect(() =>{
         const fetchFileDetails = async () => {
-            const response = await axios.post(`http://localhost:4000/drive/file/${fileId}`, {
+            const response = await axios.post(`http://localhost:4000/drive/file/${id}`, {
                 email: email,
             },
             {
@@ -23,12 +23,17 @@ function FileSettings () {
         setFileDetails(response.data);
         };
         fetchFileDetails();
-    }, [fileId, email]);
+    }, [id, email]);
 
 
     return (
         <div>
-            {JSON.stringify(fileDetails)}
+            <h2>File Details</h2>
+            {fileDetails ? (
+                <pre>{JSON.stringify(fileDetails, null, 2)}</pre>
+            ) : (
+                <p>Loading file details...</p>
+            )}
         </div>
     );
     

@@ -40,7 +40,10 @@ function ListMyDriveFiles() {
       <ul>
         {files.map(file => (
           <li key={file.id}>
-            {file.name} ({file.mimeType}) <Link href={`/drive/mydrive-files/file-settings/${file.id}`}>{file.id}</Link>
+            {file.name} ({file.mimeType}) 
+            <Link href={`/mydrive-files/file-settings/${file.id}`}>
+              {file.id}
+            </Link>
           </li>
         ))}
       </ul>
