@@ -1,7 +1,6 @@
 'use client'
 import React, { useState, useEffect, useContext } from 'react';
 import Link from 'next/link';
-
 import axios from 'axios';
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext';
 
@@ -9,18 +8,16 @@ function ListMyDriveFiles() {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { email} = useContext(LoggedInUserContext);
+  const { email } = useContext(LoggedInUserContext); // Use the email from context
 
   useEffect(() => {
-
     const fetchFiles = async () => {
       try {
         const response = await axios.post('http://localhost:4000/drive/list-files', {
-          userEmail : email, 
-        }, 
-      {
-        withCredentials: true,
-      });
+          userEmail: email, // Use the email from context
+        }, {
+          withCredentials: true,
+        });
         setFiles(response.data);
         setLoading(false);
       } catch (err) {
@@ -29,8 +26,10 @@ function ListMyDriveFiles() {
       }
     };
 
-    fetchFiles();
-  }, [email]);
+    if (email) {
+      fetchFiles();
+    }
+  }, [email]); // Fetch files whenever the email changes
 
   if (loading) return <p>Loading files...</p>;
   if (error) return <p>Error loading files: {error.message}</p>;
