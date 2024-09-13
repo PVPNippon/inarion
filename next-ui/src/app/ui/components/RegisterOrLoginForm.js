@@ -75,7 +75,7 @@ function RegisteOrLogin() {
   
     try {
       const response = await axios.post('http://localhost:4000/auth/register', {
-        email,
+        email: inputEmail,
         projectName,
       });
       setAuthUrl(response.data.authUrl);
