@@ -1,6 +1,9 @@
 const { getCredentials, initializeGoogleAuth, impersonateClient } = require('../config/googleDriveConfig');
-const { extractEmails } = require('../utility/utility_functions');
 const config = require('../config/config');
+const { extractEmails } = require('../utility/utility_function');
+const { default: axios } = require('axios');
+const API_BASE_URL = process.env.API_BASE_URL;
+const { google } = require('googleapis'); // Google APIs client library
 
 /**
  * Initializes the Google Drive instance for a specified user.
@@ -80,10 +83,27 @@ const fetchAllSharedDrives = async () => {
  * @returns {Promise<Array>} - A promise that resolves to an array of files' metadata.
  * @throws Will throw an error if there is an issue fetching the files or their metadata.
  */
-const fetchPersonalDriveFiles = async () => {
+const fetchPersonalDriveFiles = async ( adminEmail) => {
   try {
     // Extract emails from the response
-    const emailList = extractEmails(config.USERS_LIST_DIRECTORY);
+    // const emailList = extractEmails(config.USERS_LIST_DIRECTORY);
+    // const adminEmail = "testadmin@pvp-test-domain2.com";
+    let usersEmailsList = await axios.post(
+      `${API_BASE_URL}/users/users-list`,
+      {
+        userEmail: adminEmail
+      },
+      {
+        withCredentials: true, // Include session cookies
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    // console.log(usersEmailsList);
+    // const emailList = extractEmails(usersEmailsList);
+    const emailList = usersEmailsList.data.map(user => user.primaryEmail);
+    console.log(emailList);
     const personalDrivesWithFiles = [];
 
     for (const email of emailList) {
@@ -108,7 +128,39 @@ const fetchPersonalDriveFiles = async () => {
   }
 };
 
+
+/**
+ * Fetches metadata of a specific file from the Google Drive of an impersonated user.
+ * 
+ * This function impersonates a user using their email and a service account private key,
+ * then retrieves the metadata of the specified file from their Google Drive. It leverages
+ * Google's Drive API for file operations.
+ * 
+ * @param {string} emailToImpersonate - The email address of the user to impersonate in Google Drive.
+ * @param {string} fileId - The ID of the file for which metadata is being fetched.
+ * @param {string} privateKey - The private key for the service account used to authenticate the request.
+ * @returns {Promise<Object>} - A promise that resolves to an object containing the file's metadata.
+ * @throws Will throw an error if there is an issue with impersonating the user or fetching the file metadata.
+ */
+async function fetchFilesDetailsData(emailToImpersonate, fileId, privateKey) {
+
+  // Get the Google Drive instance using the impersonated user's email.
+  let drive = await getDriveInstance(emailToImpersonate);
+
+
+// Get the metadata of the file identified by the fileId from the user's Google Drive.
+  // 'fields: *' retrieves all available fields for the file metadata.
+  const fileData = await drive.files.get({
+      fileId: fileId,
+      fields: '*', // We can specify specific fields you want to retrieve, or '*' for all fields
+    });
+
+  // Return the file's metadata.
+    return(fileData.data);
+}
+
 module.exports = {
   fetchAllSharedDrives,
   fetchPersonalDriveFiles,
+  fetchFilesDetailsData,
 };

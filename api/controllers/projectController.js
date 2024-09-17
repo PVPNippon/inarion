@@ -6,6 +6,11 @@ const User = require('../models/User'); // Import User model
 const ServiceAccount = require('../models/ServiceAccount'); // Import ServiceAccount model
 const ServiceAccountKeys = require('../models/ServiceAccountKeys'); // Import ServiceAccountKeys model
 
+const express = require('express');
+const session = require('express-session');
+const cors = require('cors');
+const app = express();
+const dataController = require('../controllers/dataController');
 // Utility function to retry an async function on failure
 async function retryAsync(fn, retries = 5, delay = 2000) {
   for (let i = 0; i < retries; i++) {
@@ -43,6 +48,7 @@ const getOrganizationId = async () => {
 // Get or create a project in Google Cloud
 const getOrCreateProject = async (projectName, organizationId, userId) => {
   const projects = await googleService.listProjects(oauth2Client, organizationId);
+  console.log('Trying to find if user and projects exists in the db');
   const existingProject = projects.find(project => project.displayName.trim() === projectName.trim());
   let projectId, project;
 
@@ -93,9 +99,10 @@ exports.createProject = async (req, res) => {
     // Retry enabling APIs for the project
     await retryAsync(() => googleService.enableAPI(oauth2Client, projectId, "serviceusage.googleapis.com"));
     await retryAsync(() => googleService.enableAPI(oauth2Client, projectId, "admin.googleapis.com"));
+    // Enable the Google Drive API programmatically
     await retryAsync(() => googleService.enableAPI(oauth2Client, projectId, "drive.googleapis.com"));
-    
-    //Check for existing service account in the Database
+
+    // Check for existing service account in Google Cloud
     const serviceAccountName = email.replace(/[@.]/g, "-");
     var serviceAccounts = await googleService.listServiceAccounts(oauth2Client, projectId);
     if(serviceAccounts === undefined)
@@ -130,73 +137,86 @@ exports.createProject = async (req, res) => {
       });
     }
 
-
-        // Variables
-    let serviceAccountDetails;  // Variable to hold service account details
-    let serviceAccountKey;      // Variable to hold the generated service account key
-    let serviceAccountEmail = serviceAccount.email;  // Retrieve the service account email from the provided object
-    let clientServiceAccountId; // Variable to hold the client service account ID
-
-    // Check if the service account key already exists in the database
-    let serviceAccountKeyInDB = await ServiceAccountKeys.findOne({ where: { serviceAccountEmail: serviceAccountEmail } });
-
-    console.log('Does Service Account exist in DB - ', serviceAccountKeyInDB);
+    // Check if service account keys already exist in the database
+    let serviceAccountKeyInDB = await ServiceAccountKeys.findOne({ where: { serviceAccountEmail: serviceAccount.email } });
+    let serviceAccountKey;
 
     if (!serviceAccountKeyInDB) {
-        console.log('Creating service account key in Google Cloud and storing it in the database...');
-        
-        // If no key exists in the DB, create a new service account key using Google Cloud API
-        serviceAccountKey = await googleService.createServiceAccountKey(oauth2Client, projectId, serviceAccountEmail);
-        console.log('Created key in GCloud: ', serviceAccountKey);
+      console.log('Creating service account key in Google Cloud and storing it in the database...');
+      serviceAccountKey = await googleService.createServiceAccountKey(oauth2Client, projectId, serviceAccount.email);
+      console.log('Created key in GCloud: ', serviceAccountKey);
+      const privateKeyId = serviceAccountKey.name.split('/').pop(); // Extract the private key ID
+      console.log('privateKeyId ', privateKeyId);
+      serviceAccountKeyInDB = await ServiceAccountKeys.create({
+        serviceAccountEmail: serviceAccount.email,
+        privateKeyId: privateKeyId,
+        privateKeyData: serviceAccountKey.privateKeyData,
+        validAfterTime: new Date(serviceAccountKey.validAfterTime),
+        validBeforeTime: new Date(serviceAccountKey.validBeforeTime)
+      });
 
-        const privateKeyData = serviceAccountKey.privateKeyData; // Extract the private key data from the created key
-        const privateKeyId = serviceAccountKey.name.split('/').pop(); // Extract the private key ID from the key name
-
-        // Decode the privateKeyData from base64 to utf8 format
-        const decodedKey = Buffer.from(serviceAccountKey.privateKeyData, 'base64').toString('utf8');
-
-        clientServiceAccountId = decodedKey.client_id; // Extract the client ID from the decoded key
-
-        // Store the service account key details in the database
-        serviceAccountKeyInDB = await ServiceAccountKeys.create({
-            serviceAccountEmail: serviceAccountEmail,
-            privateKeyId: privateKeyId,
-            privateKeyData: privateKeyData,
-            validAfterTime: new Date(serviceAccountKey.validAfterTime),
-            validBeforeTime: new Date(serviceAccountKey.validBeforeTime)
-        });
-
-        console.log('Created key in DB ', serviceAccountKeyInDB);
-    } else {
-        console.log('Existing service account found in DB', serviceAccountKeyInDB);
-
-        // Retrieve existing service account details using Google Cloud API
-        serviceAccountDetails = await googleService.getServiceAccount(oauth2Client, projectId, serviceAccountEmail);
-        clientServiceAccountId = serviceAccountDetails.oauth2ClientId; // Extract the OAuth2 client ID from the details
-
-        serviceAccountKey = serviceAccountKeyInDB.privateKeyData;
-
-        // Decode the privateKeyData from base64 to utf8 format
-        const decodedKey = Buffer.from(serviceAccountKeyInDB.privateKeyData, 'base64').toString('utf8');
-        console.log('Decoded key file data is:', decodedKey);
+      console.log('Created key in DB ', serviceAccountKeyInDB);
     }
 
-    // Prepare full project data, including project ID, service account email, key, and client ID
+    console.log('existing service account ', serviceAccountKeyInDB);
+
+    // Fetch service account details
+    const serviceAccountEmail = serviceAccount.email;
+    const serviceAccountDetails = await googleService.getServiceAccount(oauth2Client, projectId, serviceAccountEmail);
+    const clientId = serviceAccountDetails.oauth2ClientId;
+
+    // Prepare full project data
     const fullCreateProjectData = {
-        projectId,
-        serviceAccountEmail,
-        serviceAccountKey,
-        clientServiceAccountId,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountKey,
+      clientId,
+      oauth2Client,
     };
 
-    req.session.projectData = fullCreateProjectData; // Store the project data in the session
+    req.session.projectData = fullCreateProjectData; // Store project data in session
 
-    const fetch = await import('node-fetch').then(mod => mod.default); // Dynamic import of node-fetch module
+    const fetch = await import('node-fetch').then(mod => mod.default); // Dynamic import of node-fetch
 
-    // Respond with the full project data as a JSON object
-    res.status(201).json({
-        fullCreateProjectData
+    // const response = await fetch('http://localhost:3000/store-project-data', {
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    //   body: JSON.stringify(fullCreateProjectData),
+    // });
+    
+    // Respond with project data
+    // res.redirect('http://frontend/home-page');
+    // res.setHeader("Content-Type", "text/html")
+    // return res.redirect('/continue'); // Redirect to your custom continue route
+    // return res.render('/views/continue.html');
+    return res.render('continue', {
+      appUrl: 'http://localhost:3000/home-page'  // Pass the app URL to EJS
     });
+    // return res.status(200).json('http://localhost:3000/home-page');
+
+    // res.send(`
+    //   <html>
+    //   <body>
+    //     <h1>Project Created Successfully!</h1>
+    //     <p>Redirecting to the app...</p>
+    //     <script>
+    //       // Use JavaScript to redirect the browser to the app
+    //       window.location.href = 'http://localhost:3000/home-page';
+    //     </script>
+    //   </body>
+    //   </html>
+    // `);
+    
+
+    // res.render('continue', {
+    //   appUrl: 'http://localhost:3000/home-page'  // Pass the app URL to the EJS template
+    // });
+
+    // res.status(201).json({
+    //   fullCreateProjectData
+    // });
   } catch (err) {
     // Handle errors
     res.status(500).send(`Error creating project: ${err.message}`);
@@ -204,11 +224,17 @@ exports.createProject = async (req, res) => {
 };
 
 // Route to get project data from the session
-exports.getProjectData = (req, res) => {
-  if (req.session.projectData) {
-    res.status(200).json(req.session.projectData);
+exports.getProjectData = async (req, res) => {
+
+  const { userEmail } = req.body;
+  console.log(`UserEmailValue: ${userEmail}`);
+  let projectData = await dataController.getProjectData(userEmail);
+  let serviceAccountData = await dataController.getServiceAccountData(projectData.projectId);
+  let serviceAccountKeys = await dataController.getServiceAccountKey(serviceAccountData.serviceAccountEmail);
+  if (projectData) {
+    res.status(200).json({projectData, serviceAccountData, serviceAccountKeys});
   } else {
-    res.status(404).json({ error: 'No project data found in session' });
+    res.status(404).json({ error: 'No project data found' });
   }
 };
 
@@ -220,5 +246,42 @@ exports.getAllProjects = async (req, res) => {
   } catch (error) {
     console.error('Error fetching projects:', error);
     res.status(500).json({ error: 'An error occurred while fetching projects.' });
+  }
+};
+
+exports.getProjectIdByEmail = async (req, res) => {
+  try {
+    // Extract the email from the request body
+    const { email } = req.body;
+
+    // Step 1: Find the user by email to get the project name
+    const user = await User.findOne({
+      where: { email }, // Search by email address
+      attributes: ['projectName'], // Only fetch the projectName
+    });
+
+    // Check if the user exists
+    if (!user) {
+      return res.status(404).json({ error: 'User with the specified email not found' });
+    }
+
+    const { projectName } = user;
+
+    // Step 2: Find the project by project name to get the project ID
+    const project = await Project.findOne({
+      where: { projectName },
+      attributes: ['projectId'], // Only fetch the projectId
+    });
+
+    // Check if the project exists
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found for the specified project name' });
+    }
+
+    // Return the project ID in JSON format
+    return res.status(200).json({ projectId: project.projectId });
+
+  } catch (error) {
+    return res.status(500).json({ error: 'An error occurred while fetching the project ID' });
   }
 };

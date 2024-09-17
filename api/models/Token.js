@@ -37,7 +37,6 @@ Token.init({
 }, {
   sequelize,
   modelName: 'Token',
-  tableName: 'tokens'
 });
 
 Token.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });

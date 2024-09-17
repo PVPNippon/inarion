@@ -1,13 +1,13 @@
-// src/ValueContext.js
+// src/contexts/ValueContext.js
 import React, { createContext, useState } from 'react';
 
-export const ValueContext = createContext<String | undefined>(undefined);
+export const ValueContext = createContext();
 
 export const ValueProvider = ({ children }) => {
-  const [value, setValue] = useState('');
+  const [email, setEmail] = useState('');
 
   return (
-    <ValueContext.Provider value={{ value, setValue }}>
+    <ValueContext.Provider value={{ email, setEmail }}>
       {children}
     </ValueContext.Provider>
   );

@@ -59,6 +59,7 @@ async function initializeGoogleAuth(credentials) {
   });
 
   // Return the initialized auth client.
+  console.log(auth);
   return auth;
 }
 

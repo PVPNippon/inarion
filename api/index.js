@@ -7,8 +7,11 @@ const projectRoutes = require('./routes/projectRoutes');
 const tokenRoutes = require('./routes/tokenRoutes');
 const userRoutes = require('./routes/userRoutes');
 const driveRoutes = require('./routes/driveRoutes');
-const sequelize = require('./config/database');
+const domainUsersRoutes = require('./routes/domainUsersRoutes');
+// const sequelize = require('./config/database');
 const cors = require('cors'); // Import the CORS package
+const path = require('path');
+
 
 //Importing all Models
 const User = require('./models/User'); 
@@ -19,14 +22,28 @@ const ServiceAccount = require('./models/ServiceAccount');
 
 const app = express();
 app.use(express.json());
-app.use(cors()); // Using CORS middleware
+// app.use(cors()); // Using CORS middleware
+
+app.use(cors({
+  origin: 'http://localhost:3000', 
+  credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+}));
 
 app.use(session({
   secret: config.JWT_ACCESS_SECRET,
   resave: false,
   saveUninitialized: true,
-  cookie: { secure: false } // Note: 'secure: false' is used for non-HTTPS (local) development
+  cookie: {
+    secure: false, // For development, set true if using https
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 1 day expiration
+  } // Note: 'secure: false' is used for non-HTTPS (local) development
 }));
+// Set the view engine to EJS
+app.set('view engine', 'ejs');
+
+// Set the directory for your EJS files
+app.set('views', path.join(__dirname, 'views'));
 
 
 
@@ -34,7 +51,19 @@ app.use('/auth', authRoutes);
 app.use('/project', projectRoutes);
 app.use('/token', tokenRoutes);
 app.use('/user', userRoutes);
+// app.use('/drive', driveRoutes);
 app.use('/api/drive', driveRoutes);
+app.use('/users', domainUsersRoutes);
+
+app.use('/htmx.org', express.static(path.join(__dirname, 'node_modules/htmx.org/dist')));
+
+// app.get('/continue', (req, res) => {
+//   res.sendFile(path.join(__dirname, '/public/continue.html'));
+// });
+
+app.get('/continue', (req, res) =>{
+  res.render('/views/continue.html');
+});
 
 app.get("/", (req, res) => {
     res.send("<h1>Home Page</h1>");
@@ -53,15 +82,4 @@ app.get("/", (req, res) => {
 // });
 
 const port = config.PORT;
-// Call the shared drives route on startup
-app.listen(config.PORT, async () => {
-  console.log(`Listening on port ${port}`);
-
-  // const fetch = (await import('node-fetch')).default;
-
-  // // Trigger the shared drives fetch
-  // await fetch(`http://localhost:${port}/api/drive/shared-drives`);
-  // // Trigger the personal drives fetch
-  // await fetch(`http://localhost:${port}/api/drive/personal-drives`);
-
-});
+app.listen(port, () => console.log(`Listening on port ${port}`));

@@ -1,13 +1,14 @@
+// src/components/Result.js
 import React, { useContext } from 'react';
 import { ValueContext } from '../contexts/ValueContext';
 
 const Result = () => {
-  const { value } = useContext(ValueContext);
+  const { email } = useContext(ValueContext);
 
   return (
     <div>
-      <h1>Stored Value:</h1>
-      <p>{value}</p>
+      <h2>Result</h2>
+      <p>Email: {email}</p>
     </div>
   );
 };
