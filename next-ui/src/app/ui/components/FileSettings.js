@@ -1,42 +1,45 @@
-'use client'
-import axios from 'axios';
+'use client';
 import React, { useState, useEffect, useContext } from 'react';
-import { useParams } from 'next/navigation';
+import axios from 'axios';
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext';
 
+function FileSettings({ fileId, emailToImpersonate }) {
+  const [fileDetails, setFileDetails] = useState([]);
+  const { email } = useContext(LoggedInUserContext); // Get the email from the context
 
-function FileSettings () {
+  useEffect(() => {
+    if (!fileId || !emailToImpersonate) {
+      console.warn("File ID or email is undefined.");
+      return; // Exit if fileId or email is not yet available
+    }
 
-    const { id } = useParams(); // Get the dynamic route parameter
-    const [fileDetails, setFileDetails] = useState(null);
-    const { email } = useContext(LoggedInUserContext);
-
-    useEffect(() =>{
-        const fetchFileDetails = async () => {
-            const response = await axios.post(`http://localhost:4000/drive/file/${id}`, {
-                email: email,
-            },
-            {
-                withCredentials: true,
-            }
-        );
+    const fetchFileDetails = async () => {
+      try {
+        const response = await axios.post(`http://localhost:4000/api/drive/file/${fileId}`, {
+          email: email,
+          emailToImpersonate: emailToImpersonate, // Impersonating email
+        }, {
+          withCredentials: true,
+        });
         setFileDetails(response.data);
-        };
-        fetchFileDetails();
-    }, [id, email]);
+      } catch (err) {
+        console.error("Error fetching file details:", err);
+      }
+    };
 
+    fetchFileDetails();
+  }, [fileId, email, emailToImpersonate]); // Only run when fileId, email, or emailToImpersonate change
 
-    return (
-        <div>
-            <h2>File Details</h2>
-            {fileDetails ? (
-                <pre>{JSON.stringify(fileDetails, null, 2)}</pre>
-            ) : (
-                <p>Loading file details...</p>
-            )}
-        </div>
-    );
-    
+  // Render the file details or loading state
+  return (
+    <div>
+      {fileId && emailToImpersonate ? (
+        <div>{JSON.stringify(fileDetails)}</div>
+      ) : (
+        <p>Loading file details...</p>
+      )}
+    </div>
+  );
 }
 
 export default FileSettings;

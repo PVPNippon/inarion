@@ -8,8 +8,6 @@ services:
     networks:
       - test
     depends_on:
-      - ui
-      - mynetwork
       - frontend
 
   frontend:
@@ -34,6 +32,6 @@ services:
 
 networks:
   test:
-      - '3000:80'
+    driver: bridge
   mynetwork:
     driver: bridge
