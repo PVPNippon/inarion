@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project Created</title>
+  <script src="/htmx.org"></script> <!-- Serve the HTMX script -->
+</head>
+<body>
+  <h1>Project Created Successfully!</h1>
+  <p>Click the button below to continue to the app.</p>
+  
+  <!-- HTMX Button to trigger redirect -->
+  <button hx-get="/redirect" hx-trigger="click" hx-swap="none">
+    Continue to App
+  </button>
+</body>
+</html>

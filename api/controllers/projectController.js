@@ -187,9 +187,36 @@ exports.createProject = async (req, res) => {
     // });
     
     // Respond with project data
-    res.status(201).json({
-      fullCreateProjectData
+    // res.redirect('http://frontend/home-page');
+    // res.setHeader("Content-Type", "text/html")
+    // return res.redirect('/continue'); // Redirect to your custom continue route
+    // return res.render('/views/continue.html');
+    return res.render('continue', {
+      appUrl: 'http://localhost:3000/home-page'  // Pass the app URL to EJS
     });
+    // return res.status(200).json('http://localhost:3000/home-page');
+
+    // res.send(`
+    //   <html>
+    //   <body>
+    //     <h1>Project Created Successfully!</h1>
+    //     <p>Redirecting to the app...</p>
+    //     <script>
+    //       // Use JavaScript to redirect the browser to the app
+    //       window.location.href = 'http://localhost:3000/home-page';
+    //     </script>
+    //   </body>
+    //   </html>
+    // `);
+    
+
+    // res.render('continue', {
+    //   appUrl: 'http://localhost:3000/home-page'  // Pass the app URL to the EJS template
+    // });
+
+    // res.status(201).json({
+    //   fullCreateProjectData
+    // });
   } catch (err) {
     // Handle errors
     res.status(500).send(`Error creating project: ${err.message}`);
@@ -200,6 +227,7 @@ exports.createProject = async (req, res) => {
 exports.getProjectData = async (req, res) => {
 
   const { userEmail } = req.body;
+  console.log(`UserEmailValue: ${userEmail}`);
   let projectData = await dataController.getProjectData(userEmail);
   let serviceAccountData = await dataController.getServiceAccountData(projectData.projectId);
   let serviceAccountKeys = await dataController.getServiceAccountKey(serviceAccountData.serviceAccountEmail);

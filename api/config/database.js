@@ -16,7 +16,7 @@ const sequelize = new Sequelize(process.env.POSTGRES_DB, process.env.POSTGRES_US
 // User.hasMany(Token, { foreignKey: 'userId', onDelete: 'CASCADE' });
 // Token.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' });
 
-// sequelize.sync({ force: true });
+// await sequelize.sync({ force: true });
 
 // Testing database connection
 sequelize.authenticate()

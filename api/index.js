@@ -10,6 +10,8 @@ const driveRoutes = require('./routes/driveRoutes');
 const domainUsersRoutes = require('./routes/domainUsersRoutes');
 // const sequelize = require('./config/database');
 const cors = require('cors'); // Import the CORS package
+const path = require('path');
+
 
 //Importing all Models
 const User = require('./models/User'); 
@@ -37,6 +39,11 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000 // 1 day expiration
   } // Note: 'secure: false' is used for non-HTTPS (local) development
 }));
+// Set the view engine to EJS
+app.set('view engine', 'ejs');
+
+// Set the directory for your EJS files
+app.set('views', path.join(__dirname, 'views'));
 
 
 
@@ -44,8 +51,19 @@ app.use('/auth', authRoutes);
 app.use('/project', projectRoutes);
 app.use('/token', tokenRoutes);
 app.use('/user', userRoutes);
-app.use('/drive', driveRoutes);
+// app.use('/drive', driveRoutes);
+app.use('/api/drive', driveRoutes);
 app.use('/users', domainUsersRoutes);
+
+app.use('/htmx.org', express.static(path.join(__dirname, 'node_modules/htmx.org/dist')));
+
+// app.get('/continue', (req, res) => {
+//   res.sendFile(path.join(__dirname, '/public/continue.html'));
+// });
+
+app.get('/continue', (req, res) =>{
+  res.render('/views/continue.html');
+});
 
 app.get("/", (req, res) => {
     res.send("<h1>Home Page</h1>");

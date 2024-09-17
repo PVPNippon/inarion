@@ -3,7 +3,9 @@ const { google } = require('googleapis'); // Google APIs client library
 const ServiceAccountKeys = require('../models/ServiceAccountKeys');
 const crypto = require('crypto');
 const dataController = require('../controllers/dataController');
+const { fetchPersonalDriveFiles, fetchAllSharedDrives, fetchFilesDetailsData } = require('../services/driveService');
 const encryptionKey = 'my-hardcoded-secret-key'; 
+const config = require('../config/config');
 
 // Function to decrypt the private key
 function decodePrivateKeyData(privateKeyData) {
@@ -12,7 +14,7 @@ function decodePrivateKeyData(privateKeyData) {
 }
 
 
-// Function to list Google Drive files
+//Older Function to list Google Drive files
 exports.listFiles = async (req, res) => {
 
   try {
@@ -28,7 +30,7 @@ exports.listFiles = async (req, res) => {
   }
 };
 
-// Function to get settings of a specific file by file ID
+//Older Function to get settings of a specific file by file ID
 exports.getFileSettings = async (req, res) => {
   const { fileId } = req.params;
 
@@ -45,7 +47,7 @@ exports.getFileSettings = async (req, res) => {
   }
 };
 
-// Function to get settings of a specific file by file ID
+//Older Function to get settings of a specific file by file ID
 exports.getFileSettingsById = async (req, res) => {
   const { fileId } = req.params; // Get fileId from the URL parameters
 
@@ -87,6 +89,7 @@ exports.getFileSettingsById = async (req, res) => {
   }
 };
 
+//Older Function to list all Personal Drive files
 exports.listDriveFiles = async (req, res) => {
   try {
    
@@ -153,9 +156,19 @@ exports.listDriveFiles = async (req, res) => {
   }
 };
 
+/**
+ * Controller function to handle the request for fetching a particular file data based on the fileId.
+ *
+ * This function is triggered when the client sends a request to retrieve the file data of a single file in a user's personal drive along with their metadata.
+ * It calls the `fetchFilesDetailsData` service function to get the files and their metadata, then returns the result as a JSON response.
+ *
+ * @returns {Promise<void>} - Sends a JSON response with the personal drive files and their metadata or an error message.
+ */
+
 exports.getFileDetails = async (req, res) => {
   try {
     const { email } = req.body;
+    const {emailToImpersonate} = req.body;
     const { fileId } = req.params;
     const userEmail = email;
     if (!userEmail || !fileId) {
@@ -175,32 +188,77 @@ exports.getFileDetails = async (req, res) => {
 
     // Decode the private key
     const privateKey = decodePrivateKeyData(serviceAccountKey.privateKeyData).private_key;
-
+    //We need to send the ServiceAccountKey here, from the request body, and if it is not found, then fetch from the db
+    const fileData = await fetchFilesDetailsData(emailToImpersonate, fileId, privateKey);
     // Create a JWT client, impersonating the user
-    const jwtClient = new google.auth.JWT({
-      email: serviceAccountData.serviceAccountEmail,
-      key: privateKey,
-      scopes: ['https://www.googleapis.com/auth/drive'],
-      subject: userEmail, // Impersonating this user
-    });
+    // const jwtClient = new google.auth.JWT({
+    //   // email: serviceAccountData.serviceAccountEmail,
+    //   email: config.CLIENT_SERVICE_ACCOUNT_EMAIL,
+
+    //   key: privateKey,
+    //   scopes: ['https://www.googleapis.com/auth/drive'],
+    //   subject: emailToImpersonate, // Impersonating this user
+    // });
 
     // Authorize the JWT client
-    await jwtClient.authorize();
+    // await jwtClient.authorize();
 
     // Create the Google Drive API client
-    const drive = google.drive({ version: 'v3', auth: jwtClient });
+    // const drive = google.drive({ version: 'v3', auth: jwtClient });
 
-    // Get the file metadata for the specified fileId
-    const response = await drive.files.get({
-      fileId: fileId,
-      fields: '*', // You can specify specific fields you want to retrieve, or '*' for all fields
-    });
+    // // Get the file metadata for the specified fileId
+    // const response = await drive.files.get({
+    //   fileId: fileId,
+    //   fields: '*', // You can specify specific fields you want to retrieve, or '*' for all fields
+    // });
 
+    // // Send the file details as the response
+    // res.status(200).json(response.data);
     // Send the file details as the response
-    res.status(200).json(response.data);
+    res.status(200).json(fileData);
 
   } catch (error) {
     console.error('Error fetching file details:', error);
     res.status(500).json({ message: 'Error fetching file details' });
   }
 };
+
+
+/**
+ * Controller function to handle the request for fetching all shared drives and their file metadata.
+ *
+ * This function is triggered when the client sends a request to retrieve the list of shared drives along with their files' metadata.
+ * It calls the `fetchAllSharedDrives` service function to get the shared drives and their file metadata, then returns the result as a JSON response.
+ *
+ * @returns {Promise<void>} - Sends a JSON response with the shared drives and their file metadata or an error message.
+ */
+exports.getSharedDrives = async (req, res) => {
+  try {
+    const sharedDrivesWithFiles = await fetchAllSharedDrives();
+    res.status(200).json(sharedDrivesWithFiles);
+  } catch (error) {
+    console.error('Internal server error:', error);
+    res.status(500).json({ error: 'Internal server error' });  
+  }
+};
+
+/**
+ * Controller function to handle the request for fetching personal drive files and their metadata.
+ *
+ * This function is triggered when the client sends a request to retrieve the files in a user's personal drive along with their metadata.
+ * It calls the `fetchPersonalDriveFiles` service function to get the files and their metadata, then returns the result as a JSON response.
+ *
+ * @returns {Promise<void>} - Sends a JSON response with the personal drive files and their metadata or an error message.
+ */
+exports.getPersonalDriveFiles = async (req, res) => {
+  const {userEmail} = req.body;
+  try {
+    const personalDriveFiles = await fetchPersonalDriveFiles(userEmail);
+    res.status(200).json(personalDriveFiles);
+  } catch (error) {
+    console.error('Internal server error:', error);
+    res.status(500).json({ error: 'Internal server error' });  
+  }
+};
+
+

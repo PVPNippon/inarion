@@ -9,7 +9,9 @@ services:
       - test
     depends_on:
       - ui
-   
+      - mynetwork
+      - frontend
+
   frontend:
     build: ./frontend
     container_name: frontend_react
@@ -32,4 +34,6 @@ services:
 
 networks:
   test:
+      - '3000:80'
+  mynetwork:
     driver: bridge
