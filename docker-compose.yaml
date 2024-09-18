@@ -6,7 +6,7 @@ services:
     ports:
       - '4000:4000'
     networks:
-      - mynetwork
+      - test
     depends_on:
       - frontend
 
@@ -14,14 +14,24 @@ services:
     build: ./frontend
     container_name: frontend_react
     ports:
-      - '3000:80'
-    environment:
-      - PORT=5000   # Set the environment variable to use port 5000
+      - '5000:80'
     stdin_open: true
-    tty: true
-    networks:
-    - mynetwork
+
+  ui:
+    build: ./next-ui
+    container_name: ui
+    ports:
+      - '3000:3000'
+    # environment:
+    #   - PORT=3000      # Specify the custom port 6000
+    #   - HOST=0.0.0.0
+    stdin_open: true
+    networks: 
+      - test
+
 
 networks:
+  test:
+    driver: bridge
   mynetwork:
     driver: bridge
