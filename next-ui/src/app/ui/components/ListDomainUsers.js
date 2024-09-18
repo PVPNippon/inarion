@@ -17,6 +17,11 @@ function ListDomainUsers() {
   // const email = GetUserEmail(); //an alternative method to fetch user email from cookies
 
   useEffect(() => {
+    /**
+     * Fetches a list of users in the domain and updates the component state.
+     * The data is fetched with the user's session cookie.
+     * @returns {Promise<void>} - Resolves when the data has been fetched and the state has been updated.
+     */
     const fetchDomainUsers = async (req, res) => {
       const response = await axios.post(
         "http://localhost:4000/users/users-list",

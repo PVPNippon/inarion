@@ -2,6 +2,11 @@
 import React, { useContext } from 'react';
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext';
 
+/**
+ * A React component that displays the stored number and admin email.
+ *
+ * @returns {JSX.Element} A React component that displays the stored number and admin email.
+ */
 function NumberDisplay() {
   const { number, adminEmail } = useContext(LoggedInUserContext); // Get the stored number and adminEmail from context
 

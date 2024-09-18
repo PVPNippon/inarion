@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { useSearchParams } from 'next/navigation';
 
+  /**
+   * A component that fetches project data from the server using the user's email
+   * and project name from the URL, and displays it. If the data is still loading,
+   * it displays a loading message. If there's an error, it displays an error message.
+   * @returns {JSX.Element} A React component that displays the project data or
+   * a loading or error message.
+   */
 const ProjectDisplay = () => {
   // const location = useLocation();
   const location = useRouter();
@@ -13,6 +20,11 @@ const ProjectDisplay = () => {
   const [projectData, setProjectData] = useState(null);
 
   useEffect(() => {
+    /**
+     * Fetches project data from the server using the user's email and project name
+     * from the URL. If the request is successful, it sets the projectData state to
+     * the response data. If there is an error, it logs the error to the console.
+     */
     const FetchProjectData = async () => {
       // const urlParams = new URLSearchParams(location.search);
       const urlParams = useSearchParams();

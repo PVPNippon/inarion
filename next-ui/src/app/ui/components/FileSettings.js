@@ -3,6 +3,16 @@ import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext';
 
+/**
+ * Displays file details for a given file ID and impersonating email.
+ *
+ * Calls the `/api/drive/file/:fileId` API endpoint to fetch the file details.
+ *
+ * @param {string} fileId The ID of the file to display details for.
+ * @param {string} emailToImpersonate The email of the user to impersonate.
+ *
+ * @returns {React.ReactElement} The JSX element with the file details or a loading message.
+ */
 function FileSettings({ fileId, emailToImpersonate }) {
   const [fileDetails, setFileDetails] = useState([]);
   const { email } = useContext(LoggedInUserContext); // Get the email from the context
@@ -13,6 +23,17 @@ function FileSettings({ fileId, emailToImpersonate }) {
       return; // Exit if fileId or email is not yet available
     }
 
+    /**
+     * Fetches the file details for the given fileId and impersonating email.
+     * 
+     * Makes a POST request to the `/api/drive/file/:fileId` API endpoint with
+     * the email and emailToImpersonate as the request body. The request is sent
+     * with the `withCredentials` option set to true, which includes the session
+     * cookies in the request.
+     * 
+     * If the request is successful, it sets the fileDetails state to the
+     * response data. If there is an error, it logs the error to the console.
+     */
     const fetchFileDetails = async () => {
       try {
         const response = await axios.post(`http://localhost:4000/api/drive/file/${fileId}`, {

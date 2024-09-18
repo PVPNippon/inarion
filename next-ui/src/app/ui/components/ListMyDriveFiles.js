@@ -5,6 +5,20 @@ import { CSVLink } from 'react-csv'; // Import CSVLink from react-csv
 import axios from 'axios';
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext';
 
+  /**
+   * Displays a list of files in the user's personal Google Drive.
+   *
+   * If the user is not logged in, this component will not render anything.
+   *
+   * This component fetches the list of files from the `personal-drives` API endpoint
+   * and displays them in a list. Each file is linked to the `FileSettings` page
+   * with the file ID and impersonating email as query parameters.
+   *
+   * The component also provides a "Export to CSV" button that exports the list
+   * of files to a CSV file.
+   *
+   * @returns {React.ReactElement} The JSX for the component.
+   */
 function ListMyDriveFiles() {
   const [filesData, setFilesData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,6 +26,17 @@ function ListMyDriveFiles() {
   const { email } = useContext(LoggedInUserContext);
 
   useEffect(() => {
+  /**
+   * Fetches the files in the user's personal drive using the `personal-drives`
+   * API endpoint.
+   *
+   * The request is sent with the `withCredentials` option set to true, which
+   * includes the session cookies in the request.
+   *
+   * If the request is successful, it sets the `filesData` state to the response
+   * data and sets `loading` to false. If there is an error, it sets `error` to
+   * the error and sets `loading` to false.
+   */
     const fetchFiles = async () => {
       try {
         const response = await axios.post('http://localhost:4000/api/drive/personal-drives', {

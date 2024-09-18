@@ -1,57 +1,4 @@
-//TO DO; the commented out version does not work on docker, but works on localhost. 
-//Keeping it for now until we figure out the cause.
-// 'use client'
-// import React, { useState, useContext } from 'react';
-// import { LoggedInUserContext } from '../contexts/LoggedInUserContext';
-// import { getFormData } from '../serveractions/HandleSubmitAction';
 
-// function RegisteOrLogin() {
-//   const { email, setEmail } = useContext(LoggedInUserContext); // Access context values
-//   const [inputEmail, setInputEmail] = useState(email); // Local state for adminEmail
-//   const [projectName, setProjectName] = useState('');
-//   const [authUrl, setAuthUrl] = useState('');
-
-//   const handleSubmitAction = async (e) => {
-//     setEmail(inputEmail); // Store the adminEmail in context
-   
-//     const url = await getFormData(e); //pas form data and obtain auth url
-//     if (url) {
-//      setAuthUrl(url);
-//     }
-//   };
-
-//   return (
-//     <div>
-//       <h2>Register or Login with Admin Email</h2>
-//       <form action={handleSubmitAction}>
-//         <input
-//           type="email"
-//           name="email"
-//           placeholder="Enter admin email"
-//           required
-//         />
-//         <input
-//           type="text"
-//           name="projectName"
-//           placeholder="Project Name"
-//           required
-//         />
-        
-//         <button type="submit">Login</button>
-//       </form>
-//       {authUrl && (
-//         <div>
-//           <p>Click the link below to authorize the application:</p>
-//           <a href={authUrl} target="_blank" rel="noopener noreferrer">
-//             Authorize
-//           </a>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
-
-// export default RegisteOrLogin;
 
 
 'use client'
@@ -61,12 +8,28 @@ import axios from 'axios';
 import StoreUserEmail from '../serveractions/storeUserEmail';
 
 
+  /**
+   * A React component that renders a form to register a new user or
+   * login with an existing user.
+   * The form accepts an email and a project name as input.
+   * When the form is submitted, an authorization URL is fetched from the server
+   * and rendered below the form as a link.
+   * The email is stored in the `LoggedInUserContext` when the form is submitted.
+   * @returns {React.ReactElement} The JSX element with the form and authorization link.
+   */
 function RegisteOrLogin() {
   const { email, setEmail } = useContext(LoggedInUserContext); // Access context values
   const [inputEmail, setInputEmail] = useState(email); // Local state for adminEmail
   const [projectName, setProjectName] = useState('');
   const [authUrl, setAuthUrl] = useState('');
 
+  /**
+   * Handles form submission by storing the email in the `LoggedInUserContext` and
+   * fetching an authorization URL from the server.
+   * The authorization URL is then stored in the component's state and rendered
+   * below the form as a link.
+   * @param {Event} e - The form submission event.
+   */
   const handleSubmit = async (e) => {
     console.log('Inside Submit');
     e.preventDefault();
