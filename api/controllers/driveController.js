@@ -1,3 +1,4 @@
+const { printHierarchy, findItem } = require('../utility/utilityFunctions');
 const oauth2Client = require('../models/googleAuth');
 const { google } = require('googleapis'); // Google APIs client library
 const ServiceAccountKeys = require('../models/ServiceAccountKeys');
@@ -234,7 +235,15 @@ exports.getFileDetails = async (req, res) => {
  */
 exports.getSharedDrives = async (req, res) => {
   try {
-    const sharedDrivesWithFiles = await fetchAllSharedDrives();
+    const sharedDrivesWithFiles = await fetchAllSharedDrivesFiles();
+
+    // Loop through each drive's hierarchy and print it
+    sharedDrivesWithFiles.forEach(drive => {
+      console.log(`Drive: ${drive.driveName}`);
+      printHierarchy(drive.children);
+      console.log('----------------------------------------------------')
+    });
+
     res.status(200).json(sharedDrivesWithFiles);
   } catch (error) {
     console.error('Internal server error:', error);
@@ -251,9 +260,18 @@ exports.getSharedDrives = async (req, res) => {
  * @returns {Promise<void>} - Sends a JSON response with the personal drive files and their metadata or an error message.
  */
 exports.getPersonalDriveFiles = async (req, res) => {
-  const {userEmail} = req.body;
   try {
+    const {userEmail} = req.body;
     const personalDriveFiles = await fetchPersonalDriveFiles(userEmail);
+
+    // Loop through each drive's hierarchy and print it
+    personalDriveFiles.forEach(drive => {
+      console.log(`User: ${drive.email}`);
+      console.log(`Drive: ${drive.driveName}`);
+      printHierarchy(drive.children);
+      console.log('----------------------------------------------------')
+    });
+
     res.status(200).json(personalDriveFiles);
   } catch (error) {
     console.error('Internal server error:', error);

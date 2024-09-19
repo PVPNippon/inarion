@@ -2,6 +2,8 @@
 require('dotenv').config();
 
 module.exports = {
+  PERSONAL_DRIVE_NAME: process.env.PERSONAL_DRIVE_NAME,
+  DOMAIN_TEST: process.env.DOMAIN_TEST,
   SUPER_ADMIN_EMAIL: process.env.SUPER_ADMIN_EMAIL,
   CLIENT_SERVICE_ACCOUNT_EMAIL: process.env.CLIENT_SERVICE_ACCOUNT_EMAIL,
   PORT: process.env.PORT || 4000,
@@ -20,6 +22,4 @@ module.exports = {
     'https://www.googleapis.com/auth/admin.directory.user',
     'https://www.googleapis.com/auth/admin.directory.domain'
   ],
-  DOMAIN_TEST:"pvp-test-domain2.com"
- 
 };
