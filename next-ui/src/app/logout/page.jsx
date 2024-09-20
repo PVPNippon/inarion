@@ -1,6 +1,6 @@
 "use client";
-import { LoggedInUserProvider } from "../ui/contexts/LoggedInUserContext";
-import Logout from "../ui/components/Logout";
+import { LoggedInUserProvider } from "../../../app/ui/contexts/LoggedInUserContext";
+import Logout from "../../../app/ui/components/Logout";
 /**
  * Page component for testing the Logout component.
  *

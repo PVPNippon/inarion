@@ -1,17 +1,17 @@
 "use client";
 import Link from "next/link";
-import { ValueProvider } from "./ui/contexts/ValueContext";
-import { LoggedInUserProvider } from "./ui/contexts/LoggedInUserContext";
-import RegisteOrLogin from "./ui/components/RegisterOrLoginForm";
-import OAuthCallback from "./ui/components/OAuthCallback";
-import ProjectDisplay from "./ui/components/ProjectDisplay";
-import Result from "./ui/components/Result";
-import LoggedInUserDetails from "./ui/components/LoggedInUserDetails";
-import FileSettings from "./ui/components/FileSettings";
-import ListDomainUsers from "./ui/components/ListDomainUsers";
-import HomePage from "./ui/components/HomePage";
-import NumberDisplay from "./ui/components/NumberDisplay";
-import ListMyDriveFiles from "./ui/components/ListMyDriveFiles";
+import { ValueProvider } from "../../app/ui/contexts/ValueContext";
+import { LoggedInUserProvider } from "../../app/ui/contexts/LoggedInUserContext";
+import RegisteOrLogin from "../../app/ui/components/RegisterOrLoginForm";
+import OAuthCallback from "../../app/ui/components/OAuthCallback";
+import ProjectDisplay from "../../app/ui/components/ProjectDisplay";
+import Result from "../../app/ui/components/Result";
+import LoggedInUserDetails from "../../app/ui/components/LoggedInUserDetails";
+import FileSettings from "../../app/ui/components/FileSettings";
+import ListDomainUsers from "../../app/ui/components/ListDomainUsers";
+import HomePage from "../../app/ui/components/HomePage";
+import NumberDisplay from "../../app/ui/components/NumberDisplay";
+import ListMyDriveFiles from "../../app/ui/components/ListMyDriveFiles";
 
 export default function Page() {
   return (

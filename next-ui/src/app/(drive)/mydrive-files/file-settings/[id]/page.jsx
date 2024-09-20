@@ -1,8 +1,8 @@
 
 
 'use client';
-import FileSettings from "@/app/ui/components/FileSettings";
-import { LoggedInUserProvider } from "@/app/ui/contexts/LoggedInUserContext";
+import FileSettings from "../../../../../../app/ui/components/FileSettings";
+import { LoggedInUserProvider } from "../../../../../../app/ui/contexts/LoggedInUserContext";
 import { useParams, useSearchParams } from 'next/navigation';
 
 /**

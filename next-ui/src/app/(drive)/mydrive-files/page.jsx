@@ -1,5 +1,5 @@
-import ListMyDriveFiles from "@/app/ui/components/ListMyDriveFiles";
-import { LoggedInUserProvider } from "@/app/ui/contexts/LoggedInUserContext";
+import ListMyDriveFiles from "../../../../app/ui/components/ListMyDriveFiles";
+import { LoggedInUserProvider } from "../../../../app/ui/contexts/LoggedInUserContext";
 
 /**
  * Page component for displaying a user's Google Drive files.

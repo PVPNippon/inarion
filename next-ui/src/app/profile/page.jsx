@@ -1,8 +1,8 @@
 
 
 "use client";
-import { LoggedInUserProvider } from "../ui/contexts/LoggedInUserContext";
-import LoggedInUserDetails from "../ui/components/LoggedInUserDetails";
+import { LoggedInUserProvider } from "../../../app/ui/contexts/LoggedInUserContext";
+import LoggedInUserDetails from "../../../app/ui/components/LoggedInUserDetails";
 /**
  * Page component for displaying the profile of the currently logged in user.
  *
