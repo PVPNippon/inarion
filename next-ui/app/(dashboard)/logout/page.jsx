@@ -1,12 +1,11 @@
 'use client'
 import { LoggedInUserProvider } from '../../ui/contexts/LoggedInUserContext'
-import LoggedInUserDetails from '../../ui/components/LoggedInUserDetails'
+import Logout from '../../ui/components/Logout'
 
-export default function Profile() {
+export default function LogoutTest() {
   return (
     <LoggedInUserProvider>
-      <h1>Profile</h1>
-      <LoggedInUserDetails />
+      <Logout />
     </LoggedInUserProvider>
   )
 }
