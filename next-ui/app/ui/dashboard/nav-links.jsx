@@ -3,21 +3,22 @@ import {
   HomeIcon,
   CalendarIcon,
   FolderIcon,
-  UserIcon,
+  UserGroupIcon,
   BellIcon,
-  CogIcon,
+  Cog8ToothIcon,
   ArrowRightStartOnRectangleIcon,
 } from '@heroicons/react/24/outline'
+
 import { ValueProvider } from '../contexts/ValueContext'
 import { LoggedInUserProvider } from '../contexts/LoggedInUserContext'
 
 const links = [
   { name: 'Home', href: '/', icon: HomeIcon },
+  { name: 'Drive & Docs', href: '/drive', icon: FolderIcon },
   { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
-  { name: 'Drive', href: '/drive', icon: FolderIcon },
-  { name: 'People', href: '/people', icon: UserIcon },
-  { name: 'Notifications', href: '/notifications', icon: BellIcon },
-  { name: 'Settings', href: '/settings', icon: CogIcon },
+  { name: 'Groups & Users', href: '/people', icon: UserGroupIcon },
+  { name: 'Alert Center', href: '/notifications', icon: BellIcon },
+  { name: 'Settings', href: '/settings', icon: Cog8ToothIcon },
   { name: 'Logout', href: '/logout', icon: ArrowRightStartOnRectangleIcon },
 ]
 
