@@ -30,25 +30,28 @@ function decodePrivateKeyData(privateKeyData) {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getDomainUsersList = async (req, res) =>{
-    const { email, userEmail } = req.body;  // Extract the email and userEmail from the request body
-  console.log(`UserEmail: ${userEmail}`);
-
+    let { email, userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body;  // Extract the email and userEmail from the request body
+  
+  console.log('Type of projectData:', typeof serviceAccountEmail);
   // Retrieve project data using the user email
-  let projectData = await dataController.getProjectData(userEmail);
-  let projectId = projectData.projectId;
+  // let projectData = await dataController.getProjectData(userEmail);
+  // if(projectId === undefined){
+  //   console.log('Came in here');
+  //   projectId = projectData.projectId;
+  // }
   console.log(`ProjectID: ${projectId}`);
 
   // Retrieve service account data using the project ID
-  let serviceAccountData = await dataController.getServiceAccountData(projectId);
-  let serviceAccountEmail = serviceAccountData.serviceAccountEmail;
+  // let serviceAccountData = await dataController.getServiceAccountData(projectId);
+  // let serviceAccountEmail = serviceAccountData.serviceAccountEmail;
 
   // Retrieve the service account key using the service account email
-  let serviceAccountKey = await dataController.getServiceAccountKey(serviceAccountEmail);
+  // let serviceAccountKey = await dataController.getServiceAccountKey(serviceAccountEmail);
 
   // If the service account key is not found, return a 404 error
-  if (!serviceAccountKey) {
-    return res.status(404).json({ message: 'Service account key not found' });
-  }
+  // if (!serviceAccountKey) {
+  //   return res.status(404).json({ message: 'Service account key not found' });
+  // }
 
     // Extract the private key data
     // const privateKey = serviceAccountKey.privateKeyData;
@@ -56,7 +59,9 @@ exports.getDomainUsersList = async (req, res) =>{
 
     
   // Decode the private key data for the service account
-    const keyData = decodePrivateKeyData(serviceAccountKey.privateKeyData);
+    // const keyData = decodePrivateKeyData(serviceAccountKey.privateKeyData);
+    console.log(`Privvvv key: ${serviceAccountPrivateKey}`);
+    const keyData = decodePrivateKeyData(serviceAccountPrivateKey);
     console.log(keyData);
     const privateKey = keyData.private_key;
 
@@ -89,80 +94,7 @@ exports.getDomainUsersList = async (req, res) =>{
 
 }
 
-//Old Function to get users list
-async function getAllUsersList(userEmail) {
-  try {
-    console.log(`Fetching users for admin: ${userEmail}`);
 
-    // Fetch project and service account details (similar to your current implementation)
-    let projectData = await dataController.getProjectData(userEmail);
-    let projectId = projectData.projectId;
-
-    let serviceAccountData = await dataController.getServiceAccountData(projectId);
-    let serviceAccountEmail = serviceAccountData.serviceAccountEmail;
-
-    let serviceAccountKey = await dataController.getServiceAccountKey(serviceAccountEmail);
-    if (!serviceAccountKey) {
-      throw new Error('Service account key not found');
-    }
-
-    // Decode the private key data
-    const keyData = decodePrivateKeyData(serviceAccountKey.privateKeyData);
-    const privateKey = keyData.private_key;
-
-    // Create JWT client for the service account
-    const jwtClient = new google.auth.JWT({
-      email: serviceAccountEmail,
-      key: privateKey,
-      scopes: ['https://www.googleapis.com/auth/admin.directory.user.readonly'],
-      subject: userEmail // Impersonating this user
-    });
-
-    // Authorize the client
-    await jwtClient.authorize();
-
-    const admin = google.admin({
-      version: 'directory_v1',
-      auth: jwtClient,
-    });
-
-    // Fetch the list of users in the domain
-    const response = await admin.users.list({
-      domain: 'pvp-test-domain2.com',
-    });
-
-    // Return the list of users
-    return response.data.users;
-  } catch (error) {
-    console.error('Error fetching domain users:', error);
-    throw error;
-  }
-}
-
-//Old Function to get users files
-async function getDriveFilesForAllUsers(userEmail) {
-  try {
-    // Step 1: Fetch the list of users in the domain
-    const users = await getAllUsersList(userEmail);
-
-    const results = [];
-
-    // Step 2: For each user, fetch their Drive files
-    for (const user of users) {
-      const userDriveFiles = await getDriveFilesForUser(user.primaryEmail); // Assuming primaryEmail is the user's email
-      results.push({
-        userEmail: user.primaryEmail,
-        files: userDriveFiles,
-      });
-    }
-
-    // Step 3: Return the combined results
-    return results;
-  } catch (error) {
-    console.error('Error fetching Drive files for all users:', error);
-    throw error;
-  }
-}
 
 exports.listAllDriveFiles = async (req, res) => {
   const { userEmail } = req.body; // The admin user's email for impersonation

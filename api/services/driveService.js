@@ -16,12 +16,13 @@ const { google } = require('googleapis'); // Google APIs client library
  * @returns {Promise<Object>} - A promise that resolves to the Google Drive client instance.
  * @throws Will throw an error if there is an issue initializing the Google Drive instance.
  */
-async function getDriveInstance(user) {
+async function getDriveInstance(user, serviceAccountEmail) {
   try {
     // The service account email, which is used to authenticate API requests, is retrieved from the configuration file.
-    const serviceAccountEmail = config.CLIENT_SERVICE_ACCOUNT_EMAIL;
+    // const serviceAccountEmail = config.CLIENT_SERVICE_ACCOUNT_EMAIL;
 
     // Fetch the service account credentials from the database and decode them.
+    console.log(`service acc email: ${serviceAccountEmail}`);
     const credentials = await getCredentials(serviceAccountEmail);
 
     // Initialize the Google Auth client using the retrieved credentials.
@@ -207,9 +208,11 @@ const fetchAndBuildDriveFiles = async (drive, driveName, isSharedDrive, rootFold
  * 
  * @returns {Promise<Array>} - A promise that resolves to an array of shared drives with their file hierarchies.
  */
-const fetchAllSharedDrivesFiles = async () => {
+const fetchAllSharedDrives = async (userEmail, serviceAccountEmail) => {
   try {
-    const drive = await getDriveInstance(config.SUPER_ADMIN_EMAIL);  // Get Google Drive instance as super admin
+    // const drive = await getDriveInstance(config.SUPER_ADMIN_EMAIL);
+    const drive = await getDriveInstance(userEmail, serviceAccountEmail);  // Get Google Drive instance as super admin
+    // Get Google Drive instance as super admin
     const drivesResponse = await drive.drives.list();  // Fetch all shared drives
     const sharedDrives = drivesResponse.data.drives || [];  // Fallback to an empty array if no drives are found
     const sharedDrivesWithFiles = [];  // Array to store drives and their files
@@ -233,12 +236,15 @@ const fetchAllSharedDrivesFiles = async () => {
  * 
  * @returns {Promise<Array>} - A promise that resolves to an array of personal drives with their file hierarchies.
  */
-const fetchPersonalDriveFiles = async ( adminEmail) => {
+const fetchPersonalDriveFiles = async ( adminEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey) => {
   try {
     let usersEmailsList = await axios.post(
       `${API_BASE_URL}/users/users-list`,
       {
-        userEmail: adminEmail
+        userEmail: adminEmail, 
+        projectId: projectId,
+        serviceAccountEmail: serviceAccountEmail,
+        serviceAccountPrivateKey: serviceAccountPrivateKey, 
       },
       {
         withCredentials: true, // Include session cookies
@@ -251,8 +257,9 @@ const fetchPersonalDriveFiles = async ( adminEmail) => {
     const personalDrivesWithFiles = [];  // Array to store personal drives and their files
 
     for (const email of emailList) {
+      
       try {
-        const drive = await getDriveInstance(email);  // Get Google Drive instance for the user
+        const drive = await getDriveInstance(email, serviceAccountEmail);  // Get Google Drive instance for the user
 
         // Fetch and build hierarchy for the user's personal drive
         const driveFiles = await fetchFilesFromDrive(drive, null);  // Fetch files from user's personal drive
@@ -274,6 +281,7 @@ const fetchPersonalDriveFiles = async ( adminEmail) => {
         console.error(`Failed to process email ${email}:`, error.message);
       }
     }
+    console.log()
 
     return personalDrivesWithFiles;  // Return the array of personal drives with their file structures
   } catch (error) {
@@ -297,10 +305,10 @@ const fetchPersonalDriveFiles = async ( adminEmail) => {
  * @returns {Promise<Object>} - A promise that resolves to an object containing the file's metadata.
  * @throws Will throw an error if there is an issue with impersonating the user or fetching the file metadata.
  */
-async function fetchFilesDetailsData(emailToImpersonate, fileId, privateKey) {
+async function fetchFilesDetailsData(emailToImpersonate, fileId, privateKey, serviceAccountEmail) {
 
   // Get the Google Drive instance using the impersonated user's email.
-  let drive = await getDriveInstance(emailToImpersonate);
+  let drive = await getDriveInstance(emailToImpersonate, serviceAccountEmail);
 
 
 // Get the metadata of the file identified by the fileId from the user's Google Drive.
@@ -315,7 +323,7 @@ async function fetchFilesDetailsData(emailToImpersonate, fileId, privateKey) {
 }
 
 module.exports = {
-  fetchAllSharedDrivesFiles,
+  fetchAllSharedDrives,
   fetchPersonalDriveFiles,
   fetchFilesDetailsData,
 };

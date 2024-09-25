@@ -2,12 +2,14 @@ import axios from 'axios';
 import React, { useState, useEffect, useContext } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext';
+import { ProjectDataContext } from '../contexts/ProjectDataContext';
 
 function FileSettings() {
   const { fileId } = useParams(); // This extracts the fileId from the URL
   const location = useLocation();
   const [fileDetails, setFileDetails] = useState([]);
   const { email } = useContext(LoggedInUserContext);
+  const {projectData} = useContext(ProjectDataContext);
 
   // Extract the email from the query parameters
   const queryParams = new URLSearchParams(location.search);
@@ -19,6 +21,9 @@ function FileSettings() {
         const response = await axios.post(`http://localhost:4000/api/drive/file/${fileId}`, {
           email: email,
           emailToImpersonate: emailToImpersonate,
+          projectId: projectData.projectData.projectId,
+          serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
+          serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
         }, {
           withCredentials: true,
         });

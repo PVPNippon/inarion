@@ -75,7 +75,7 @@ const getOrCreateProject = async (projectName, organizationId, userId) => {
 // Route to create a new project
 exports.createProject = async (req, res) => {
   console.log('Entered the create project route');
-  const { tokens, email, projectName } = req.body;
+  const { tokens, email, projectName } = req.session;
 
   // Logging the tokens and other parameters for debugging
   console.log('Tokens used to create project:', tokens);
@@ -178,45 +178,12 @@ exports.createProject = async (req, res) => {
 
     const fetch = await import('node-fetch').then(mod => mod.default); // Dynamic import of node-fetch
 
-    // const response = await fetch('http://localhost:3000/store-project-data', {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify(fullCreateProjectData),
-    // });
     
-    // Respond with project data
-    // res.redirect('http://frontend/home-page');
-    // res.setHeader("Content-Type", "text/html")
-    // return res.redirect('/continue'); // Redirect to your custom continue route
-    // return res.render('/views/continue.html');
+    
     return res.render('continue', {
-      appUrl: 'http://localhost:3000/home-page'  // Pass the app URL to EJS
+      appUrl: 'http://localhost:3001/home-page'  // Pass the app URL to EJS
     });
-    // return res.status(200).json('http://localhost:3000/home-page');
-
-    // res.send(`
-    //   <html>
-    //   <body>
-    //     <h1>Project Created Successfully!</h1>
-    //     <p>Redirecting to the app...</p>
-    //     <script>
-    //       // Use JavaScript to redirect the browser to the app
-    //       window.location.href = 'http://localhost:3000/home-page';
-    //     </script>
-    //   </body>
-    //   </html>
-    // `);
     
-
-    // res.render('continue', {
-    //   appUrl: 'http://localhost:3000/home-page'  // Pass the app URL to the EJS template
-    // });
-
-    // res.status(201).json({
-    //   fullCreateProjectData
-    // });
   } catch (err) {
     // Handle errors
     res.status(500).send(`Error creating project: ${err.message}`);

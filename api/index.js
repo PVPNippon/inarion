@@ -25,7 +25,7 @@ app.use(express.json());
 // app.use(cors()); // Using CORS middleware
 
 app.use(cors({
-  origin: 'http://localhost:3000', 
+  origin: 'http://localhost:3001', 
   credentials: true, // Allow credentials (cookies, authorization headers, etc.)
 }));
 
@@ -55,15 +55,6 @@ app.use('/user', userRoutes);
 app.use('/api/drive', driveRoutes);
 app.use('/users', domainUsersRoutes);
 
-app.use('/htmx.org', express.static(path.join(__dirname, 'node_modules/htmx.org/dist')));
-
-// app.get('/continue', (req, res) => {
-//   res.sendFile(path.join(__dirname, '/public/continue.html'));
-// });
-
-app.get('/continue', (req, res) =>{
-  res.render('/views/continue.html');
-});
 
 app.get("/", (req, res) => {
     res.send("<h1>Home Page</h1>");
