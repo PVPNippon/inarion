@@ -3,6 +3,15 @@ import FileSettings from '../../../../ui/components/FileSettings'
 import { LoggedInUserProvider } from '../../../../ui/contexts/LoggedInUserContext'
 import { useParams, useSearchParams } from 'next/navigation'
 
+/**
+ * Page component for displaying file settings.
+ *
+ * This component fetches the file ID from the URL parameters and the email
+ * from the search parameters. It then renders a header with the file ID and
+ * impersonating email, and a {@link FileSettings} component with the file ID
+ * and email as props.
+ *
+ * */
 export default function Page() {
   const { id } = useParams()
   const searchParams = useSearchParams()

@@ -6,9 +6,26 @@ import SideNav from '../ui/dashboard/sidenav'
 
 export const experimental_ppr = true
 
+/**
+ * A top-level component for rendering a dashboard page.
+ *
+ * This component is responsible for rendering the overall layout of the page,
+ * including the header, side navigation, and main content area. It accepts
+ * a single child element, which will be rendered in the main content area.
+ *
+ * The side navigation is initially collapsed to a narrow width, and can be
+ * expanded or collapsed by clicking the toggle button in the header.
+ *
+ * @param {React.ReactElement} children - The child element to render in the
+ * content area.
+ * @returns {React.ReactElement} The rendered dashboard layout.
+ */
 export default function Layout({ children }) {
   const [isCollapsed, setIsCollapsed] = useState(true)
 
+  /**
+   * Toggle the collapsed state of the side navigation.
+   */
   const toggleNav = () => {
     setIsCollapsed(!isCollapsed)
   }

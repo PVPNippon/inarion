@@ -1,6 +1,12 @@
 import ListMyDriveFiles from '../../ui/components/ListMyDriveFiles'
 import { LoggedInUserProvider } from '../../ui/contexts/LoggedInUserContext'
 
+/**
+ * A placeholder component for the Drive page.
+ *
+ * @returns {JSX.Element} A JSX element with a heading and a paragraph that says
+ * this is a placeholder for the Drive page.
+ */
 export default function MyDriveFiles() {
   return (
     <div className="text-white w-[910px]">
