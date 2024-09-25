@@ -6,6 +6,7 @@ const { google } = require('googleapis'); // Google APIs client library
 const User = require('../models/User'); // User model for database operations
 const router = express.Router();
 const axios = require('axios'); // Import axios
+const projectController = require('../controllers/projectController');
 
 // Retrieve the API base URL from environment variables
 const API_BASE_URL = process.env.API_BASE_URL;
@@ -16,7 +17,7 @@ const API_BASE_URL = process.env.API_BASE_URL;
  * @param {Object} req - The request object containing query parameters and session.
  * @param {Object} res - The response object used to send responses to the client.
  */
-exports.oauth2callback = async (req, res) => {
+exports.oauth2callback = async (req, res, next) => {
   // Extract the authorization code and state from the query parameters
   const code = req.query.code;
   const { email, projectName } = JSON.parse(req.query.state);
@@ -51,50 +52,19 @@ exports.oauth2callback = async (req, res) => {
       }
     }
 
-    // Use axios instead of fetch to make the POST request
-    const createProjectResponse = await axios.post(
-      `${API_BASE_URL}/project/create-project`,
-      {
-        tokens,
-        email,
-        projectName,
-      },
-      {
-        withCredentials: true, // Include session cookies
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
-    
-    res.status(200).json(createProjectResponse.data);
-
-    // Dynamically import the 'node-fetch' module for making HTTP requests
-    // const fetch = await import('node-fetch').then(mod => mod.default);
-    // // Make a POST request to the create-project endpoint with tokens and user details
-    // const createProjectResponse = await fetch(`${API_BASE_URL}/project/create-project`, {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify({
-    //     tokens,
-    //     email,
-    //     projectName
-    //   }),
-    //   credentials: 'include' // Include session cookies
-    // });
-    // // Parse the response data
-    // const createProjectData = await createProjectResponse.json();
-    // // Check if the response indicates success; throw an error if not
-    // if (!createProjectResponse.ok) {
-    //   throw new Error(createProjectData.message);
-    // }
-
-    // // Send the create project data as the response
-    // res.status(200).json(createProjectData);
-
    
+
+    // Construct a new request object for the createProject controller function
+  const createProjectReq = {
+    body: {
+      tokens,
+      email,
+      projectName
+    }
+  };
+
+  next();
+
 };
 
 exports.logout = async (req, res) => {

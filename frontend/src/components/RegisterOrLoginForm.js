@@ -11,7 +11,6 @@ function RegisteOrLogin() {
   const [projectName, setProjectName] = useState('');
   const [authUrl, setAuthUrl] = useState('');
 
-  const { contextNum, setContextNum} = useContext(NumContext);
   const [num, setNum] = useState(0);
   const navigate = useNavigate(); // Hook to navigate between routes
 
@@ -20,7 +19,6 @@ function RegisteOrLogin() {
     e.preventDefault();
     setEmail(inputEmail); // Store the adminEmail in context
     // navigate('/display'); // Navigate to the display page
-    setContextNum(num);
 
     try {
       const response = await axios.post('http://localhost:4000/auth/register', {
@@ -54,11 +52,7 @@ function RegisteOrLogin() {
           required
         />
         
-        <input 
-        type="number"
-        value={num}
-        onChange={(e) => setNum(e.target.value)}
-        />
+     
       
         <button type="submit">Login</button>
       </form>

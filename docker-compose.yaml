@@ -6,7 +6,14 @@ services:
     ports:
       - '4000:4000'
     networks:
+
+      - mynetwork
       - test
+    # environment:
+    #   - POSTGRES_HOST=192.168.1.7
+    #   - POSTGRES_USER=postgres
+    #   - POSTGRES_PASSWORD=***REMOVED***
+
     depends_on:
       - frontend
 
@@ -14,7 +21,10 @@ services:
     build: ./frontend
     container_name: frontend_react
     ports:
-      - '5000:80'
+      - '3001:80'
+    environment:
+      - PORT=3001   # Set the environment variable to use port 3001
+
     stdin_open: true
 
   ui:
@@ -23,7 +33,7 @@ services:
     ports:
       - '3000:3000'
     # environment:
-    #   - PORT=3000      # Specify the custom port 6000
+    #   - PORT=3000     
     #   - HOST=0.0.0.0
     stdin_open: true
     networks: 

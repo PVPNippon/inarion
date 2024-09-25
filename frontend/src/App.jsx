@@ -13,17 +13,18 @@ import RegisteOrLogin from './components/RegisterOrLoginForm';
 import LoggedInUserDetails from './components/LoggedInUserDetails';
 import Logout from './components/Logout';
 import ListMyDriveFiles from './components/ListMyDriveFiles';
-import { NumProvider } from './contexts/NumContext';
-import DisplayNumContextValue from './components/displayContextNum';
+
 import FileSettings from './components/FileSettings';
 import ListDomainUsers from './components/ListDomainUsers';
 import HomePage from './components/HomePage';
+import { ProjectDataProvider } from './contexts/ProjectDataContext';
+import ListSharedDriveFiles from './components/ListSharedDriveFiles';
 
 function App() {
   return (
     <ValueProvider>
       <LoggedInUserProvider>
-        <NumProvider>
+        <ProjectDataProvider>
         <Router>
           <nav>
             <Link to="/">Home</Link>
@@ -33,7 +34,7 @@ function App() {
             <Link to="/profile">Profile</Link>
             {/* Link to the logout route */}
             <Link to="/mydrive-files">List My Drive Files</Link> {/* Link to the logout route */}
-            <Link to="/display-num-context">Display Num Context Value</Link>
+            <Link to="/shared-drives">Shared Drives</Link>
             <Link to="/users">List All Users</Link> 
             <Link to="/home-page">Home Page</Link> 
 
@@ -43,7 +44,6 @@ function App() {
             {/* <Route path="/" element={<RegisterForm />} /> */}
             <Route path="/" element={<RegisteOrLogin />} />
             <Route path="/test-register" element={<RegisteOrLogin />} />
-            <Route path = "/display-num-context" element ={<DisplayNumContextValue />} /> 
             <Route path="/oauth2callback" element={<OAuthCallback />} />
             <Route path="/project" element={<ProjectDisplay />} />
             <Route path="/result" element={<Result />} />
@@ -55,10 +55,11 @@ function App() {
             <Route path="/home-page" element={<HomePage />} />
 
             <Route path="/mydrive-files" element={<ListMyDriveFiles />} /> {/* Home route displays list of files */}
+            <Route path="/shared-drives" element={<ListSharedDriveFiles />} /> {/* Home route displays list of files */}
             <Route path="/mydrive-files/file-settings/:fileId" element={< FileSettings />}/>
           </Routes>
         </Router>
-      </NumProvider>
+      </ProjectDataProvider>
       </LoggedInUserProvider>
     </ValueProvider>
   );

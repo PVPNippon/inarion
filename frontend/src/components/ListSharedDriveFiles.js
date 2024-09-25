@@ -5,20 +5,19 @@ import axios from 'axios';
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext';
 import { ProjectDataContext } from '../contexts/ProjectDataContext';
 
-
-// Recursive function to display folders and files
+// Recursive function to render folders and files
 const renderFileTree = (node) => {
   return (
     <ul key={node.id || node.path}>
       <li>
-        {/* Show folder or file based on mimeType */}
+        {/* Check if it's a folder or file */}
         {node.mimeType === 'application/vnd.google-apps.folder' ? (
           <strong>📁 {node.name}</strong>
         ) : (
           <span>📄 {node.name}</span>
         )}
 
-        {/* Render children if present */}
+        {/* Recursively render children if present */}
         {node.children && node.children.length > 0 && (
           <ul>
             {node.children.map((child) => renderFileTree(child))}
@@ -29,8 +28,8 @@ const renderFileTree = (node) => {
   );
 };
 
-function ListMyDriveFiles() {
-  const [filesData, setFilesData] = useState([]);
+function ListSharedDriveFiles() {
+  const [sharedDrivesData, setsharedDrivesData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { email } = useContext(LoggedInUserContext);
@@ -41,16 +40,16 @@ function ListMyDriveFiles() {
 
     const fetchFiles = async () => {
       try {
-        const response = await axios.post('http://localhost:4000/api/drive/personal-drives', {
+        const response = await axios.post('http://localhost:4000/api/drive/shared-drives', {
           userEmail: email,
-          projectId: projectData.projectData.projectId,
+        //   projectId: projectData.projectData.projectId,
           serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-          serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
+        //   serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
         }, {
           withCredentials: true,
         });
-        console.log(`response data personal drive files: ${response.data}`);
-        setFilesData(response.data);
+        console.log(response.data);
+        setsharedDrivesData(response.data);
         setLoading(false);
       } catch (err) {
         setError(err);
@@ -65,43 +64,36 @@ function ListMyDriveFiles() {
   if (error) return <p>Error loading files: {error.message}</p>;
 
   // Prepare data for CSV export
-  // const csvData = filesData.flatMap(userFiles => 
-  //   userFiles.files.map(file => ({
-  //     email: userFiles.email,
-  //     fileName: file.name,
-  //     mimeType: file.mimeType,
-  //     fileId: file.id,
-  //   }))
-  // );
-
-  if (filesData.length === 0) {
-    return <p>No files found.</p>;
-  }
+//   const csvData = sharedDrivesData.flatMap(userFiles => 
+//     userFiles.files.map(file => ({
+//       email: userFiles.email,
+//       fileName: file.name,
+//       mimeType: file.mimeType,
+//       fileId: file.id,
+//     }))
+//   );
 
   return (
     <div>
-      {/* <p>{JSON.stringify(filesData)}</p> */}
+    <h2>Shared Drive Files</h2>
+    {sharedDrivesData.length === 0 ? (
+      <p>No files found in the shared drive.</p>
+    ) : (
       <div>
-      <h2>Google Drive Files</h2>
-      {filesData.map((userFiles, index) => (
-        <div key={index}>
-          <h3>User Email: {userFiles.email}</h3>
-          <p>Drive Name: {userFiles.driveName}</p>
-          <div>
-            {userFiles.children && userFiles.children.length > 0 ? (
-              userFiles.children.map((child) => renderFileTree(child))
+        {sharedDrivesData.map((drive, index) => (
+          <div key={index}>
+            <h3>Drive Name: {drive.driveName}</h3>
+            {drive.children && drive.children.length > 0 ? (
+              drive.children.map((child) => renderFileTree(child))
             ) : (
-              <p>No files available in this drive.</p>
+              <p>No files in this drive.</p>
             )}
           </div>
-        </div>
-      ))}
+        ))}
       </div>
-      {/* <CSVLink data={csvData} filename="drive_files.csv" className="btn btn-primary">
-        Export to CSV
-      </CSVLink> */}
-    </div>
+    )}
+  </div>
   );
 }
 
-export default ListMyDriveFiles;
+export default ListSharedDriveFiles;

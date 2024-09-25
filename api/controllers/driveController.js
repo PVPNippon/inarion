@@ -168,8 +168,7 @@ exports.listDriveFiles = async (req, res) => {
 
 exports.getFileDetails = async (req, res) => {
   try {
-    const { email } = req.body;
-    const {emailToImpersonate} = req.body;
+    const { email, emailToImpersonate, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body;
     const { fileId } = req.params;
     const userEmail = email;
     if (!userEmail || !fileId) {
@@ -178,51 +177,19 @@ exports.getFileDetails = async (req, res) => {
 
     console.log(`Fetching file details for user: ${userEmail} and file: ${fileId}`);
 
-    // Fetch project data and service account data for impersonation
-    const projectData = await dataController.getProjectData(userEmail);
-    const serviceAccountData = await dataController.getServiceAccountData(projectData.projectId);
+    
+    const privateKey = decodePrivateKeyData(serviceAccountPrivateKey).private_key;
 
-    const serviceAccountKey = await dataController.getServiceAccountKey(serviceAccountData.serviceAccountEmail);
-    if (!serviceAccountKey) {
-      return res.status(404).json({ message: 'Service account key not found' });
-    }
-
-    // Decode the private key
-    const privateKey = decodePrivateKeyData(serviceAccountKey.privateKeyData).private_key;
     //We need to send the ServiceAccountKey here, from the request body, and if it is not found, then fetch from the db
-    const fileData = await fetchFilesDetailsData(emailToImpersonate, fileId, privateKey);
-    // Create a JWT client, impersonating the user
-    // const jwtClient = new google.auth.JWT({
-    //   // email: serviceAccountData.serviceAccountEmail,
-    //   email: config.CLIENT_SERVICE_ACCOUNT_EMAIL,
-
-    //   key: privateKey,
-    //   scopes: ['https://www.googleapis.com/auth/drive'],
-    //   subject: emailToImpersonate, // Impersonating this user
-    // });
-
-    // Authorize the JWT client
-    // await jwtClient.authorize();
-
-    // Create the Google Drive API client
-    // const drive = google.drive({ version: 'v3', auth: jwtClient });
-
-    // // Get the file metadata for the specified fileId
-    // const response = await drive.files.get({
-    //   fileId: fileId,
-    //   fields: '*', // You can specify specific fields you want to retrieve, or '*' for all fields
-    // });
-
-    // // Send the file details as the response
-    // res.status(200).json(response.data);
-    // Send the file details as the response
+    const fileData = await fetchFilesDetailsData(emailToImpersonate, fileId, privateKey, serviceAccountEmail);
+    
     res.status(200).json(fileData);
 
   } catch (error) {
     console.error('Error fetching file details:', error);
     res.status(500).json({ message: 'Error fetching file details' });
   }
-};
+}; 
 
 
 /**
@@ -234,8 +201,11 @@ exports.getFileDetails = async (req, res) => {
  * @returns {Promise<void>} - Sends a JSON response with the shared drives and their file metadata or an error message.
  */
 exports.getSharedDrives = async (req, res) => {
+  const {userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey} = req.body;
+  console.log(serviceAccountEmail);
   try {
-    const sharedDrivesWithFiles = await fetchAllSharedDrivesFiles();
+
+    const sharedDrivesWithFiles = await fetchAllSharedDrives(userEmail, serviceAccountEmail);
 
     // Loop through each drive's hierarchy and print it
     sharedDrivesWithFiles.forEach(drive => {
@@ -243,6 +213,7 @@ exports.getSharedDrives = async (req, res) => {
       printHierarchy(drive.children);
       console.log('----------------------------------------------------')
     });
+
 
     res.status(200).json(sharedDrivesWithFiles);
   } catch (error) {
@@ -260,9 +231,13 @@ exports.getSharedDrives = async (req, res) => {
  * @returns {Promise<void>} - Sends a JSON response with the personal drive files and their metadata or an error message.
  */
 exports.getPersonalDriveFiles = async (req, res) => {
+
+  const {userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey} = req.body;
+
+  console.log(`service accc: ${serviceAccountEmail}`);
+
   try {
-    const {userEmail} = req.body;
-    const personalDriveFiles = await fetchPersonalDriveFiles(userEmail);
+    const personalDriveFiles = await fetchPersonalDriveFiles(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey); 
 
     // Loop through each drive's hierarchy and print it
     personalDriveFiles.forEach(drive => {
@@ -271,6 +246,7 @@ exports.getPersonalDriveFiles = async (req, res) => {
       printHierarchy(drive.children);
       console.log('----------------------------------------------------')
     });
+
 
     res.status(200).json(personalDriveFiles);
   } catch (error) {

@@ -16,7 +16,7 @@ module.exports = {
   POSTGRES_DB: process.env.POSTGRES_DB,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-  REDIRECT_URI: "http://localhost:4000/auth/oauth2callback",
+  REDIRECT_URI: "http://localhost:4000/project/initiate-project",
   SCOPES: [
     'https://www.googleapis.com/auth/cloud-platform',
     'https://www.googleapis.com/auth/admin.directory.user',
