@@ -4,30 +4,40 @@ import { homePageStyles } from '../../(dashboard)/home-page/home-page-styles'
 import React, { useContext, useEffect, useState } from 'react'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 import { ProjectDataContext } from '../contexts/ProjectDataContext'
+import axios from 'axios'
 
-//at the moment this page is a dummy with some hard-coded data. You can view it by running the ui folder on localhost:3000 or docker and accessing it with http://localhost:3000/home-page
-//you can see some white space at the bottom of the page. It's probably because the body is screen size, but this page is vertically longer than the screen(depends on window size)
-//we will adjust the shared layout later when we have more pages with real contents.
 /**
- * The HomePage component renders the home page of the app.
- *
- * @returns {JSX.Element} The JSX element representing the home page.
+ * The HomePage component fetches project data from the server using the user's
+ * email from the context, and displays it. If the data is still loading, it
+ * displays a loading message. If there's an error, it displays an error message.
+ * @see ProjectDataContext
+ * @see LoggedInUserContext
  */
-export default function HomePage() {
+const HomePage = () => {
   const { projectData, setProjectData } = useContext(ProjectDataContext) // Use ProjectDataContext
+  const [loading, setLoading] = useState(true) // Loading is initially true
   const [error, setError] = useState(null) // Error initially null
   const { email } = useContext(LoggedInUserContext) // Get email from context
 
   useEffect(() => {
+    // If projectData is already available, no need to fetch
+    if (projectData) {
+      setLoading(false)
+      console.log('Project data already present, no need to fetch')
+      return // Exit early
+    }
+
     // Ensure email is available before making the request
     if (!email) {
       setError('Email is missing from context')
-
+      setLoading(false)
       return
     }
 
     const fetchProjectData = async () => {
       try {
+        console.log('Fetching data from Backend')
+
         const response = await axios.post(
           'http://localhost:4000/project/get-project-data',
           {
@@ -47,19 +57,23 @@ export default function HomePage() {
 
         setProjectData(data) // Set the fetched data
         console.log(data)
+        setLoading(false) // Set loading to false once the data is fetched
       } catch (err) {
         setError(err.message) // Set the error message if there's an issue
+        setLoading(false) // Stop loading even if there's an error
       }
     }
-    if (!projectData) {
-      fetchProjectData()
-    }
+
+    fetchProjectData()
   }, [email, projectData, setProjectData]) // Fetch the data whenever email changes
 
-  if (!projectData) {
-    return <div className="text-white">Project data not found</div>
-  }
+  // Display loading spinner
+  if (loading) return <p>Loading...</p>
 
+  // Display error message if an error occurs
+  if (error) return <p>Error: {error}</p>
+
+  // If there's no error and the data has been fetched, display it
   return (
     <div className="font-normal text-white">
       <section className="mb-10">
@@ -156,3 +170,5 @@ export default function HomePage() {
     </div>
   )
 }
+
+export default HomePage
