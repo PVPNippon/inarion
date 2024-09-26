@@ -1,9 +1,8 @@
-"use client";
-import React, { useState, useEffect, useContext } from "react";
-import Link from "next/link";
-import axios from "axios";
-import { LoggedInUserContext } from "../contexts/LoggedInUserContext";
-import GetUserEmail from "../serveractions/GetUserEmail";
+'use client'
+import React, { useState, useEffect, useContext } from 'react'
+import Link from 'next/link'
+import axios from 'axios'
+import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 
 /**
  * A component that fetches a list of users in the domain
@@ -12,9 +11,8 @@ import GetUserEmail from "../serveractions/GetUserEmail";
  * @returns {JSX.Element}
  */
 function ListDomainUsers() {
-  const [usersList, setUsersList] = useState([]);
-  const { email } = useContext(LoggedInUserContext);
-  // const email = GetUserEmail(); //an alternative method to fetch user email from cookies
+  const [usersList, setUsersList] = useState([])
+  const { email } = useContext(LoggedInUserContext)
 
   useEffect(() => {
     /**
@@ -24,20 +22,20 @@ function ListDomainUsers() {
      */
     const fetchDomainUsers = async (req, res) => {
       const response = await axios.post(
-        "http://localhost:4000/users/users-list",
+        'http://localhost:4000/users/users-list',
         {
           userEmail: email,
         },
         { withCredentials: true }
-      );
-      console.log("response.data", response.data);
+      )
+      console.log('response.data', response.data)
 
-      setUsersList(response.data);
-    };
-    fetchDomainUsers();
-  }, [email]);
+      setUsersList(response.data)
+    }
+    fetchDomainUsers()
+  }, [email])
 
-  return <div>{JSON.stringify(usersList)}</div>;
+  return <div>{JSON.stringify(usersList)}</div>
 }
 
-export default ListDomainUsers;
+export default ListDomainUsers
