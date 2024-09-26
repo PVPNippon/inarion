@@ -15,7 +15,6 @@ export const ProjectDataProvider = ({ children }) => {
     } else {
       return null
     }
-    // return window.localStorage.getItem('projectData') || '';
   })
 
   useEffect(() => {
@@ -26,6 +25,8 @@ export const ProjectDataProvider = ({ children }) => {
       } else {
         window.localStorage.removeItem('projectData')
       }
+    } else {
+      return null
     }
   }, [projectData])
 
