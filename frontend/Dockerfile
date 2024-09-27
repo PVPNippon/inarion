@@ -12,7 +12,7 @@ RUN chmod -R 755 /app/node_modules
 RUN npm run build
 
 # Stage 2: Serve the React application using Nginx
-FROM nginx:alpine
+FROM nginx
 
 RUN rm /etc/nginx/conf.d/default.conf
 
