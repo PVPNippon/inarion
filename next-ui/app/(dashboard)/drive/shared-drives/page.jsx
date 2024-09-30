@@ -9,7 +9,6 @@ function page() {
     <LoggedInUserProvider>
       <ProjectDataProvider>
         <h2 className="text-white">Shared drives</h2>
-        <p className="text-white">This is a placeholder for the shared drive list.</p>
         <ListSharedDriveFiles></ListSharedDriveFiles>
       </ProjectDataProvider>
     </LoggedInUserProvider>
