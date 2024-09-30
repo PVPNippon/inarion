@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ProjectDataProvider } from '../../ui/contexts/ProjectDataContext'
 
 /**
  * A placeholder component for the Drive page.
@@ -143,41 +144,12 @@ export default function MyDriveFiles() {
           </Button>
         </div>
       </div>
-      <div className="w-full mt-10">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Item ID</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Owner</TableHead>
-              <TableHead>Shared Externally?</TableHead>
-              <TableHead>Trashed?</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody className="text-white">
-            <TableRow>
-              <TableCell>Hey Siri!</TableCell>
-              <TableCell>14rK3kMoKoeWW...</TableCell>
-              <TableCell>Google Doc</TableCell>
-              <TableCell>pvp.co.jp</TableCell>
-              <TableCell>Yes</TableCell>
-              <TableCell>No</TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Hey Siri!</TableCell>
-              <TableCell>14rK3kMoKoeWW...</TableCell>
-              <TableCell>Google Doc</TableCell>
-              <TableCell>pvp.co.jp</TableCell>
-              <TableCell>Yes</TableCell>
-              <TableCell>No</TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-      <div className="flex flex-col space-y-3 mt-14">
-        <Skeleton className="h-[280px] w-[640px] rounded-xl bg-white-14" />
+      <div className="w-full h-50 overflow-auto mt-10">
+        <LoggedInUserProvider>
+          <ProjectDataProvider>
+            <ListMyDriveFiles></ListMyDriveFiles>
+          </ProjectDataProvider>
+        </LoggedInUserProvider>
       </div>
     </div>
   )

@@ -1,54 +1,35 @@
 'use client'
-import React, { useState, useEffect, useContext } from 'react'
-import Link from 'next/link' // Correct import for Next.js Link component
-import { CSVLink } from 'react-csv' // Import CSVLink from react-csv
-import axios from 'axios'
-import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 
-/**
- * Displays a list of files in the user's personal Google Drive.
- *
- * If the user is not logged in, this component will not render anything.
- *
- * This component fetches the list of files from the `personal-drives` API endpoint
- * and displays them in a list. Each file is linked to the `FileSettings` page
- * with the file ID and impersonating email as query parameters.
- *
- * The component also provides a "Export to CSV" button that exports the list
- * of files to a CSV file.
- *
- * @returns {React.ReactElement} The JSX for the component.
- */
-function ListMyDriveFiles() {
+import React, { useState, useEffect, useContext } from 'react'
+import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
+import { ProjectDataContext } from '../contexts/ProjectDataContext'
+import axios from 'axios'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+
+const ListMyDriveFiles = () => {
   const [filesData, setFilesData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const { email } = useContext(LoggedInUserContext)
+  const { projectData } = useContext(ProjectDataContext)
+  const [expandedFolders, setExpandedFolders] = useState({})
 
   useEffect(() => {
-    /**
-     * Fetches the files in the user's personal drive using the `personal-drives`
-     * API endpoint.
-     *
-     * The request is sent with the `withCredentials` option set to true, which
-     * includes the session cookies in the request.
-     *
-     * If the request is successful, it sets the `filesData` state to the response
-     * data and sets `loading` to false. If there is an error, it sets `error` to
-     * the error and sets `loading` to false.
-     */
     const fetchFiles = async () => {
       try {
         const response = await axios.post(
           'http://localhost:4000/api/drive/personal-drives',
           {
             userEmail: email,
+            projectId: projectData.projectData.projectId,
+            serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
+            serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
           },
           {
             withCredentials: true,
           }
         )
-        console.log(response.data)
         setFilesData(response.data)
         setLoading(false)
       } catch (err) {
@@ -58,51 +39,92 @@ function ListMyDriveFiles() {
     }
 
     fetchFiles()
-  }, [email])
+  }, [email, projectData])
 
-  if (loading) return <p className="text-white">Loading files...</p>
-  if (error) return <p className="text-white">Error loading files: {error.message}</p>
+  if (loading) return <p>Loading folders...</p>
+  if (error) return <p>Error loading folders: {error.message}</p>
 
-  // Prepare data for CSV export
-  const csvData = filesData.flatMap((userFiles) =>
-    userFiles.files.map((file) => ({
-      email: userFiles.email,
-      fileName: file.name,
-      mimeType: file.mimeType,
-      fileId: file.id,
+  if (filesData.length === 0) {
+    return <p>No folders found.</p>
+  }
+
+  const toggleFolder = (folderId) => {
+    setExpandedFolders((prev) => ({
+      ...prev,
+      [folderId]: !prev[folderId],
     }))
-  )
+  }
+
+  const getFileType = (mimeType) => {
+    // Extract the part after "application/vnd.google-apps."
+    const type = mimeType.split('application/vnd.google-apps.')[1]
+    return type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') : 'Unknown'
+  }
 
   return (
-    <div className="text-white">
-      <h2>Google Drive Files</h2>
-      {filesData.length === 0 ? (
-        <p>No files found.</p>
-      ) : (
-        <div>
-          {filesData.map((userFiles, index) => (
-            <div key={index}>
-              <h3>User Email: {userFiles.email}</h3>
-              {userFiles.files.length > 0 ? (
-                <ul>
-                  {userFiles.files.map((file, idx) => (
-                    <li key={idx}>
-                      <strong>{file.name}</strong> ({file.mimeType}){/* Use href instead of to */}
-                      <Link href={`/drive/file-settings/${file.id}?email=${userFiles.email}`}>File ID: {file.id}</Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>No files available for this user.</p>
-              )}
-            </div>
-          ))}
+    <div className="max-h-screen overflow-auto p-4">
+      {filesData.map((userFiles, index) => (
+        <div key={index} className="mb-8">
+          <h3 className="text-lg font-bold mb-2 text-white">
+            {userFiles.email}'s Drive ({userFiles.driveName})
+          </h3>
+
+          <div className="overflow-auto max-h-[400px]">
+            <Table className="min-w-full">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Folder Name</TableHead>
+                  <TableHead>MIME Type</TableHead>
+                  <TableHead>Last Modified</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="text-white">
+                {userFiles.children && userFiles.children.length > 0 ? (
+                  userFiles.children
+                    .filter((child) => child.mimeType === 'application/vnd.google-apps.folder') // Only display folders
+                    .map((folder) => (
+                      <React.Fragment key={folder.id}>
+                        <TableRow
+                          className="border-b border-gray-200 cursor-pointer"
+                          onClick={() => toggleFolder(folder.id)}
+                        >
+                          <TableCell>
+                            <Badge className="bg-white-14">📁 {folder.name}</Badge>
+                          </TableCell>
+                          <TableCell>{getFileType(folder.mimeType)}</TableCell>
+                          <TableCell>{folder.modifiedTime}</TableCell>
+                        </TableRow>
+                        {expandedFolders[folder.id] && folder.children && folder.children.length > 0 && (
+                          <>
+                            {folder.children.map((child) => (
+                              <TableRow key={child.id}>
+                                <TableCell className="pl-8">
+                                  {child.mimeType === 'application/vnd.google-apps.folder' ? (
+                                    <>📁 {child.name}</>
+                                  ) : (
+                                    <>📄 {child.name}</>
+                                  )}
+                                </TableCell>
+                                <TableCell>{getFileType(child.mimeType)}</TableCell>
+                                <TableCell>{child.modifiedTime}</TableCell>
+                              </TableRow>
+                            ))}
+                          </>
+                        )}
+                      </React.Fragment>
+                    ))
+                ) : (
+                  <TableRow>
+                    <TableCell className="text-center text-white" colSpan={3}>
+                      No folders available in this drive.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
-      )}
-      {/* CSV export button */}
-      <CSVLink data={csvData} filename="drive_files.csv" className="btn btn-primary">
-        Export to CSV
-      </CSVLink>
+      ))}
     </div>
   )
 }

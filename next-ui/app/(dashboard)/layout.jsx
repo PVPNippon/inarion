@@ -49,7 +49,7 @@ export default function Layout({ children }) {
         </div>
 
         {/* Content Area */}
-        <div className="flex-grow p-6 md:overflow-y-auto md:p-12">{children}</div>
+        <div className="flex-grow p-6 md:overflow-y-auto md:p-12 bg-black">{children}</div>
       </div>
     </div>
   )
