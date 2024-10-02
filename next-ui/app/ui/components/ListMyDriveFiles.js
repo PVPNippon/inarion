@@ -7,13 +7,19 @@ import axios from 'axios'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 
+// Helper function to get the formatted file type
+const getFileType = (mimeType) => {
+  const type = mimeType.split('application/vnd.google-apps.')[1]
+  return type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') : 'Unknown'
+}
+
 const ListMyDriveFiles = () => {
   const [filesData, setFilesData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [expandedFolders, setExpandedFolders] = useState({})
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)
-  const [expandedFolders, setExpandedFolders] = useState({})
 
   useEffect(() => {
     const fetchFiles = async () => {
@@ -41,24 +47,40 @@ const ListMyDriveFiles = () => {
     fetchFiles()
   }, [email, projectData])
 
+  const toggleFolder = (id) => {
+    setExpandedFolders((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }))
+  }
+
+  const renderChildren = (children, level = 1) => {
+    return children.map((child) => (
+      <React.Fragment key={child.id}>
+        <TableRow
+          className="cursor-pointer"
+          onClick={() => toggleFolder(child.id)}
+          style={{ paddingLeft: `${level * 20}px` }} // Add indentation based on level
+        >
+          <TableCell className="pl-8">
+            {child.mimeType === 'application/vnd.google-apps.folder' ? <>📁 {child.name}</> : <>📄 {child.name}</>}
+          </TableCell>
+          <TableCell>{getFileType(child.mimeType)}</TableCell>
+          <TableCell>{child.modifiedTime}</TableCell>
+        </TableRow>
+        {/* Recursively render children if folder is expanded */}
+        {expandedFolders[child.id] && child.children && child.children.length > 0 && (
+          <>{renderChildren(child.children, level + 1)}</> // Increment level for nested children
+        )}
+      </React.Fragment>
+    ))
+  }
+
   if (loading) return <p>Loading folders...</p>
   if (error) return <p>Error loading folders: {error.message}</p>
 
   if (filesData.length === 0) {
     return <p>No folders found.</p>
-  }
-
-  const toggleFolder = (folderId) => {
-    setExpandedFolders((prev) => ({
-      ...prev,
-      [folderId]: !prev[folderId],
-    }))
-  }
-
-  const getFileType = (mimeType) => {
-    // Extract the part after "application/vnd.google-apps."
-    const type = mimeType.split('application/vnd.google-apps.')[1]
-    return type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') : 'Unknown'
   }
 
   return (
@@ -94,22 +116,9 @@ const ListMyDriveFiles = () => {
                           <TableCell>{getFileType(folder.mimeType)}</TableCell>
                           <TableCell>{folder.modifiedTime}</TableCell>
                         </TableRow>
+                        {/* Render folder's children with indentation */}
                         {expandedFolders[folder.id] && folder.children && folder.children.length > 0 && (
-                          <>
-                            {folder.children.map((child) => (
-                              <TableRow key={child.id}>
-                                <TableCell className="pl-8">
-                                  {child.mimeType === 'application/vnd.google-apps.folder' ? (
-                                    <>📁 {child.name}</>
-                                  ) : (
-                                    <>📄 {child.name}</>
-                                  )}
-                                </TableCell>
-                                <TableCell>{getFileType(child.mimeType)}</TableCell>
-                                <TableCell>{child.modifiedTime}</TableCell>
-                              </TableRow>
-                            ))}
-                          </>
+                          <>{renderChildren(folder.children, 2)}</> // Start at level 2 for children
                         )}
                       </React.Fragment>
                     ))

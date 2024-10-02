@@ -8,6 +8,8 @@ import {
   BellIcon,
   Cog8ToothIcon,
   ArrowRightStartOnRectangleIcon,
+  UserIcon,
+  UsersIcon,
 } from '@heroicons/react/24/outline'
 
 import { ValueProvider } from '../contexts/ValueContext'
@@ -19,8 +21,8 @@ const links = [
     name: 'Drive & Docs',
     icon: FolderIcon,
     sublinks: [
-      { name: 'My Drive', href: '/drive' },
-      { name: 'Shared Drives', href: '/drive/shared-drives' },
+      { name: 'My Drive', href: '/drive', icon: UserIcon },
+      { name: 'Shared Drives', href: '/drive/shared-drives', icon: UsersIcon },
     ],
   },
   { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
@@ -45,6 +47,7 @@ export default function NavLinks({ isCollapsed }) {
             <div key={link.name}>
               {link.sublinks ? (
                 <>
+                  {/* Parent link with icon */}
                   <button
                     onClick={toggleAccordion}
                     className="flex items-center text-white rounded-md p-2 hover:bg-gray-700 w-full text-left"
@@ -52,6 +55,8 @@ export default function NavLinks({ isCollapsed }) {
                     <link.icon className="h-5 w-5 mr-2" />
                     {!isCollapsed && <span>{link.name}</span>}
                   </button>
+
+                  {/* Sub-routes under parent link */}
                   {open && (
                     <div className="pl-6">
                       {link.sublinks.map((sublink) => (
@@ -60,7 +65,9 @@ export default function NavLinks({ isCollapsed }) {
                           href={sublink.href}
                           className="flex items-center text-white rounded-md p-2 hover:bg-gray-600"
                         >
-                          <span>{sublink.name}</span>
+                          {/* Show sub-route's specific icon, whether collapsed or not */}
+                          <sublink.icon className="h-5 w-5 mr-2" />
+                          {!isCollapsed && <span>{sublink.name}</span>}
                         </Link>
                       ))}
                     </div>

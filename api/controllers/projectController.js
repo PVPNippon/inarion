@@ -190,7 +190,7 @@ exports.createProject = async (req, res) => {
     const fetch = await import('node-fetch').then((mod) => mod.default) // Dynamic import of node-fetch
 
     return res.render('continue', {
-      appUrl: 'http://localhost:3000/home-page', // Pass the app URL to EJS
+      appUrl: 'http://localhost:3001/home-page', // Pass the app URL to EJS
     })
   } catch (err) {
     // Handle errors
