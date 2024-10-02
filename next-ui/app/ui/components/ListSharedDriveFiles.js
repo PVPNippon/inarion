@@ -1,43 +1,21 @@
 import React, { useState, useEffect, useContext } from 'react'
 import Link from 'next/link'
-import { CSVLink } from 'react-csv' // Import CSVLink from react-csv
 import axios from 'axios'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 import { ProjectDataContext } from '../contexts/ProjectDataContext'
-
-// Recursive function to render folders and files
-const renderFileTree = (node) => {
-  return (
-    <ul key={node.id || node.path}>
-      <li>
-        {/* Check if it's a folder or file */}
-        {node.mimeType === 'application/vnd.google-apps.folder' ? (
-          <strong>📁 {node.name}</strong>
-        ) : (
-          <span>📄 {node.name}</span>
-        )}
-
-        {/* Recursively render children if present */}
-        {node.children && node.children.length > 0 && <ul>{node.children.map((child) => renderFileTree(child))}</ul>}
-      </li>
-    </ul>
-  )
-}
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 
 /**
- * Displays a list of files in the shared drive.
- *
- * This component fetches the list of files in the shared drive from the API endpoint
- * and displays them in a hierarchical structure. Each folder is indented and each
- * file is linked to the `FileSettings` page with the file ID and impersonating email
- * as query parameters.
- *
- * @returns {React.ReactElement} The JSX for the component.
+ * A component that fetches shared drives and their files from the server using the user's email and
+ * project data from the URL, and displays it. If the data is still loading, it displays a loading
+ * message. If there's an error, it displays an error message.
  */
 function ListSharedDriveFiles() {
-  const [sharedDrivesData, setsharedDrivesData] = useState([])
+  const [sharedDrivesData, setSharedDrivesData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [expandedFolders, setExpandedFolders] = useState({}) // Store which folders are expanded
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)
 
@@ -48,16 +26,13 @@ function ListSharedDriveFiles() {
           'http://localhost:4000/api/drive/shared-drives',
           {
             userEmail: email,
-            //   projectId: projectData.projectData.projectId,
             serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-            //   serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
           },
           {
             withCredentials: true,
           }
         )
-        console.log(response.data)
-        setsharedDrivesData(response.data)
+        setSharedDrivesData(response.data)
         setLoading(false)
       } catch (err) {
         setError(err)
@@ -66,40 +41,94 @@ function ListSharedDriveFiles() {
     }
 
     fetchFiles()
-  }, [email])
+  }, [email, projectData])
+
+  /**
+   * Toggle the expanded state of a folder.
+   * @param {string} folderId The ID of the folder to toggle.
+   */
+  const toggleFolder = (folderId) => {
+    setExpandedFolders((prev) => ({
+      ...prev,
+      [folderId]: !prev[folderId],
+    }))
+  }
+
+  /**
+   * Get the type of a file based on its MIME type.
+   * @param {string} mimeType The MIME type of the file.
+   * @returns {string} The type of the file.
+   */
+  const getFileType = (mimeType) => {
+    // Extract the part after "application/vnd.google-apps."
+    const type = mimeType.split('application/vnd.google-apps.')[1]
+    return type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') : 'Unknown'
+  }
 
   if (loading) return <p>Loading files...</p>
   if (error) return <p>Error loading files: {error.message}</p>
 
-  // Prepare data for CSV export
-  //   const csvData = sharedDrivesData.flatMap(userFiles =>
-  //     userFiles.files.map(file => ({
-  //       email: userFiles.email,
-  //       fileName: file.name,
-  //       mimeType: file.mimeType,
-  //       fileId: file.id,
-  //     }))
-  //   );
-
   return (
-    <div className="text-white">
-      <h2>Shared Drive Files</h2>
-      {sharedDrivesData.length === 0 ? (
-        <p>No files found in the shared drive.</p>
-      ) : (
-        <div>
-          {sharedDrivesData.map((drive, index) => (
-            <div key={index}>
-              <h3>Drive Name: {drive.driveName}</h3>
-              {drive.children && drive.children.length > 0 ? (
-                drive.children.map((child) => renderFileTree(child))
-              ) : (
-                <p>No files in this drive.</p>
-              )}
-            </div>
-          ))}
+    <div className="max-h-screen overflow-auto p-4">
+      {sharedDrivesData.map((drive, index) => (
+        <div key={index} className="mb-8">
+          <h3 className="text-lg font-bold mb-2 text-white">{drive.driveName}</h3>
+          <div className="overflow-auto max-h-[400px]">
+            <Table className="min-w-full">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Item Name</TableHead>
+                  <TableHead>MIME Type</TableHead>
+                  <TableHead>Last Modified</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="text-white">
+                {drive.children && drive.children.length > 0 ? (
+                  drive.children
+                    .filter((child) => child.mimeType === 'application/vnd.google-apps.folder') // Only display folders
+                    .map((folder) => (
+                      <React.Fragment key={folder.id}>
+                        <TableRow
+                          className="border-b border-gray-200 cursor-pointer"
+                          onClick={() => toggleFolder(folder.id)}
+                        >
+                          <TableCell>
+                            <Badge className="bg-white-14">📁 {folder.name}</Badge>
+                          </TableCell>
+                          <TableCell>{getFileType(folder.mimeType)}</TableCell>
+                          <TableCell>{folder.modifiedTime}</TableCell>
+                        </TableRow>
+                        {expandedFolders[folder.id] && folder.children && folder.children.length > 0 && (
+                          <>
+                            {folder.children.map((child) => (
+                              <TableRow key={child.id}>
+                                <TableCell className="pl-8">
+                                  {child.mimeType === 'application/vnd.google-apps.folder' ? (
+                                    <>📁 {child.name}</>
+                                  ) : (
+                                    <>📄 {child.name}</>
+                                  )}
+                                </TableCell>
+                                <TableCell>{getFileType(child.mimeType)}</TableCell>
+                                <TableCell>{child.modifiedTime}</TableCell>
+                              </TableRow>
+                            ))}
+                          </>
+                        )}
+                      </React.Fragment>
+                    ))
+                ) : (
+                  <TableRow>
+                    <TableCell className="text-center text-white" colSpan={3}>
+                      No folders available in this drive.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
-      )}
+      ))}
     </div>
   )
 }
