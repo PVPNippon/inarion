@@ -1,5 +1,14 @@
 import { Bars3BottomLeftIcon, UserCircleIcon } from '@heroicons/react/24/outline'
 
+/**
+ * The Header component renders the top navigation bar of the app.
+ *
+ * @param {{ toggleNav: () => void }} props - Component props.
+ * @prop {() => void} toggleNav - A function that toggles the visibility of the
+ * sidebar navigation.
+ *
+ * @returns {JSX.Element} The JSX element representing the navigation bar.
+ */
 export default function Header({ toggleNav }) {
   return (
     <header className="w-full flex items-center justify-between p-4 bg-black">

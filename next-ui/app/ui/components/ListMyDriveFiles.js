@@ -13,11 +13,19 @@ const getFileType = (mimeType) => {
   return type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') : 'Unknown'
 }
 
+/**
+ * A component that fetches personal drive files from the server using the user's email
+ * and project data from the URL, and displays it. If the data is still loading,
+ * it displays a loading message. If there's an error, it displays an error message.
+ * @param {string} email The email of the user to impersonate.
+ * @returns {JSX.Element} A React component that displays the file data or
+ * a loading or error message.
+ */
 const ListMyDriveFiles = () => {
   const [filesData, setFilesData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [expandedFolders, setExpandedFolders] = useState({})
+  const [expandedFolders, setExpandedFolders] = useState({}) // Store which folders are expanded
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)
 
@@ -47,6 +55,10 @@ const ListMyDriveFiles = () => {
     fetchFiles()
   }, [email, projectData])
 
+  /**
+   * Toggles the expanded state of a folder.
+   * @param {string} id The ID of the folder to toggle.
+   */
   const toggleFolder = (id) => {
     setExpandedFolders((prev) => ({
       ...prev,
@@ -54,6 +66,12 @@ const ListMyDriveFiles = () => {
     }))
   }
 
+  /**
+   * Recursively renders the children of a folder with indentation.
+   * @param {object[]} children The children to render.
+   * @param {number} level The level of indentation (default is 1).
+   * @returns {JSX.Element[]} The rendered children.
+   */
   const renderChildren = (children, level = 1) => {
     return children.map((child) => (
       <React.Fragment key={child.id}>

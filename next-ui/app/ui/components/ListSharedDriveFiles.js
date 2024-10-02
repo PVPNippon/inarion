@@ -6,11 +6,16 @@ import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 
+/**
+ * A component that fetches shared drives and their files from the server using the user's email and
+ * project data from the URL, and displays it. If the data is still loading, it displays a loading
+ * message. If there's an error, it displays an error message.
+ */
 function ListSharedDriveFiles() {
   const [sharedDrivesData, setSharedDrivesData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [expandedFolders, setExpandedFolders] = useState({})
+  const [expandedFolders, setExpandedFolders] = useState({}) // Store which folders are expanded
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)
 
@@ -38,12 +43,22 @@ function ListSharedDriveFiles() {
     fetchFiles()
   }, [email, projectData])
 
+  /**
+   * Toggle the expanded state of a folder.
+   * @param {string} folderId The ID of the folder to toggle.
+   */
   const toggleFolder = (folderId) => {
     setExpandedFolders((prev) => ({
       ...prev,
       [folderId]: !prev[folderId],
     }))
   }
+
+  /**
+   * Get the type of a file based on its MIME type.
+   * @param {string} mimeType The MIME type of the file.
+   * @returns {string} The type of the file.
+   */
   const getFileType = (mimeType) => {
     // Extract the part after "application/vnd.google-apps."
     const type = mimeType.split('application/vnd.google-apps.')[1]

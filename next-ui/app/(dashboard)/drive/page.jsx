@@ -47,29 +47,13 @@ export default function MyDriveFiles() {
           </div>
 
           {/* Toggle Button */}
-
           <div className="w-1/3 flex items-center space-x-2 justify-between">
             <Label className="text-white">Filter for deleted items</Label>
             <Switch id="filter" />
           </div>
         </div>
-
-        {/* <LoggedInUserProvider>
-        <div>
-          <ListMyDriveFiles />
-        </div>
-      </LoggedInUserProvider> */}
         <div className="w-full relative flex items-center rounded-lg  py-2 gap-2 mt-4">
-          <Select>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue placeholder="--Search By--" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="id">ID</SelectItem>
-              <SelectItem value="parentFolder">Parent Folder ID</SelectItem>
-              <SelectItem value="name">Name</SelectItem>
-            </SelectContent>
-          </Select>
+          {/* Multiple Selects */}
           <Select>
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="--Search By--" />
