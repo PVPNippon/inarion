@@ -1,7 +1,7 @@
 // Import necessary configurations and utility functions
 const { getCredentials, initializeGoogleAuth, impersonateClient } = require('../config/googleDriveConfig');
 const config = require('../config/config');
-const { extractEmails } = require('../utility/utilityFunctions');
+const { extractEmails, printHierarchy } = require('../utility/utilityFunctions');
 const { default: axios } = require('axios');
 const API_BASE_URL = process.env.API_BASE_URL;
 const { google } = require('googleapis'); // Google APIs client library
@@ -58,7 +58,7 @@ const fetchFilesFromDrive = async (drive, driveId = null) => {
           driveId: driveId,
           includeItemsFromAllDrives: true,
           supportsAllDrives: true,
-          fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, parents)', 
+          fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, parents, size)', 
           q: 'trashed=false', 
           pageToken: nextPageToken,
         });
@@ -66,7 +66,7 @@ const fetchFilesFromDrive = async (drive, driveId = null) => {
         // For personal drives, only the 'user' corpora is required
         filesResponse = await drive.files.list({
           corpora: 'user', 
-          fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, parents)', 
+          fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, parents, size)', 
           q: 'trashed=false',
           pageToken: nextPageToken,
         });
@@ -113,6 +113,10 @@ const organizeFileInHierarchy = (file, fileMap, rootItems, rootFolderId, current
     lastModified: file.modifiedTime,
     parentId: file.parents && file.parents.length > 0 ? file.parents[0] : null,  // Assign parent ID if it exists
     children: [],  // Initialize empty children array (to be filled recursively)
+    fileCount: 0,  // Initialize file count
+    folderCount: 0,  // Initialize folder count
+    totalSize: file.size ? parseInt(file.size, 10) : 0,  // Initialize total size with the file's size (0 if not present)
+ 
   };
 
   // If the file has a parent, try to attach it to its parent node
@@ -140,13 +144,26 @@ const organizeFileInHierarchy = (file, fileMap, rootItems, rootFolderId, current
 
   // If the file is a folder, recursively organize its children
   if (file.mimeType.includes('application/vnd.google-apps.folder')) {
+    let folderFileCount = 0;  // Initialize the number of files inside the folder
+    let folderFolderCount = 0;  // Initialize the number of folders inside the folder
+    let folderSize = 0;  // Initialize the total size inside the folder
 
     // Populate the children array recursively with updated child nodes
     const updatedChildren = fileMap.get(file.id).children.map(childFile => {
-      return organizeFileInHierarchy(childFile, fileMap, rootItems, rootFolderId, currentDepth + 1, fileNode.path, driveName);
+      const updatedChild = organizeFileInHierarchy(childFile, fileMap, rootItems, rootFolderId, currentDepth + 1, fileNode.path, driveName);
+
+      // Accumulate child file/folder counts and size
+      folderFileCount += updatedChild.type === 'file' ? 1 : updatedChild.fileCount;
+      folderFolderCount += updatedChild.type === 'folder' ? 1 : updatedChild.folderCount;
+      folderSize += updatedChild.totalSize;
+
+      return updatedChild;
     });
 
     fileNode.children = updatedChildren;  // Assign the recursively updated children
+    fileNode.fileCount = folderFileCount;  // Total number of files inside the folder
+    fileNode.folderCount = folderFolderCount;  // Total number of folders inside the folder
+    fileNode.totalSize = folderSize;  // Total size of all files inside the folder
   }
 
   // Return the updated file node
@@ -305,7 +322,7 @@ const fetchPersonalDriveFiles = async ( adminEmail, projectId, serviceAccountEma
  * @returns {Promise<Object>} - A promise that resolves to an object containing the file's metadata.
  * @throws Will throw an error if there is an issue with impersonating the user or fetching the file metadata.
  */
-async function fetchFilesDetailsData(emailToImpersonate, fileId, privateKey, serviceAccountEmail) {
+async function fetchFilesDetailsData(emailToImpersonate, fileId,  serviceAccountEmail) {
 
   // Get the Google Drive instance using the impersonated user's email.
   let drive = await getDriveInstance(emailToImpersonate, serviceAccountEmail);
@@ -322,8 +339,213 @@ async function fetchFilesDetailsData(emailToImpersonate, fileId, privateKey, ser
     return(fileData.data);
 }
 
+
+
+
+// Obsolete Function to build a hierarchy from files and folders
+// const buildFileHierarchy = (files, rootFolderId, driveName) => {
+//   const fileMap = {}; // Map to store file by ID
+//   const result = [];  // Resulting hierarchy array
+
+//   // Step 1: Map all files by their ID
+//   files.forEach(file => {
+//     fileMap[file.id] = { ...file, children: [] };  // Initialize each file/folder with an empty children array
+//   });
+
+//   // Step 2: Organize files into a hierarchy
+//   files.forEach(file => {
+//     if (file.parents && file.parents.length > 0 && file.parents[0] !== rootFolderId) {
+//       // If the file has a parent and it's not the root, add it as a child of the parent
+//       const parent = fileMap[file.parents[0]];
+//       if (parent) {
+//         parent.children.push(fileMap[file.id]);
+//       }
+//     } else {
+//       // If the file has no parent or is in the root folder, add it to the root of the hierarchy
+//       result.push(fileMap[file.id]);
+//     }
+//   });
+
+//   return result;  // Return the hierarchical structure
+// };
+
+/**
+ * Formats a given size in bytes into a human-readable string, either in KB or MB.
+ *
+ * This helper function dynamically converts the size in bytes to KB or MB based on the value.
+ * If the size is less than 1MB, it will be shown in KB; otherwise, it will be shown in MB.
+ *
+ * @param {number} sizeInBytes - The file size in bytes.
+ * @returns {string} - The formatted size as a string with two decimal places, either in KB or MB.
+ */
+const formatSize = (sizeInBytes) => {
+  if (sizeInBytes < 1024 * 1024) {
+    // If size is less than 1MB, show in KB
+    return `${(sizeInBytes / 1024).toFixed(2)} KB`;
+  } else {
+    // If size is 1MB or more, show in MB
+    return `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+};
+
+
+/**
+ * Builds the full path of a file by recursively traversing its parent folders.
+ *
+ * This function constructs the full path to a file or folder by looking up its parent directories,
+ * starting from the file itself and walking upwards through the parent hierarchy until the root folder.
+ *
+ * @param {Object} file - The file or folder for which the full path is being constructed.
+ * @param {Array} files - The list of all files and folders, used to look up parent directories.
+ * @returns {string} - The full path of the file or folder, starting from the root.
+ */
+const buildFilePath = (file, files) => {
+  let path = file.name;
+  let parentId = file.parents && file.parents.length > 0 ? file.parents[0] : null;
+
+  while (parentId) {
+    const parentFile = files.find(f => f.id === parentId);
+    if (parentFile) {
+      path = `${parentFile.name}/${path}`;
+      parentId = parentFile.parents && parentFile.parents.length > 0 ? parentFile.parents[0] : null;
+    } else {
+      break;
+    }
+  }
+  return path;
+};
+
+/**
+ * Fetches files and folders from a shared or personal drive, calculates total storage usage, 
+ * and organizes the files into a hierarchical structure. The function also collects details 
+ * about individual files and folders.
+ *
+ * @param {Object} drive - The Google Drive API instance.
+ * @param {string} driveName - The name of the drive being processed.
+ * @param {boolean} isSharedDrive - A flag indicating if the drive is a shared drive.
+ * @param {string} rootFolderId - The ID of the root folder of the drive.
+ * @returns {Object} - An object containing total storage, file count, file details, folder details, and hierarchy.
+ */
+const fetchAndBuildDriveFilesWithStorage = async (drive, driveName, isSharedDrive, rootFolderId) => {
+
+  // Fetch all files for the specified drive (shared or personal), including size
+  const files = await fetchFilesFromDrive(drive, isSharedDrive ? rootFolderId : null);
+
+  // Calculate total storage usage and total number of files
+  const totalStorage = files.reduce((acc, file) => {
+    return acc + (file.size ? parseInt(file.size, 10) : 0);
+  }, 0);
+
+  const totalFiles = files.length;  // Count the total number of files
+
+  // Sort files by size (largest first)
+  const filesBySize = files
+    .filter(file => file.size)  // Only include files with a size
+    .sort((a, b) => b.size - a.size);
+
+  // Initialize arrays to hold file and folder details
+  const fileDetails = [];
+  const folderDetails = [];
+
+  console.log(`Drive Name: ${driveName}`);
+  console.log(`Total Storage Used: ${formatSize(totalStorage)}`);
+  console.log(`Total Number of Files: ${totalFiles}`);
+
+  // Loop through files and folders to separate them and collect details
+  files.forEach(file => {
+    if (file.mimeType === 'application/vnd.google-apps.folder') {
+      // If it's a folder, count the number of files inside it
+      const folderFileCount = files.filter(f => f.parents && f.parents.includes(file.id)).length;
+
+      folderDetails.push({
+        folderName: file.name,
+        folderFileCount,
+        folderPath: buildFilePath(file, files)  // Use buildFilePath to construct the full path
+      });
+
+      console.log(`Folder: ${file.name}, Files inside: ${folderFileCount}`);
+    } else {
+      // If it's a file, store its details
+      fileDetails.push({
+        fileName: file.name,
+        fileSize: formatSize(file.size),
+        filePath: buildFilePath(file, files)  // Use buildFilePath to construct the full path
+      });
+
+      console.log(`${file.name}: ${formatSize(file.size)}`);
+    }
+  });
+
+  // Build the hierarchical structure for the fetched files and folders
+  const children = buildHierarchy(files, rootFolderId, driveName);
+  printHierarchy(children);  // Optional: Print hierarchy for debugging purposes
+  
+  // Return the result, including drive name, total storage, file count, and details of files and folders
+  return {
+    driveName,
+    totalFiles,  // Total number of files in the drive/folder
+    totalStorage: formatSize(totalStorage),  // Total storage used in MB or KB
+    depth: 0,
+    path: driveName,
+    children,
+    fileDetails,  // File details including name, size, and path
+    folderDetails  // Folder details including name, file count, and path
+  };
+};
+
+
+/**
+ * Fetches all shared drives and their file storage usage breakdown for the given user.
+ * This function retrieves all shared drives, fetches the files within them, 
+ * and calculates the total storage used, along with file details and folder hierarchy.
+ *
+ * @param {string} userEmail - The email address of the user whose shared drives are being fetched.
+ * @param {string} serviceAccountEmail - The email of the service account used to access Google Drive API.
+ * @returns {Promise<Object>} - An object containing the shared drives, their total storage, file details, and folder hierarchy.
+ * @throws {Error} - If the API request fails or there is an issue fetching the drives.
+ */
+const fetchAllSharedDrivesWithStorage = async ( userEmail, serviceAccountEmail) =>{
+  try{
+    // Get the Google Drive instance
+    const drive = await getDriveInstance(userEmail, serviceAccountEmail);
+    // Fetch all shared drives
+    const drivesResponse = await drive.drives.list();
+    const sharedDrives = drivesResponse.data.drives || [];  // Fallback to an empty array if no drives are found
+    // Initialize an array to store shared drives with files
+    const sharedDrivesWithFiles = [];
+    // Loop through each shared drive and fetch files with storage info
+    for (const sharedDrive of sharedDrives){
+      const driveFiles = await fetchAndBuildDriveFilesWithStorage(drive, sharedDrive.name, true, sharedDrive.id);
+      sharedDrivesWithFiles.push(driveFiles);  // Add the built hierarchy to the array
+
+    }
+    // Return the shared drives with files and storage information
+    return sharedDrivesWithFiles;
+
+
+    // res.status(200).json({
+    //   message: "Shared Drive Storage Breakdown",
+    //   drives: sharedDrivesWithFiles.map(drive => ({
+    //     driveName: drive.driveName,
+    //     totalStorage: drive.totalStorage,
+    //     details: drive.details, // Include the detailed info for each drive,
+    //     fileDetails: drive.fileDetails,  // Include the detailed info for each drive, including file details
+
+    //   }))
+    // });
+  } catch (error){
+    console.log(error.message);
+    res.status(500).json({ error: error.message });  
+  }
+}
+
+
 module.exports = {
   fetchAllSharedDrives,
   fetchPersonalDriveFiles,
   fetchFilesDetailsData,
+  getDriveInstance, 
+  fetchFilesFromDrive,
+  fetchAllSharedDrivesWithStorage,
+
 };
