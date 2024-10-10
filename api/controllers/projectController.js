@@ -74,8 +74,8 @@ const getOrCreateProject = async (projectName, organizationId, userId) => {
 
 // Route to create a new project
 exports.createProject = async (req, res) => {
-  console.log('Entered the create project route');
-  const { tokens, email, projectName } = req.session;
+  console.log('Entered the create project route')
+  const { tokens, email, projectName } = req.session
 
   // Logging the tokens and other parameters for debugging
   console.log('Tokens used to create project:', tokens)
@@ -189,12 +189,9 @@ exports.createProject = async (req, res) => {
 
     const fetch = await import('node-fetch').then((mod) => mod.default) // Dynamic import of node-fetch
 
-    
-    
     return res.render('continue', {
-      appUrl: 'http://localhost:3001/home-page'  // Pass the app URL to EJS
-    });
-    
+      appUrl: 'http://localhost:3000/home-page', // Pass the app URL to EJS
+    })
   } catch (err) {
     // Handle errors
     res.status(500).send(`Error creating project: ${err.message}`)
