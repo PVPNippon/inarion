@@ -62,3 +62,41 @@ exports.listAllGroups = async (req, res) => {
   // Return the list of users as the response
   res.status(200).json(response.data)
 }
+
+exports.getGroup = async (req, res) => {
+  let { email, userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body // Extract the email and userEmail from the request body
+  console.log('Type of projectData:', typeof serviceAccountEmail)
+  console.log(`ProjectID: ${projectId}`)
+  console.log(`Privvvv key: ${serviceAccountPrivateKey}`)
+  const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
+  console.log(keyData)
+  const privateKey = keyData.private_key
+
+  // Create a new JWT client, specifying the user to impersonate
+  const jwtClient = new google.auth.JWT({
+    email: serviceAccountEmail,
+    key: privateKey,
+    scopes: [
+      'https://www.googleapis.com/auth/admin.directory.group',
+      'https://www.googleapis.com/auth/admin.reports.audit.readonly',
+      'https://www.googleapis.com/auth/admin.directory.user.readonly',
+    ],
+    subject: userEmail, // Impersonating this user
+  })
+
+  // Authorize the client
+  const token = await jwtClient.authorize()
+  console.log(token)
+
+  const admin = google.admin({ version: 'directory_v1', auth: jwtClient })
+
+  const response = await admin.groups.get({
+    // useDomainAdminAccess: true,
+    groupKey: groupEmail,
+    domain: process.env.DOMAIN_TEST,
+  })
+  console.log(response.data)
+
+  // Return the list of users as the response
+  res.status(200).json(response.data)
+}
