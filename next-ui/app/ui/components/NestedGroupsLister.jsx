@@ -1,54 +1,47 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useContext } from 'react'
+import axios from 'axios'
+import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
+import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 function NestedGroupsLister() {
+  const { email } = useContext(LoggedInUserContext)
+  const { projectData } = useContext(ProjectDataContext)
   const [inputValue, setInputValue] = useState('')
   const [groupList, setGroupList] = useState([])
   const [clickCount, setClickCount] = useState(0)
 
   useEffect(() => {
-    const dummyGroupList = [
-      {
-        email: 'group1@example.com',
-        inherited: 'group2',
-        membership: 'direct',
-        timestamp: '2022-01-01 00:00:00',
-      },
-      {
-        email: 'group2@example.com',
-        inherited: 'group3',
-        membership: 'indirect',
-        timestamp: '2022-01-01 00:00:00',
-      },
-      {
-        email: 'group3@example.com',
-        inherited: 'group4',
-        membership: 'indirect',
-        timestamp: '2022-01-01 00:00:00',
-      },
-      {
-        email: 'group4@example.com',
-        inherited: 'group5',
-        membership: 'indirect',
-        timestamp: '2022-01-01 00:00:00',
-      },
-      {
-        email: 'group5@example.com',
-        inherited: 'group6',
-        membership: 'indirect',
-        timestamp: '2022-01-01 00:00:00',
-      },
-      {
-        email: 'group6@example.com',
-        inherited: 'group7',
-        membership: 'indirect',
-        timestamp: '2022-01-01 00:00:00',
-      },
-    ]
-    setGroupList(dummyGroupList)
+    const fetchMembership = async (req, res) => {
+      try {
+        if (inputValue === '') {
+          return
+        }
+        const response = await axios.post(
+          'http://localhost:4000/groups/get-nested-membership',
+          {
+            userEmail: email,
+            projectId: projectData.projectData.projectId,
+            serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
+            serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
+            groupEmail: inputValue,
+          },
+          { withCredentials: true }
+        )
+
+        if (response.status === 200) {
+          setGroupList(response.data)
+        }
+      } catch (error) {
+        console.error(error)
+        setGroupList([{ error: error.message }])
+      }
+    }
+    setGroupList([])
+    fetchMembership()
   }, [clickCount])
   return (
     <div className="ms-5">

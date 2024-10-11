@@ -276,3 +276,51 @@ exports.getGroupJoinedActivity = async (req, res) => {
     res.status(500).json({ message: 'Error fetching group joined activity' })
   }
 }
+
+//WIP: this function will return a list of nested groups for a given group/user with "joined" timestamps
+//returns a dummy list for now
+exports.getNestedMembership = async (req, res) => {
+  // let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
+  // const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
+  // const privateKey = keyData.private_key
+  const dummyGroupList = [
+    {
+      email: 'group1@example.com',
+      inherited: 'group2',
+      membership: 'direct',
+      timestamp: '2022-01-01 00:00:00',
+    },
+    {
+      email: 'group2@example.com',
+      inherited: 'group3',
+      membership: 'indirect',
+      timestamp: '2022-01-01 00:00:00',
+    },
+    {
+      email: 'group3@example.com',
+      inherited: 'group4',
+      membership: 'indirect',
+      timestamp: '2022-01-01 00:00:00',
+    },
+    {
+      email: 'group4@example.com',
+      inherited: 'group5',
+      membership: 'indirect',
+      timestamp: '2022-01-01 00:00:00',
+    },
+    {
+      email: 'group5@example.com',
+      inherited: 'group6',
+      membership: 'indirect',
+      timestamp: '2022-01-01 00:00:00',
+    },
+    {
+      email: 'group6@example.com',
+      inherited: 'group7',
+      membership: 'indirect',
+      timestamp: '2022-01-01 00:00:00',
+    },
+  ]
+
+  res.status(200).json(dummyGroupList)
+}

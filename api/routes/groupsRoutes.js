@@ -20,4 +20,7 @@ router.post('/get-group-activity', groupsController.getGroupActivity)
 //route to get group joined activity(all "add_member" and "accept_invitation" logs for all groups in cx domain)
 router.post('/get-group-joined-activity', groupsController.getGroupJoinedActivity)
 
+//route to get nested membership table for a member(group or user)
+router.post('/get-nested-membership', groupsController.getNestedMembership)
+
 module.exports = router
