@@ -19,6 +19,7 @@ function GetGroup() {
         if (inputValue === '') {
           return
         }
+
         const response = await axios.post(
           'http://localhost:4000/groups/get-group',
           {
@@ -30,11 +31,15 @@ function GetGroup() {
           },
           { withCredentials: true }
         )
-        setGroup(response.data)
+        if (response.status === 200) {
+          setGroup(response.data)
+        }
       } catch (error) {
         console.error(error)
+        setGroup({ error: error.message })
       }
     }
+    setGroup(null)
     fetchGroup()
   }, [clickCount])
   return (

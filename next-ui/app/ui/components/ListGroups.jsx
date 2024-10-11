@@ -27,6 +27,7 @@ function ListGroups() {
         setGroupList(response.data)
       } catch (error) {
         console.error(error)
+        setGroupList([{ error: error.message }])
       }
     }
     fetchGroups()
