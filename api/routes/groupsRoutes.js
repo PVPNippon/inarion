@@ -12,6 +12,6 @@ router.post('/get-group', groupsController.getGroup)
 // router.post('/list-direct-members/:id', groupsController.listDirectMembers)
 
 // //route to list all members of a group(both direct and indirect)
-// router.post('/list-all-members/:id', groupsController.listAllMembers)
+router.post('/list-all-members', groupsController.listAllMembers)
 
 module.exports = router
