@@ -99,6 +99,36 @@ exports.getGroup = async (req, res) => {
   }
 }
 
+exports.listDirectMembers = async (req, res) => {
+  let { email, userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body // Extract the email and userEmail from the request body
+  console.log('Type of projectData:', typeof serviceAccountEmail)
+  console.log(`ProjectID: ${projectId}`)
+  console.log(`Privvvv key: ${serviceAccountPrivateKey}`)
+  const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
+  console.log(keyData)
+  const privateKey = keyData.private_key
+
+  try {
+    const jwtClient = await getClient(serviceAccountEmail, privateKey, userEmail)
+    const admin = google.admin({ version: 'directory_v1', auth: jwtClient })
+    const response = await admin.members.list({
+      groupKey: groupEmail,
+      // domain: process.env.DOMAIN_TEST,
+      maxResults: 200, //max allowed value
+      includeDerivedMembership: false,
+    })
+    console.log(response)
+    if (response.status === 404) {
+      res.status(404).json({ message: 'Group not found' })
+    }
+    // Return the list of direct members of the group
+    res.status(200).json(response.data)
+  } catch (error) {
+    console.error('Error fetching members:', error)
+    res.status(500).json({ message: 'Error fetching members' })
+  }
+}
+
 exports.listAllMembers = async (req, res) => {
   let { email, userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body // Extract the email and userEmail from the request body
   console.log('Type of projectData:', typeof serviceAccountEmail)

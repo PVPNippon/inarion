@@ -9,7 +9,7 @@ router.post('/list-groups', groupsController.listAllGroups)
 router.post('/get-group', groupsController.getGroup)
 
 // //route to list direct members of a group
-// router.post('/list-direct-members/:id', groupsController.listDirectMembers)
+router.post('/list-direct-members', groupsController.listDirectMembers)
 
 // //route to list all members of a group(both direct and indirect)
 router.post('/list-all-members', groupsController.listAllMembers)
