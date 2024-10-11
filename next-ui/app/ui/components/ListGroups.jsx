@@ -13,9 +13,14 @@ function ListGroups() {
 
   useEffect(() => {
     const fetchGroups = async (req, res) => {
+      if (clickCount === 0) {
+        return
+      }
       try {
         const response = await axios.post(
           'http://localhost:4000/groups/list-groups',
+          // 'http://localhost:4000/groups/get-group-activity',
+          // 'http://localhost:4000/groups/get-group-joined-activity',
           {
             userEmail: email,
             projectId: projectData.projectData.projectId,

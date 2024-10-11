@@ -158,3 +158,70 @@ exports.listAllMembers = async (req, res) => {
     res.status(500).json({ message: 'Error fetching members' })
   }
 }
+
+exports.getGroupActivity = async (req, res) => {
+  let { email, userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body // Extract the email and userEmail from the request body
+  console.log('Type of projectData:', typeof serviceAccountEmail)
+  console.log(`ProjectID: ${projectId}`)
+  console.log(`Privvvv key: ${serviceAccountPrivateKey}`)
+  const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
+  console.log(keyData)
+  const privateKey = keyData.private_key
+
+  try {
+    const jwtClient = await getClient(serviceAccountEmail, privateKey, userEmail)
+    const admin = google.admin({ version: 'reports_v1', auth: jwtClient })
+    const response = await admin.activities.list({
+      customerId: 'my_customer',
+      userKey: 'all',
+      applicationName: 'groups_enterprise',
+      // domain: process.env.DOMAIN_TEST,
+      maxResults: 1000, //max allowed value
+    })
+    console.log(response.data)
+    // Return the list of group activity in customer organization
+    res.status(200).json(response.data)
+  } catch (error) {
+    console.error('Error fetching group activity:', error)
+    res.status(500).json({ message: 'Error fetching group activity' })
+  }
+}
+
+exports.getGroupJoinedActivity = async (req, res) => {
+  let { email, userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body // Extract the email and userEmail from the request body
+  const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
+  const privateKey = keyData.private_key
+
+  try {
+    const promises = []
+    let allActivities = []
+    const jwtClient = await getClient(serviceAccountEmail, privateKey, userEmail)
+    const admin = google.admin({ version: 'reports_v1', auth: jwtClient })
+    const activityNames = ['add_member', 'accept_invitation']
+    activityNames.forEach(async (activityName) => {
+      const x = new Promise((resolve, reject) => {
+        resolve(
+          admin.activities.list({
+            customerId: 'my_customer',
+            userKey: 'all',
+            applicationName: 'groups_enterprise',
+            maxResults: 1000, //max allowed value
+            eventName: activityName,
+          })
+        )
+      })
+      promises.push(x)
+    })
+    await Promise.all(promises).then((results) => {
+      console.log(results)
+      results.forEach((result) => {
+        allActivities = allActivities.concat(result.data.items)
+      })
+    })
+    //Return the list of group joined activity in customer organization
+    res.status(200).json(allActivities)
+  } catch (error) {
+    console.error('Error fetching group joined activity:', error)
+    res.status(500).json({ message: 'Error fetching group joined activity' })
+  }
+}
