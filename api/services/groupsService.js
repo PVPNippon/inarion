@@ -159,14 +159,14 @@ async function listGroupMembers(
       })
       membersResponse = await directory.members.list({
         groupKey: groupEmail,
-        maxResults: 1, //max allowed value
+        maxResults: 200, //max allowed value
         includeDerivedMembership: includeDerivedMembership,
         pageToken: nextPageToken,
       })
 
       if (typeof membersResponse.data.members === 'undefined') {
         return [{ response: 'no members found' }]
-      } // Return an array with error messageif no members are found(temporary "error handling")
+      } // Return an array with error message if no members are found(temporary "error handling")
 
       // Append the fetched groups to the members array
       members.push(...membersResponse.data.members)
