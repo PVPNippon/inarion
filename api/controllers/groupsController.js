@@ -3,7 +3,7 @@ const oauth2Client = require('../models/googleAuth')
 const ServiceAccountKeys = require('../models/ServiceAccountKeys')
 const { getCredentials } = require('../config/googleGroupsConfig')
 const config = require('../config/config')
-const { listGroups, getGroupByEmail, getNestedTable } = require('../services/groupsService')
+const { listGroups, getGroupByEmail, listGroupMembers, getNestedTable } = require('../services/groupsService')
 require('dotenv').config()
 
 /**
@@ -114,7 +114,7 @@ exports.getGroup = async (req, res) => {
 /**
  * Retrieves the list of direct members of a group.
  *
- * This function takes a group's email address and returns a list of its direct members.
+ * This function takes a group's email address and returns its direct members.
  *
  * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `groupEmail` in the request body.
  * @param {Object} res - The response object used to return the list of direct members or an error message.
@@ -123,26 +123,26 @@ exports.getGroup = async (req, res) => {
  */
 exports.listDirectMembers = async (req, res) => {
   let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body
-  const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
-  const privateKey = keyData.private_key
 
   try {
-    const jwtClient = await getClient(serviceAccountEmail, privateKey, userEmail)
-    const admin = google.admin({ version: 'directory_v1', auth: jwtClient })
-    const response = await admin.members.list({
-      groupKey: groupEmail,
-      maxResults: 200, //max allowed value, need to add pagination logic(TODO)
-      includeDerivedMembership: false,
-    })
-
-    if (response.status === 404) {
-      res.status(404).json({ message: 'Group not found' })
-    }
+    const response = await listGroupMembers(
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey,
+      groupEmail,
+      false //set derived membership to false
+    ) // Get the list of direct members
 
     // Return the list of direct members of the group
-    res.status(200).json(response.data)
+    res.status(200).json(response)
   } catch (error) {
     console.error('Error fetching members:', error)
+    if (error.status === 404 || error.status === 403) {
+      return res
+        .status(404)
+        .json({ message: 'Group does not exist or you do not have necessary permissions to see this group' })
+    }
     res.status(500).json({ message: 'Error fetching members' })
   }
 }

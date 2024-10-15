@@ -122,6 +122,67 @@ async function getGroupByEmail(userEmail, projectId, serviceAccountEmail, servic
   }
 }
 
+/**
+ * Retrieves the list of members of a group.
+ *
+ * This function takes a group's email address, and optionally whether to include derived membership,
+ * and returns its members.
+ *
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @param {string} projectId - The project ID of the service account key.
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} serviceAccountPrivateKey - The private key of the service account.
+ * @param {string} groupEmail - The email address of the group.
+ * @param {boolean} [includeDerivedMembership=false] - Whether to include derived membership in the response.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of group members.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+async function listGroupMembers(
+  userEmail,
+  projectId,
+  serviceAccountEmail,
+  serviceAccountPrivateKey,
+  groupEmail,
+  includeDerivedMembership
+) {
+  const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) // Create the JWT client
+  let nextPageToken = null // Token to manage pagination
+  let members = [] // Container for members retrieved
+  let membersResponse // Response from the API
+
+  //Fetch members
+  do {
+    try {
+      const directory = google.admin({
+        version: 'directory_v1',
+        auth: jwtClient,
+      })
+      membersResponse = await directory.members.list({
+        groupKey: groupEmail,
+        maxResults: 1, //max allowed value
+        includeDerivedMembership: includeDerivedMembership,
+        pageToken: nextPageToken,
+      })
+
+      if (typeof membersResponse.data.members === 'undefined') {
+        return [{ response: 'no members found' }]
+      } // Return an array with error messageif no members are found(temporary "error handling")
+
+      // Append the fetched groups to the members array
+      members.push(...membersResponse.data.members)
+
+      // Store the next page token for pagination
+      nextPageToken = membersResponse.data.nextPageToken
+    } catch (error) {
+      // Log the error and rethrow it if member fetching fails
+      console.error('Error fetching members:', error.message)
+      throw error
+    }
+  } while (nextPageToken) // Continue fetching members while there are more pages
+
+  return members // Return all fetched members
+}
+
 //WARNING:
 //the logic below is neither optimized nor checked properly.
 //Don't look down here for the sake of your sanity.
@@ -344,4 +405,5 @@ module.exports = {
   listGroups,
   getNestedTable,
   getGroupByEmail,
+  listGroupMembers,
 }

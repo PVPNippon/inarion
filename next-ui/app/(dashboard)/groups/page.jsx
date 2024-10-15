@@ -3,6 +3,7 @@ import { LoggedInUserProvider } from '../../ui/contexts/LoggedInUserContext'
 import { ProjectDataProvider } from '../../ui/contexts/ProjectDataContext'
 import ListGroups from '../../ui/components/ListGroups'
 import GetGroup from '../../ui/components/GetGroup'
+import ListDirectMembers from '../../ui/components/ListDirectMembers'
 
 function GroupsDashboard() {
   return (
@@ -13,6 +14,7 @@ function GroupsDashboard() {
           <p>This is a placeholder for the groups page.</p>
           <ListGroups></ListGroups>
           <GetGroup></GetGroup>
+          <ListDirectMembers></ListDirectMembers>
         </main>
       </ProjectDataProvider>
     </LoggedInUserProvider>
