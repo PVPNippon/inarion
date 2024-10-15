@@ -47,7 +47,7 @@ async function getClient(serviceAccountEmail, privateKey, userEmail) {
 }
 
 /**
- * Retrieves a list of all groups in the organization.
+ * Retrieves the list of all groups in the organization.
  *
  * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
@@ -59,22 +59,13 @@ async function getClient(serviceAccountEmail, privateKey, userEmail) {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.listAllGroups = async (req, res) => {
-  let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body // Extract the email and userEmail from the request body
-  const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
-  const privateKey = keyData.private_key
-
+  let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
   try {
-    const jwtClient = await getClient(serviceAccountEmail, privateKey, userEmail)
-    const admin = google.admin({ version: 'directory_v1', auth: jwtClient })
+    // Get an array with all organization's groups
+    const groups = await listGroups(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey)
 
-    const response = await admin.groups.list({
-      customer: 'my_customer',
-      maxResults: 200, //max allowed value, need to add pagination logic(TODO)
-      orderBy: 'email',
-    })
-
-    // Return the list of groups
-    res.status(200).json(response.data)
+    // Return the list of all organization's groups
+    res.status(200).json(groups)
   } catch (error) {
     console.error('Error fetching groups:', error)
     res.status(500).json({ message: 'Error fetching groups' })
@@ -279,8 +270,7 @@ exports.getGroupJoinedActivity = async (req, res) => {
 
 exports.getNestedMembership = async (req, res) => {
   let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
-  const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
-  const privateKey = keyData.private_key
+
   const nestedTable = await getNestedTable(
     userEmail,
     projectId,

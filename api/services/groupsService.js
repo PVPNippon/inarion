@@ -5,12 +5,31 @@ const { getCredentials } = require('../config/googleGroupsConfig')
 const config = require('../config/config')
 require('dotenv').config()
 
+/**
+ * Decodes the base64-encoded privateKeyData and parses it as JSON.
+ *
+ * @param {string} privateKeyData - The base64-encoded private key data.
+ * @returns {Object} - The decoded and parsed JSON object containing the credentials.
+ */
 function decodePrivateKeyData(privateKeyData) {
   const decodedData = Buffer.from(privateKeyData, 'base64').toString('utf8')
   return JSON.parse(decodedData)
 }
 
-async function getClient(serviceAccountEmail, privateKey, userEmail) {
+/**
+ * Creates a new JWT client, specifying the user to impersonate, and authorizes it.
+ *
+ * The client is authorized with the scopes required to read the user's groups and
+ * the user's audit logs.
+ *
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} privateKey - The private key of the service account.
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @returns {Promise<Object>} - A promise that resolves to the authorized client.
+ */
+async function getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) {
+  const keyData = decodePrivateKeyData(serviceAccountPrivateKey) // Decode the private key
+  const privateKey = keyData.private_key // Extract the private key
   // Create a new JWT client, specifying the user to impersonate
   const jwtClient = new google.auth.JWT({
     email: serviceAccountEmail,
@@ -28,37 +47,56 @@ async function getClient(serviceAccountEmail, privateKey, userEmail) {
   return jwtClient
 }
 
+/**
+ * Retrieves the list of all groups in the organization.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to list all groups in the organization.
+ *
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @param {string} projectId - The project ID of the GCP project.
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} serviceAccountPrivateKey - The private key of the service account.
+ * @returns {Promise<Array<Object>>} - A promise that resolves to an array of group objects.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
 async function listGroups(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey) {
-  const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
-  const privateKey = keyData.private_key
-  const jwtClient = new google.auth.JWT({
-    email: serviceAccountEmail,
-    key: privateKey,
-    scopes: [
-      'https://www.googleapis.com/auth/admin.directory.group',
-      'https://www.googleapis.com/auth/admin.reports.audit.readonly',
-      'https://www.googleapis.com/auth/admin.directory.user.readonly',
-    ],
-    subject: userEmail, // Impersonating this user
-  })
-  const token = await jwtClient.authorize()
+  const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) // Create the JWT client
+  let nextPageToken = null // Token to manage pagination
+  let groups = [] // Container for all groups retrieved
+  let groupsResponse // Response from the API
 
-  try {
-    const directory = google.admin({
-      version: 'directory_v1',
-      auth: jwtClient,
-    })
-    const response = await directory.groups.list({
-      customer: 'my_customer',
-      maxResults: 200, //max allowed value
-      orderBy: 'email',
-    })
-    return response.data
-  } catch (error) {
-    console.log(error)
-  }
+  // Fetch all groups
+  do {
+    try {
+      const directory = google.admin({
+        version: 'directory_v1',
+        auth: jwtClient,
+      })
+      groupsResponse = await directory.groups.list({
+        customer: 'my_customer',
+        maxResults: 200, //max allowed value
+        orderBy: 'email',
+        pageToken: nextPageToken,
+      })
+      // Append the fetched groups to the groups array
+      groups.push(...groupsResponse.data.groups)
+
+      // Store the next page token for pagination
+      nextPageToken = groupsResponse.data.nextPageToken
+    } catch (error) {
+      // Log the error and rethrow it if groups fetching fails
+      console.error('Error fetching groups:', error.message)
+      throw error
+    }
+  } while (nextPageToken) // Continue fetching groups while there are more pages
+
+  return groups // Return all fetched groups
 }
 
+//the logic below is neither optimized nor checked properly.
+//Don't look down here for the sake of your sanity.
 async function getNestedTable(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail) {
   const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
   const privateKey = keyData.private_key
