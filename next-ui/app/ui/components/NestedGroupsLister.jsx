@@ -27,7 +27,7 @@ function NestedGroupsLister() {
             projectId: projectData.projectData.projectId,
             serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
             serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
-            groupEmail: inputValue,
+            queryEmail: inputValue,
           },
           { withCredentials: true }
         )

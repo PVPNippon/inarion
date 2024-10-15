@@ -3,7 +3,7 @@ const oauth2Client = require('../models/googleAuth')
 const ServiceAccountKeys = require('../models/ServiceAccountKeys')
 const { getCredentials } = require('../config/googleGroupsConfig')
 const config = require('../config/config')
-const { listGroups } = require('../services/groupsService')
+const { listGroups, getNestedTable } = require('../services/groupsService')
 require('dotenv').config()
 
 /**
@@ -280,47 +280,9 @@ exports.getGroupJoinedActivity = async (req, res) => {
 //WIP: this function will return a list of nested groups for a given group/user with "joined" timestamps
 //returns a dummy list for now
 exports.getNestedMembership = async (req, res) => {
-  // let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
-  // const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
-  // const privateKey = keyData.private_key
-  const dummyGroupList = [
-    {
-      email: 'group1@example.com',
-      inherited: 'group2',
-      membership: 'direct',
-      timestamp: '2022-01-01 00:00:00',
-    },
-    {
-      email: 'group2@example.com',
-      inherited: 'group3',
-      membership: 'indirect',
-      timestamp: '2022-01-01 00:00:00',
-    },
-    {
-      email: 'group3@example.com',
-      inherited: 'group4',
-      membership: 'indirect',
-      timestamp: '2022-01-01 00:00:00',
-    },
-    {
-      email: 'group4@example.com',
-      inherited: 'group5',
-      membership: 'indirect',
-      timestamp: '2022-01-01 00:00:00',
-    },
-    {
-      email: 'group5@example.com',
-      inherited: 'group6',
-      membership: 'indirect',
-      timestamp: '2022-01-01 00:00:00',
-    },
-    {
-      email: 'group6@example.com',
-      inherited: 'group7',
-      membership: 'indirect',
-      timestamp: '2022-01-01 00:00:00',
-    },
-  ]
-
+  let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
+  const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
+  const privateKey = keyData.private_key
+  const dummyGroupList = getNestedTable()
   res.status(200).json(dummyGroupList)
 }

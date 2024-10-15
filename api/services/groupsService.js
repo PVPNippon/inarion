@@ -43,6 +43,49 @@ async function listGroups(email, userEmail, projectId, serviceAccountEmail, serv
   }
 }
 
+function getNestedTable() {
+  const dummyGroupList = [
+    {
+      email: 'group1@example.com',
+      inherited: 'group2',
+      membership: 'direct',
+      timestamp: '2022-01-01 00:00:00',
+    },
+    {
+      email: 'group2@example.com',
+      inherited: 'group3',
+      membership: 'indirect',
+      timestamp: '2022-01-01 00:00:00',
+    },
+    {
+      email: 'group3@example.com',
+      inherited: 'group4',
+      membership: 'indirect',
+      timestamp: '2022-01-01 00:00:00',
+    },
+    {
+      email: 'group4@example.com',
+      inherited: 'group5',
+      membership: 'indirect',
+      timestamp: '2022-01-01 00:00:00',
+    },
+    {
+      email: 'group5@example.com',
+      inherited: 'group6',
+      membership: 'indirect',
+      timestamp: '2022-01-01 00:00:00',
+    },
+    {
+      email: 'group6@example.com',
+      inherited: 'group7',
+      membership: 'indirect',
+      timestamp: '2022-01-01 00:00:00',
+    },
+  ]
+  return dummyGroupList
+}
+
 module.exports = {
   listGroups,
+  getNestedTable,
 }
