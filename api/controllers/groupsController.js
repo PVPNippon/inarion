@@ -277,12 +277,16 @@ exports.getGroupJoinedActivity = async (req, res) => {
   }
 }
 
-//WIP: this function will return a list of nested groups for a given group/user with "joined" timestamps
-//returns a dummy list for now
 exports.getNestedMembership = async (req, res) => {
   let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
   const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
   const privateKey = keyData.private_key
-  const nestedTable = await getNestedTable(userEmail, serviceAccountEmail, serviceAccountPrivateKey, queryEmail)
+  const nestedTable = await getNestedTable(
+    userEmail,
+    projectId,
+    serviceAccountEmail,
+    serviceAccountPrivateKey,
+    queryEmail
+  )
   res.status(200).json(nestedTable)
 }

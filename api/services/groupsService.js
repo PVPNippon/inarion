@@ -1,5 +1,3 @@
-//this module did not work out for some reason. We were getting 403 error (you are not authorized to access this API or resource).
-//moved all logic into groups controller temporarily until it's clear what is the cause
 const { google } = require('googleapis')
 const oauth2Client = require('../models/googleAuth')
 const ServiceAccountKeys = require('../models/ServiceAccountKeys')
@@ -30,7 +28,7 @@ async function getClient(serviceAccountEmail, privateKey, userEmail) {
   return jwtClient
 }
 
-async function listGroups(email, userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey) {
+async function listGroups(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey) {
   const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
   const privateKey = keyData.private_key
   const jwtClient = new google.auth.JWT({
@@ -54,7 +52,6 @@ async function listGroups(email, userEmail, projectId, serviceAccountEmail, serv
       customer: 'my_customer',
       maxResults: 200, //max allowed value
       orderBy: 'email',
-      // domain: process.env.DOMAIN_TEST,
     })
     return response.data
   } catch (error) {
@@ -62,101 +59,12 @@ async function listGroups(email, userEmail, projectId, serviceAccountEmail, serv
   }
 }
 
-async function getNestedTable(userEmail, serviceAccountEmail, serviceAccountPrivateKey, queryEmail) {
-  // const dummyGroupList = [
-  //   {
-  //     email: 'group1@example.com',
-  //     inherited: 'group2',
-  //     membership: 'direct',
-  //     timestamp: '2022-01-01 00:00:00',
-  //   },
-  //   {
-  //     email: 'group2@example.com',
-  //     inherited: 'group3',
-  //     membership: 'indirect',
-  //     timestamp: '2022-01-01 00:00:00',
-  //   },
-  //   {
-  //     email: 'group3@example.com',
-  //     inherited: 'group4',
-  //     membership: 'indirect',
-  //     timestamp: '2022-01-01 00:00:00',
-  //   },
-  //   {
-  //     email: 'group4@example.com',
-  //     inherited: 'group5',
-  //     membership: 'indirect',
-  //     timestamp: '2022-01-01 00:00:00',
-  //   },
-  //   {
-  //     email: 'group5@example.com',
-  //     inherited: 'group6',
-  //     membership: 'indirect',
-  //     timestamp: '2022-01-01 00:00:00',
-  //   },
-  //   {
-  //     email: 'group6@example.com',
-  //     inherited: 'group7',
-  //     membership: 'indirect',
-  //     timestamp: '2022-01-01 00:00:00',
-  //   },
-  // ]
-  // return dummyGroupList
+async function getNestedTable(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail) {
   const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
   const privateKey = keyData.private_key
   const jwtClient = await getClient(serviceAccountEmail, privateKey, userEmail)
 
   try {
-    // const directory = google.admin({
-    //   version: 'directory_v1',
-    //   auth: jwtClient,
-    // })
-    // const response = await directory.groups.list({
-    //   customer: 'my_customer',
-    //   maxResults: 200, //max allowed value
-    //   orderBy: 'email',
-    //   // domain: process.env.DOMAIN_TEST,
-    // })
-    // console.log(response)
-    // return response.data
-    const dummyGroupList = [
-      {
-        email: 'group1@example.com',
-        inherited: 'group2',
-        membership: 'direct',
-        timestamp: '2022-01-01 00:00:00',
-      },
-      {
-        email: 'group2@example.com',
-        inherited: 'group3',
-        membership: 'indirect',
-        timestamp: '2022-01-01 00:00:00',
-      },
-      {
-        email: 'group3@example.com',
-        inherited: 'group4',
-        membership: 'indirect',
-        timestamp: '2022-01-01 00:00:00',
-      },
-      {
-        email: 'group4@example.com',
-        inherited: 'group5',
-        membership: 'indirect',
-        timestamp: '2022-01-01 00:00:00',
-      },
-      {
-        email: 'group5@example.com',
-        inherited: 'group6',
-        membership: 'indirect',
-        timestamp: '2022-01-01 00:00:00',
-      },
-      {
-        email: 'group6@example.com',
-        inherited: 'group7',
-        membership: 'indirect',
-        timestamp: '2022-01-01 00:00:00',
-      },
-    ]
     const directory = google.admin({
       version: 'directory_v1',
       auth: jwtClient,
@@ -166,7 +74,6 @@ async function getNestedTable(userEmail, serviceAccountEmail, serviceAccountPriv
       customer: 'my_customer',
       maxResults: 200, //max allowed value
       orderBy: 'email',
-      // useDomainAdminAccess: true,
     })
 
     let groups = response.data.groups
@@ -207,7 +114,6 @@ async function getNestedTable(userEmail, serviceAccountEmail, serviceAccountPriv
             group: groups[index],
             members: members,
           }
-          // family.push(groups[index]);
           family.push(groupAndAllMembers)
         }
       })
@@ -246,7 +152,18 @@ async function getNestedTable(userEmail, serviceAccountEmail, serviceAccountPriv
 
     async function getTimestamps() {
       try {
-        const response = await fetch(`http://localhost:8000/groups/get-group-activity/`)
+        const response = await fetch('http://localhost:4000/groups/get-group-joined-activity', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userEmail: userEmail,
+            projectId: projectId,
+            serviceAccountEmail: serviceAccountEmail,
+            serviceAccountPrivateKey: serviceAccountPrivateKey,
+          }),
+        })
         const data = await response.json()
         return data
       } catch (error) {
@@ -352,10 +269,8 @@ async function getNestedTable(userEmail, serviceAccountEmail, serviceAccountPriv
 
       return updatedTable
     }
-    // const updatedTable = await updateTable(table)
-    // return updatedTable
-
-    return table
+    const updatedTable = await updateTable(table)
+    return updatedTable
   } catch (error) {
     console.log(error)
   }
