@@ -95,12 +95,38 @@ async function listGroups(userEmail, projectId, serviceAccountEmail, serviceAcco
   return groups // Return all fetched groups
 }
 
+/**
+ * Retrieves the details of a specific group.
+ *
+ * This function takes a group's email address and returns its details, such as its name, email address, and description.
+ *
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @param {string} projectId - The project ID of the service account key.
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} serviceAccountPrivateKey - The private key of the service account.
+ * @param {string} groupEmail - The email address of the group.
+ * @returns {Promise<Object>} - A promise that resolves to the group details.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+async function getGroupByEmail(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail) {
+  const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) // Create the JWT client
+  try {
+    const admin = google.admin({ version: 'directory_v1', auth: jwtClient }) // Create the Admin Directory API client
+    const response = await admin.groups.get({
+      groupKey: groupEmail,
+    }) // Get the group details
+    return response.data // Return the group details
+  } catch (error) {
+    console.error('Error fetching group:', error)
+    throw error
+  }
+}
+
+//WARNING:
 //the logic below is neither optimized nor checked properly.
 //Don't look down here for the sake of your sanity.
 async function getNestedTable(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail) {
-  const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
-  const privateKey = keyData.private_key
-  const jwtClient = await getClient(serviceAccountEmail, privateKey, userEmail)
+  const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
 
   try {
     const directory = google.admin({
@@ -317,4 +343,5 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
 module.exports = {
   listGroups,
   getNestedTable,
+  getGroupByEmail,
 }

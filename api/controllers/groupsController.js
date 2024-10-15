@@ -3,7 +3,7 @@ const oauth2Client = require('../models/googleAuth')
 const ServiceAccountKeys = require('../models/ServiceAccountKeys')
 const { getCredentials } = require('../config/googleGroupsConfig')
 const config = require('../config/config')
-const { listGroups, getNestedTable } = require('../services/groupsService')
+const { listGroups, getGroupByEmail, getNestedTable } = require('../services/groupsService')
 require('dotenv').config()
 
 /**
@@ -84,22 +84,29 @@ exports.listAllGroups = async (req, res) => {
  */
 exports.getGroup = async (req, res) => {
   let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body
-  const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
-  const privateKey = keyData.private_key
 
   try {
-    const jwtClient = await getClient(serviceAccountEmail, privateKey, userEmail)
-    const admin = google.admin({ version: 'directory_v1', auth: jwtClient })
-    const response = await admin.groups.get({
-      groupKey: groupEmail,
-    })
-    if (response.status === 404) {
-      res.status(404).json({ message: 'Group not found' })
-    }
+    const response = await getGroupByEmail(
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey,
+      groupEmail
+    )
+
     // Return the group's details
-    res.status(200).json(response.data)
+    res.status(200).json(response)
   } catch (error) {
     console.error('Error fetching group:', error)
+    //the reason why 404 and 403 are grouped is:
+    //by try and error method I found out that error 404 is returned when query email is not a proper email address(missing @ symbol etc)
+    //and error 403 is returned when query email address doesn't exist but looks like a proper email address
+    //Probably this is Google's measure to prevent guessing of email addresses by probing
+    if (error.status === 404 || error.status === 403) {
+      return res
+        .status(404)
+        .json({ message: 'Group does not exist or you do not have necessary permissions to see this group' })
+    }
     res.status(500).json({ message: 'Error fetching group' })
   }
 }
