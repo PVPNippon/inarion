@@ -3,7 +3,13 @@ const oauth2Client = require('../models/googleAuth')
 const ServiceAccountKeys = require('../models/ServiceAccountKeys')
 const { getCredentials } = require('../config/googleGroupsConfig')
 const config = require('../config/config')
-const { listGroups, getGroupByEmail, listGroupMembers, getNestedTable } = require('../services/groupsService')
+const {
+  listGroups,
+  getGroupByEmail,
+  listGroupMembers,
+  getAllGroupsLogs,
+  getNestedTable,
+} = require('../services/groupsService')
 require('dotenv').config()
 
 /**
@@ -197,21 +203,12 @@ exports.listAllMembers = async (req, res) => {
  */
 exports.getGroupActivity = async (req, res) => {
   let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
-  const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
-  const privateKey = keyData.private_key
 
   try {
-    const jwtClient = await getClient(serviceAccountEmail, privateKey, userEmail)
-    const admin = google.admin({ version: 'reports_v1', auth: jwtClient })
-    const response = await admin.activities.list({
-      customerId: 'my_customer',
-      userKey: 'all',
-      applicationName: 'groups_enterprise',
-      maxResults: 1000, //max allowed value, need to add pagination logic(TODO)
-    })
-
+    // Get the list of group activity
+    const response = await getAllGroupsLogs(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey)
     // Return the list of group activity in customer organization
-    res.status(200).json(response.data)
+    res.status(200).json(response)
   } catch (error) {
     console.error('Error fetching group activity:', error)
     res.status(500).json({ message: 'Error fetching group activity' })

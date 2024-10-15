@@ -183,6 +183,69 @@ async function listGroupMembers(
   return members // Return all fetched members
 }
 
+/**
+ * Retrieves a list of all activities in the organization related to groups.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to list all activities related to groups in the organization.
+ *
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @param {string} projectId - The project ID of the service account key.
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} serviceAccountPrivateKey - The private key of the service account.
+ * @returns {Promise<Array<Object>>} - A promise that resolves to an array of activity logs.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+async function getAllGroupsLogs(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey) {
+  const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) // Create the JWT client
+  let nextPageToken = null // Token to manage pagination
+  let activityLogs = [] // Container for activity logs retrieved
+  let activityResponse // Response from the API
+
+  //Fetch activity logs
+  do {
+    try {
+      const directory = google.admin({
+        version: 'reports_v1',
+        auth: jwtClient,
+      })
+
+      const requestObj = {
+        customerId: 'my_customer',
+        userKey: 'all',
+        applicationName: 'groups_enterprise',
+        maxResults: 1000, //max allowed value
+      }
+
+      // Add the next page token if it exists
+      //unlike drive or directory, reports do not support null page tokens
+      //that's why I needed to add this logic
+      if (nextPageToken) {
+        requestObj.pageToken = nextPageToken
+      }
+
+      activityResponse = await directory.activities.list(requestObj)
+
+      if (typeof activityResponse.data.items === 'undefined') {
+        return [{ response: 'no group activity logs found' }]
+      } // Return an array with error message if no activity logs are found(temporary "error handling")
+
+      // Append the fetched groups to the activity logs array
+      activityLogs.push(...activityResponse.data.items)
+
+      // Store the next page token for pagination
+      nextPageToken = activityResponse.data.nextPageToken
+    } catch (error) {
+      // Log the error and rethrow it if activity logs fetching fails
+      console.error('Error fetching activity logs:', error.message)
+      throw error
+    }
+  } while (nextPageToken) // Continue fetching activity logs while there are more pages
+
+  return activityLogs // Return all fetched activity logs
+}
+
 //WARNING:
 //the logic below is neither optimized nor checked properly.
 //Don't look down here for the sake of your sanity.
@@ -406,4 +469,5 @@ module.exports = {
   getNestedTable,
   getGroupByEmail,
   listGroupMembers,
+  getAllGroupsLogs,
 }

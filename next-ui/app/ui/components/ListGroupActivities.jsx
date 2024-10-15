@@ -5,21 +5,21 @@ import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
 
-function ListGroups() {
+function ListGroupsActivities() {
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)
-  const [groupList, setGroupList] = useState([])
+  const [activityList, setActivityList] = useState([])
   const [clickCount, setClickCount] = useState(0)
 
   useEffect(() => {
-    const fetchGroups = async (req, res) => {
+    const fetchActivities = async (req, res) => {
       if (clickCount === 0) {
         return
       }
       try {
         const response = await axios.post(
-          'http://localhost:4000/groups/list-groups',
-          // 'http://localhost:4000/groups/get-group-activity',
+          // 'http://localhost:4000/groups/list-groups',
+          'http://localhost:4000/groups/get-group-activity',
           // 'http://localhost:4000/groups/get-group-joined-activity',
           {
             userEmail: email,
@@ -29,25 +29,25 @@ function ListGroups() {
           },
           { withCredentials: true }
         )
-        setGroupList(response.data)
+        setActivityList(response.data)
       } catch (error) {
         console.error(error)
-        setGroupList([{ error: error.message }])
+        setActivityList([{ error: error.message }])
       }
     }
-    fetchGroups()
+    fetchActivities()
   }, [clickCount])
   return (
-    <div className="text-white mt-6">
-      <h1>Groups in your organization</h1>
+    <div className="text-white my-6">
+      <h1>Groups Activities in your organization for past 6 months</h1>
       <div className="flex w-full max-w-sm items-center space-x-2">
         <Button onClick={() => setClickCount(clickCount + 1)} type="submit">
           Check
         </Button>
       </div>
-      <div>{groupList && JSON.stringify(groupList)}</div>
+      <div>{activityList && JSON.stringify(activityList)}</div>
     </div>
   )
 }
 
-export default ListGroups
+export default ListGroupsActivities
