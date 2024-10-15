@@ -283,6 +283,6 @@ exports.getNestedMembership = async (req, res) => {
   let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
   const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
   const privateKey = keyData.private_key
-  const dummyGroupList = getNestedTable()
-  res.status(200).json(dummyGroupList)
+  const nestedTable = await getNestedTable(userEmail, serviceAccountEmail, serviceAccountPrivateKey, queryEmail)
+  res.status(200).json(nestedTable)
 }
