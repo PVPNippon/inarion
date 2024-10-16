@@ -7,6 +7,20 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
+/**
+ * Component that displays a list of all groups that a given group or user is a
+ * member of, either directly or indirectly.
+ *
+ * The component takes in a string input, which is the email address of the
+ * group or user to query. When the user clicks the "Go" button, the component
+ * fetches the list of all groups that the target group or user is a member of,
+ * including both direct and indirect memberships.
+ *
+ * The component displays the list of groups in a table, with columns for the
+ * group email, the type of membership (direct or indirect), and the timestamp
+ * of when the membership was created.
+ */
+//While it appears to be working and displays data, backend is still in process(needs checking etc.)
 function NestedGroupsLister() {
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)

@@ -6,6 +6,25 @@ import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
+/**
+ * Component that visualizes the hierarchy of a group.
+ *
+ * The component takes an input from the user - a group email address.
+ * When the user clicks the "Visualize" button, the component fetches the
+ * hierarchy of the group and displays it.
+ *
+ * The hierarchy is fetched from the backend API.
+ *
+ * The component uses the `useState` hook to store the input value and the
+ * hierarchy of the group.
+ *
+ * The component uses the `useEffect` hook to fetch the hierarchy of the group
+ * when the user clicks the button.
+ *
+ * The component renders a form with an input field and a button.
+ * It also renders a div to display the hierarchy of the group.
+ */
+//It's only UI and backend is not imlemented yet.
 function VisualizeHierarchy() {
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)

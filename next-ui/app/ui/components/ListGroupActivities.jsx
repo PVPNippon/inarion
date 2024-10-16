@@ -5,6 +5,16 @@ import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
 
+/**
+ * Function ListGroupsActivities
+ *
+ * This function fetches activities related to groups in the organization for the past 6 months.
+ * It uses the user's email, project data, and click count to trigger the API call.
+ * The API endpoint 'http://localhost:4000/groups/get-group-activity' is used to fetch the data.
+ * If an error occurs during the API call, it logs the error and updates the activity list with an error message.
+ */
+//a temporary component for dev purposes.
+//on click of button, fetch group's activities and display in div(error or activity list)
 function ListGroupsActivities() {
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)
@@ -18,9 +28,7 @@ function ListGroupsActivities() {
       }
       try {
         const response = await axios.post(
-          // 'http://localhost:4000/groups/list-groups',
           'http://localhost:4000/groups/get-group-activity',
-          // 'http://localhost:4000/groups/get-group-joined-activity',
           {
             userEmail: email,
             projectId: projectData.projectData.projectId,

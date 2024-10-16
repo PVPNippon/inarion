@@ -5,6 +5,19 @@ import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
 
+/**
+ * Component that fetches the list of groups joined by users in the organization for the past 6 months.
+ *
+ * The component renders a button labeled "Check" and a div to display the fetched data as JSON.
+ *
+ * The component uses the `LoggedInUserContext` and the `ProjectDataContext` to get the user's email and the project data.
+ *
+ * The component uses the `useState` hook to store the list of activities and a counter to trigger the API call.
+ *
+ * The component uses the `useEffect` hook to fetch the list of activities when the user clicks the button.
+ */
+//a temporary component for dev purposes
+//on click of button, fetch group's joinedactivities and display in div(error or activity list)
 function ListGroupJoinedActivities() {
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)
