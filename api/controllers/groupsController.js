@@ -8,6 +8,7 @@ const {
   getGroupByEmail,
   listGroupMembers,
   getAllGroupsLogs,
+  getJoinGroupsLogs,
   getNestedTable,
 } = require('../services/groupsService')
 require('dotenv').config()
@@ -229,43 +230,10 @@ exports.getGroupActivity = async (req, res) => {
  */
 exports.getGroupJoinedActivity = async (req, res) => {
   let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
-  const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
-  const privateKey = keyData.private_key
 
   try {
-    const promises = []
-    let allActivities = []
-
-    const jwtClient = await getClient(serviceAccountEmail, privateKey, userEmail)
-    const admin = google.admin({ version: 'reports_v1', auth: jwtClient })
-
-    // Get all activities related to joining groups(could identify 2 by now, could be more)
-    // Could not find a way to specify multiple activities in the eventName field
-    // => fetch each eventName separately and concat the results
-    const activityNames = ['add_member', 'accept_invitation']
-
-    activityNames.forEach(async (activityName) => {
-      const x = new Promise((resolve, reject) => {
-        resolve(
-          admin.activities.list({
-            customerId: 'my_customer',
-            userKey: 'all',
-            applicationName: 'groups_enterprise',
-            maxResults: 1000, //max allowed value, need to add pagination logic(TODO)
-            eventName: activityName,
-          })
-        )
-      })
-      promises.push(x)
-    })
-
-    await Promise.all(promises).then((results) => {
-      results.forEach((result) => {
-        allActivities = allActivities.concat(result.data.items)
-      })
-    })
-
     //Return the list of group joined activity in customer organization
+    const allActivities = await getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey)
     res.status(200).json(allActivities)
   } catch (error) {
     console.error('Error fetching group joined activity:', error)

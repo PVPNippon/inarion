@@ -197,8 +197,20 @@ async function listGroupMembers(
  * @returns {Promise<Array<Object>>} - A promise that resolves to an array of activity logs.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function getAllGroupsLogs(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey) {
-  const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) // Create the JWT client
+async function getAllGroupsLogs(
+  userEmail,
+  projectId,
+  serviceAccountEmail,
+  serviceAccountPrivateKey,
+  typeOfLogs = '',
+  client = null
+) {
+  let jwtClient = client
+
+  if (!client) {
+    jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) // Create the JWT client
+  }
+
   let nextPageToken = null // Token to manage pagination
   let activityLogs = [] // Container for activity logs retrieved
   let activityResponse // Response from the API
@@ -218,24 +230,26 @@ async function getAllGroupsLogs(userEmail, projectId, serviceAccountEmail, servi
         maxResults: 1000, //max allowed value
       }
 
+      if (typeOfLogs) {
+        requestObj.eventName = typeOfLogs
+      }
+
       // Add the next page token if it exists
       //unlike drive or directory, reports do not support null page tokens
       //that's why I needed to add this logic
-      if (nextPageToken) {
+      if (nextPageToken !== null) {
         requestObj.pageToken = nextPageToken
       }
 
       activityResponse = await directory.activities.list(requestObj)
 
-      if (typeof activityResponse.data.items === 'undefined') {
-        return [{ response: 'no group activity logs found' }]
-      } // Return an array with error message if no activity logs are found(temporary "error handling")
-
       // Append the fetched groups to the activity logs array
-      activityLogs.push(...activityResponse.data.items)
-
-      // Store the next page token for pagination
-      nextPageToken = activityResponse.data.nextPageToken
+      if (typeof activityResponse.data.items !== 'undefined') {
+        activityLogs.push(...activityResponse.data.items)
+        nextPageToken = activityResponse.data.nextPageToken // Store the next page token for pagination
+      } else {
+        nextPageToken = null //reset nextPageToken to null if no more pages return
+      }
     } catch (error) {
       // Log the error and rethrow it if activity logs fetching fails
       console.error('Error fetching activity logs:', error.message)
@@ -244,6 +258,56 @@ async function getAllGroupsLogs(userEmail, projectId, serviceAccountEmail, servi
   } while (nextPageToken) // Continue fetching activity logs while there are more pages
 
   return activityLogs // Return all fetched activity logs
+}
+
+/**
+ * Retrieves the list of all activities in the organization related to joining groups.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to list all activities related to joining groups in the organization.
+ *
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @param {string} projectId - The project ID of the GCP project.
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} serviceAccountPrivateKey - The private key of the service account.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of group joined activity logs.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+async function getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey) {
+  const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) // Create the JWT client
+
+  //Fetch activity logs
+  try {
+    const promises = []
+    let allActivities = []
+
+    // Get all activities related to joining groups(could identify 2 by now, could be more)
+    // Could not find a way to specify multiple activities in the eventName field
+    // => fetch each eventName separately and concat the results
+    const activityNames = ['add_member', 'accept_invitation']
+
+    activityNames.forEach(async (activityName) => {
+      const x = new Promise(async (resolve, reject) => {
+        resolve(
+          getAllGroupsLogs(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, activityName, jwtClient)
+        )
+      })
+      promises.push(x)
+    })
+
+    await Promise.all(promises).then((results) => {
+      results.forEach((result) => {
+        allActivities = allActivities.concat(result)
+      })
+    })
+
+    //Return the list of group joined activity in customer organization
+    return allActivities
+  } catch (error) {
+    console.error('Error fetching group joined activity:', error)
+    throw error
+  }
 }
 
 //WARNING:
@@ -470,4 +534,5 @@ module.exports = {
   getGroupByEmail,
   listGroupMembers,
   getAllGroupsLogs,
+  getJoinGroupsLogs,
 }
