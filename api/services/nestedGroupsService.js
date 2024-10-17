@@ -1,25 +1,20 @@
 const { google } = require('googleapis')
+const { listGroups, listGroupMembers, getJoinGroupsLogs } = require('../services/groupsService')
 const { getClient } = require('../utility/groupsUtilityFunctions')
 
 //WARNING:
 //the logic below is neither optimized nor checked properly.
 //Don't look down here for the sake of your sanity.
 async function getNestedTable(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail) {
-  const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+  // const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+  // const directory = google.admin({
+  //     version: 'directory_v1',
+  //     auth: jwtClient,
+  //   })
+  const theGroupOrUser = queryEmail
 
   try {
-    const directory = google.admin({
-      version: 'directory_v1',
-      auth: jwtClient,
-    })
-    const theGroup = queryEmail
-    const response = await directory.groups.list({
-      customer: 'my_customer',
-      maxResults: 200, //max allowed value
-      orderBy: 'email',
-    })
-
-    let groups = response.data.groups
+    let groups = await listGroups(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey)
     groups = groups.filter((group) => group.directMembersCount > 0)
 
     async function getFamily(groups) {
@@ -28,18 +23,14 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
       groups.forEach(async (group) => {
         const x = new Promise((resolve, reject) => {
           resolve(
-            directory.members.list({
-              groupKey: group.email,
-              maxResults: 200, //max allowed value
-              includeDerivedMembership: true,
-            })
+            listGroupMembers(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, group.email, true)
           )
         })
         promises.push(x)
       })
       await Promise.all(promises).then((values) => {
         values.forEach((value) => {
-          family.push(value.data.members)
+          family.push(value)
         })
       })
       return family
@@ -51,7 +42,7 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
 
     allMembers.forEach((members) => {
       members.forEach((member) => {
-        if (member.email === theGroup) {
+        if (member.email === theGroupOrUser) {
           const index = allMembers.indexOf(members)
           const groupAndAllMembers = {
             group: groups[index],
@@ -72,7 +63,7 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
         return false
       }
     }
-    function getTransitive(family, directMembersArray, theGroup, indirectParent) {
+    function getTransitive(family, directMembersArray, theGroupOrUser, indirectParent) {
       let directParent = ''
       let fullFamily = family
       for (let i = 0; i < fullFamily.length; i++) {
@@ -84,34 +75,13 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
       do
         fullFamily.forEach((group) => {
           const members = group.directMembers
-          const target = members.filter((member) => member.email === theGroup)
+          const target = members.filter((member) => member.email === theGroupOrUser)
           if (target.length > 0 && hasRelation(group.group.email, indirectParent, fullFamily)) {
             directParent = group.group.email
           }
         })
       while (directParent === '')
       return directParent
-    }
-
-    async function getTimestamps() {
-      try {
-        const response = await fetch('http://localhost:4000/groups/get-group-joined-activity', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userEmail: userEmail,
-            projectId: projectId,
-            serviceAccountEmail: serviceAccountEmail,
-            serviceAccountPrivateKey: serviceAccountPrivateKey,
-          }),
-        })
-        const data = await response.json()
-        return data
-      } catch (error) {
-        console.log(error)
-      }
     }
 
     function getJoinedTime(allActivities, memberId, groupId) {
@@ -156,18 +126,21 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
       family.forEach(async (group) => {
         const directMembers = new Promise((resolve, reject) => {
           resolve(
-            directory.members.list({
-              groupKey: group.group.email,
-              maxResults: 200, //max allowed value
-              includeDerivedMembership: false,
-            })
+            listGroupMembers(
+              userEmail,
+              projectId,
+              serviceAccountEmail,
+              serviceAccountPrivateKey,
+              group.group.email,
+              false
+            )
           )
         })
         promises.push(directMembers)
       })
       await Promise.all(promises).then((values) => {
         values.forEach((value) => {
-          relations.push(value.data.members)
+          relations.push(value)
         })
       })
 
@@ -179,13 +152,13 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
           timestamp: '',
         }
 
-        const targetGroup = relation.filter((member) => member.email === theGroup)
+        const targetGroup = relation.filter((member) => member.email === theGroupOrUser)
 
         if (targetGroup.length > 0) {
           obj.membership = 'Direct'
           obj.inherited = ''
         } else {
-          const inheritedVia = getTransitive(family, relations, theGroup, group.group.email) || ''
+          const inheritedVia = getTransitive(family, relations, theGroupOrUser, group.group.email) || ''
           obj.membership = 'Inherited'
           obj.inherited = inheritedVia
         }
@@ -197,7 +170,7 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
 
     const table = await getTable(family)
     async function updateTable(table) {
-      const allActivities = await getTimestamps()
+      const allActivities = await getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey)
       const updatedTable = table
 
       updatedTable.forEach((member) => {
@@ -207,7 +180,7 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
         } else if (member.membership === 'Direct') {
           parentEmail = member.email
         }
-        member.timestamp = getJoinedTime(allActivities, theGroup, parentEmail)
+        member.timestamp = getJoinedTime(allActivities, theGroupOrUser, parentEmail)
       })
 
       return updatedTable
