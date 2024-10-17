@@ -23,10 +23,12 @@ const app = express()
 app.use(express.json())
 // app.use(cors()); // Using CORS middleware
 
-app.use(cors({
-  origin: 'http://localhost:3001', 
-  credentials: true, // Allow credentials (cookies, authorization headers, etc.)
-}));
+app.use(
+  cors({
+    origin: 'http://localhost:3000',
+    credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+  })
+)
 
 app.use(
   session({
@@ -54,10 +56,9 @@ app.use('/user', userRoutes)
 app.use('/api/drive', driveRoutes)
 app.use('/users', domainUsersRoutes)
 
-
-app.get("/", (req, res) => {
-    res.send("<h1>Home Page</h1>");
-});
+app.get('/', (req, res) => {
+  res.send('<h1>Home Page</h1>')
+})
 
 /// Sync database in development and start server
 /// Forces to drop any existingf databases and recreate them everytime we sync
