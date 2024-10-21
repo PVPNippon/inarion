@@ -102,7 +102,7 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
    * @param {Array<Object>} groups - An array of group objects.
    * @returns {Promise<Array<Array<Object>>>} - A promise that resolves to an array of arrays of group members.
    */
-  async function getFamilyWithAllMembers(groups) {
+  async function getFamilyWithAllMembers(groups, theGroupOrUser) {
     const promises = []
     const family = []
 
@@ -116,12 +116,18 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
       promises.push(x)
     })
 
-    await Promise.all(promises).then((values) => {
-      values.forEach((value) => {
-        family.push(value)
+    await Promise.all(promises).then((memberArrays) => {
+      memberArrays.forEach((memberArray) => {
+        const hasMember = memberArray.filter((member) => member.email === theGroupOrUser)
+        if (hasMember.length > 0) {
+          const index = memberArrays.indexOf(memberArray)
+          family.push({
+            group: groups[index],
+            members: memberArray,
+          })
+        }
       })
     })
-
     return family //returns an array of arrays
   }
 
@@ -161,7 +167,6 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
       }
 
       const targetGroup = relation.filter((member) => member.email === theGroupOrUser)
-
       if (targetGroup.length > 0) {
         obj.membership = 'Direct'
         obj.inherited = ''
@@ -172,7 +177,6 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
       }
       table.push(obj)
     })
-
     return table
   }
 
@@ -183,11 +187,11 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
     updatedTable.forEach((member) => {
       let parentEmail
       if (member.membership === 'Inherited') {
-        parentEmail = member.inherited
+        member.timestamp = ''
       } else if (member.membership === 'Direct') {
         parentEmail = member.email
+        member.timestamp = getJoinedTime(allActivities, theGroupOrUser, parentEmail)
       }
-      member.timestamp = getJoinedTime(allActivities, theGroupOrUser, parentEmail)
     })
 
     return updatedTable
@@ -199,22 +203,7 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
     let groups = await listGroups(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey)
     groups = groups.filter((group) => group.directMembersCount > 0)
 
-    const allMembers = await getFamilyWithAllMembers(groups)
-
-    const family = []
-
-    allMembers.forEach((members) => {
-      members.forEach((member) => {
-        if (member.email === theGroupOrUser) {
-          const index = allMembers.indexOf(members)
-          const groupAndAllMembers = {
-            group: groups[index],
-            members: members,
-          }
-          family.push(groupAndAllMembers)
-        }
-      })
-    })
+    const family = await getFamilyWithAllMembers(groups, theGroupOrUser)
 
     //TO DO need to refactor logic to return the table at once(and not only that)
     const table = await getTable(family)
