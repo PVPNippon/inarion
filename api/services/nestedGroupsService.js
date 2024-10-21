@@ -131,10 +131,9 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
     return family //returns an array of arrays
   }
 
-  async function getTable(family) {
-    const table = []
+  async function getDirectMembersArray(family) {
     const promises = []
-    const relations = []
+    const directMemberArray = []
 
     family.forEach(async (group) => {
       const directMembers = new Promise((resolve, reject) => {
@@ -154,24 +153,30 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
 
     await Promise.all(promises).then((values) => {
       values.forEach((value) => {
-        relations.push(value)
+        directMemberArray.push(value)
       })
     })
 
-    relations.forEach((relation) => {
-      const index = relations.indexOf(relation)
+    return directMemberArray
+  }
+
+  async function getTable(family) {
+    const table = []
+    const directMembers = await getDirectMembersArray(family)
+    directMembers.forEach((directMember) => {
+      const index = directMembers.indexOf(directMember)
       const group = family[index]
       const obj = {
         email: group.group.email,
         timestamp: '',
       }
 
-      const targetGroup = relation.filter((member) => member.email === theGroupOrUser)
+      const targetGroup = directMember.filter((member) => member.email === theGroupOrUser)
       if (targetGroup.length > 0) {
         obj.membership = 'Direct'
         obj.inherited = ''
       } else {
-        const inheritedVia = getTransitive(family, relations, theGroupOrUser, group.group.email) || ''
+        const inheritedVia = getTransitive(family, directMembers, theGroupOrUser, group.group.email) || ''
         obj.membership = 'Inherited'
         obj.inherited = inheritedVia
       }
