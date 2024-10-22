@@ -156,9 +156,13 @@ async function getAllGroupsLogs(
   projectId,
   serviceAccountEmail,
   serviceAccountPrivateKey,
+  appName = 'groups_enterprise',
   typeOfLogs = '',
   client = null
 ) {
+  if (appName === 'groups_enterprise' && typeOfLogs === 'join_via_mail') {
+    return
+  }
   let jwtClient = client
 
   if (!client) {
@@ -180,12 +184,16 @@ async function getAllGroupsLogs(
       const requestObj = {
         customerId: 'my_customer',
         userKey: 'all',
-        applicationName: 'groups_enterprise',
+        applicationName: appName,
         maxResults: 1000, //max allowed value
       }
 
       if (typeOfLogs) {
         requestObj.eventName = typeOfLogs
+      }
+
+      if (appName === 'groups' && typeOfLogs === 'add_member') {
+        requestObj.eventName = 'add_user'
       }
 
       // Add the next page token if it exists
@@ -236,34 +244,49 @@ async function getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serv
     const promises = []
     let allActivities = []
 
-    // Get all activities related to joining groups(could identify 2 by now, could be more)
-    //I'm not using "add_user" because it coincides with "add_member"(i.e. for each add_user activity there is also add_member log)
-    // Could not find a way to specify multiple activities in the eventName field
+    //Get all activities related to joining groups(could identify 5 by now, could be more)
+    //I'm not using "add_user" here, because it overlaps with "add_member" for "groups_enterprise"
+    //But it WILL be used with "groups" later on the way because groups don't have "add_member"
+    //It's impossible to query multiple apps at the same time, therefore we need to query each app separately
+    //Could not find a way to specify multiple activities in the eventName field
     // => fetch each eventName separately and concat the results
-    const activityNames = ['add_member', 'accept_invitation', 'join', 'approve_join_request']
 
-    activityNames.forEach(async (activityName) => {
-      const x = new Promise(async (resolve, reject) => {
-        resolve(
-          getAllGroupsLogs(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, activityName, jwtClient)
-        )
+    const appNames = ['groups_enterprise', 'groups']
+    const activityNames = ['add_member', 'accept_invitation', 'join', 'approve_join_request', 'join_via_mail']
+
+    appNames.forEach((appName) => {
+      activityNames.forEach(async (activityName) => {
+        const x = new Promise(async (resolve, reject) => {
+          resolve(
+            getAllGroupsLogs(
+              userEmail,
+              projectId,
+              serviceAccountEmail,
+              serviceAccountPrivateKey,
+              appName,
+              activityName,
+              jwtClient
+            )
+          )
+        })
+        promises.push(x)
       })
-      promises.push(x)
     })
 
     await Promise.all(promises).then((results) => {
       results.forEach((result) => {
+        if (typeof result === 'undefined' || result === null) return
         allActivities = allActivities.concat(result)
       })
     })
 
-    //Sort activities by time
+    //Sort activities by time in descending order
     //Users may leave and rejoin etc, so we need the latest logs
     allActivities.sort((a, b) => {
       return new Date(b.id.time) - new Date(a.id.time)
     })
 
-    //Return the list of group joined for enterprise groups activity in customer organization
+    //Return the list of joined activity logs for "enterprise groups" and "groups" in customer organization
     return allActivities
   } catch (error) {
     console.error('Error fetching group joined activity:', error)

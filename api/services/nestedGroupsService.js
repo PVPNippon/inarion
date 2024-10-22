@@ -37,6 +37,7 @@ function getTransitive(family, directMembersArray, theGroupOrUser, indirectParen
 function getJoinedTime(allActivities, memberId, groupId) {
   let joinedTime = 'not found'
   allActivities.forEach((activity) => {
+    if (typeof activity === 'undefined' || activity === null) return joinedTime
     const event = activity.events[0].parameters
     let member_Id
     let group_Id
