@@ -2,49 +2,27 @@ const { google } = require('googleapis')
 const { listGroups, listGroupMembers, getJoinGroupsLogs } = require('../services/groupsService')
 const { getClient } = require('../utility/groupsUtilityFunctions')
 
-/**
- * Checks if the suspectedParent is a direct member of the group with email address indirectParent in the given family.
- * @param {string} suspectedParent - The email address of the group to be checked.
- * @param {string} indirectParent - The email address of the group to be checked against.
- * @param {Object[]} family - A list of groups, each containing a group object and a list of its direct members.
- * @returns {boolean} - true if suspectedParent is a direct member of indirectParent, false otherwise.
- */
-function hasRelation(suspectedParent, indirectParent, family) {
-  const indirectParentObj = family.find((group) => group.group.email === indirectParent)
-  const directMembers = indirectParentObj.members
-  const target = directMembers.filter((member) => member.email === suspectedParent)
+function hasRelation(suspectedParent, theGroupOrUser, family) {
+  const suspectedParentObj = family.find((group) => group.group.email === suspectedParent)
+  if (typeof suspectedParentObj === 'undefined') return false
+  const allMembers = suspectedParentObj.members
+  const target = allMembers.filter((member) => member.email === theGroupOrUser)
   return target.length > 0
 }
 
-/**
- * Given a family of groups, the direct members of each group, and the email addresses of a group or user and an indirect parent,
- * returns the email address of the direct parent of the given group or user in the given family.
- * @param {Object[]} family - A list of groups, each containing a group object and a list of its direct members.
- * @param {Object[][]} directMembersArray - A list of lists, where each inner list contains the direct members of the group at the same index in the family list.
- * @param {string} theGroupOrUser - The email address of the group or user to find the direct parent of.
- * @param {string} indirectParent - The email address of the group to find the direct parent in relation to.
- * @returns {string} - The email address of the direct parent of the group or user.
- */
-//Will likely be changed to get the closest upper grandparent
-function getTransitive(family, directMembersArray, theGroupOrUser, indirectParent) {
-  let directParent = ''
-  let fullFamily = family
-  for (let i = 0; i < fullFamily.length; i++) {
-    fullFamily[i] = Object.assign(fullFamily[i], {
-      directMembers: directMembersArray[i],
-    })
-  }
+function getTransitive(family, directMembersArray, theGroupOrUser, indirectParentObj) {
+  let transitiveParents = ''
+  const index = family.findIndex((group) => group.group.email === indirectParentObj.group.email)
+  directMembersArray[index].forEach((suspectedParent) => {
+    if (suspectedParent.type !== 'GROUP') return
+    if (hasRelation(suspectedParent.email, theGroupOrUser, family)) {
+      transitiveParents.length === 0
+        ? (transitiveParents = suspectedParent.email)
+        : (transitiveParents += ',  ' + suspectedParent.email)
+    }
+  })
 
-  do
-    fullFamily.forEach((group) => {
-      const members = group.directMembers
-      const target = members.filter((member) => member.email === theGroupOrUser)
-      if (target.length > 0 && hasRelation(group.group.email, indirectParent, fullFamily)) {
-        directParent = group.group.email
-      }
-    })
-  while (directParent === '')
-  return directParent
+  return transitiveParents
 }
 
 /**
@@ -218,7 +196,8 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
         obj.inherited = '' //"inherited via" column of the table, left empty for direct memberships
         obj.timestamp = getJoinedTime(allActivities, theGroupOrUser, groupObj.group.email)
       } else {
-        const inheritedVia = getTransitive(family, directMembers, theGroupOrUser, groupObj.group.email) || ''
+        const inheritedVia = getTransitive(family, directMembers, theGroupOrUser, groupObj) || ''
+        // const inheritedVia = getTransitive(family, directMembers, theGroupOrUser, groupObj) || ''
         obj.membership = 'Inherited' //the "membership type" column of the table
         obj.inherited = inheritedVia //"inherited via" column of the table
         obj.timestamp = '' //"timestamp" column of the table, left empty for inherited memberships (for now)
