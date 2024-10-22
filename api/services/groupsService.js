@@ -240,7 +240,7 @@ async function getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serv
     //I'm not using "add_user" because it coincides with "add_member"(i.e. for each add_user activity there is also add_member log)
     // Could not find a way to specify multiple activities in the eventName field
     // => fetch each eventName separately and concat the results
-    const activityNames = ['add_member', 'accept_invitation']
+    const activityNames = ['add_member', 'accept_invitation', 'join', 'approve_join_request']
 
     activityNames.forEach(async (activityName) => {
       const x = new Promise(async (resolve, reject) => {
@@ -257,7 +257,13 @@ async function getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serv
       })
     })
 
-    //Return the list of group joined activity in customer organization
+    //Sort activities by time
+    //Users may leave and rejoin etc, so we need the latest logs
+    allActivities.sort((a, b) => {
+      return new Date(b.id.time) - new Date(a.id.time)
+    })
+
+    //Return the list of group joined for enterprise groups activity in customer organization
     return allActivities
   } catch (error) {
     console.error('Error fetching group joined activity:', error)
