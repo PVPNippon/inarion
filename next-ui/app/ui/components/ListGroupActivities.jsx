@@ -48,6 +48,10 @@ function ListGroupsActivities() {
   return (
     <div className="text-white my-6">
       <h1>Groups Activities in your organization for past 6 months</h1>
+      <p>
+        NB: these logs are for 'enterprise_groups' only. 'groups' are not included. Tell Maria if you want to include
+        'groups'
+      </p>
       <div className="flex w-full max-w-sm items-center space-x-2">
         <Button onClick={() => setClickCount(clickCount + 1)} type="submit">
           Check

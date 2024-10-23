@@ -138,17 +138,17 @@ async function listGroupMembers(
 }
 
 /**
- * Retrieves a list of all activities in the organization related to groups.
- *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
- * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
- * to list all activities related to groups in the organization.
+ * Retrieves all activity logs related to a specific application or type of logs in the organization.
+ * Uses the provided user email, project ID, service account email, and private key to authenticate.
  *
  * @param {string} userEmail - The email address of the user to impersonate.
- * @param {string} projectId - The project ID of the service account key.
+ * @param {string} projectId - The project ID of the GCP project.
  * @param {string} serviceAccountEmail - The email address of the service account.
  * @param {string} serviceAccountPrivateKey - The private key of the service account.
- * @returns {Promise<Array<Object>>} - A promise that resolves to an array of activity logs.
+ * @param {string} [appName='groups_enterprise'] - The application name for filtering the logs('groups_enterprise','groups').
+ * @param {string} [typeOfLogs=''] - The type of logs to retrieve.
+ * @param {Object} [client=null] - The JWT client to use for the API calls.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of activity logs.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 async function getAllGroupsLogs(
@@ -160,13 +160,18 @@ async function getAllGroupsLogs(
   typeOfLogs = '',
   client = null
 ) {
+  //'groups_enterprise' don't have 'join_via_mail' type of logs, but "groups" have
+  //=> if appName is 'groups_enterprise' and typeOfLogs is 'join_via_mail', return nothing
+  //https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups-enterprise
+  //https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups
   if (appName === 'groups_enterprise' && typeOfLogs === 'join_via_mail') {
     return
   }
-  let jwtClient = client
 
+  let jwtClient = client // get JWT client from the parameter
+  // If the client is not provided, create a new one
   if (!client) {
-    jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) // Create the JWT client
+    jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
   }
 
   let nextPageToken = null // Token to manage pagination
@@ -181,6 +186,7 @@ async function getAllGroupsLogs(
         auth: jwtClient,
       })
 
+      // Create the request object
       const requestObj = {
         customerId: 'my_customer',
         userKey: 'all',
@@ -188,10 +194,14 @@ async function getAllGroupsLogs(
         maxResults: 1000, //max allowed value
       }
 
+      // Add the type of logs if it is provided
       if (typeOfLogs) {
         requestObj.eventName = typeOfLogs
       }
 
+      //the same type of logs are called 'add_member' in 'enterprise_groups' and 'add_user' in 'groups'
+      //by the way, in both cases member or user means both users or groups, so 'add_user' is kinda misleading
+      //=> we swap 'add_member' to 'add_user' if type of app is "groups"
       if (appName === 'groups' && typeOfLogs === 'add_member') {
         requestObj.eventName = 'add_user'
       }
@@ -203,7 +213,7 @@ async function getAllGroupsLogs(
         requestObj.pageToken = nextPageToken
       }
 
-      activityResponse = await directory.activities.list(requestObj)
+      activityResponse = await directory.activities.list(requestObj) // Call the API
 
       // Append the fetched groups to the activity logs array
       if (typeof activityResponse.data.items !== 'undefined') {
@@ -254,6 +264,7 @@ async function getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serv
     const appNames = ['groups_enterprise', 'groups']
     const activityNames = ['add_member', 'accept_invitation', 'join', 'approve_join_request', 'join_via_mail']
 
+    //Iterate through each app and each activity and push all into promises array
     appNames.forEach((appName) => {
       activityNames.forEach(async (activityName) => {
         const x = new Promise(async (resolve, reject) => {
@@ -273,6 +284,7 @@ async function getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serv
       })
     })
 
+    //Iterate through the promises array and concat the results
     await Promise.all(promises).then((results) => {
       results.forEach((result) => {
         if (typeof result === 'undefined' || result === null) return
@@ -281,7 +293,7 @@ async function getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serv
     })
 
     //Sort activities by time in descending order
-    //Users may leave and rejoin etc, so we need the latest logs
+    //Users may leave and rejoin etc, so we need the latest logs first
     allActivities.sort((a, b) => {
       return new Date(b.id.time) - new Date(a.id.time)
     })
