@@ -270,6 +270,7 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
       }
       table.push(obj)
     })
+
     return table
   }
 
@@ -279,11 +280,15 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
     //get a list of all groups in customer organization
     let groups = await listGroups(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey)
 
-    //leave out groups with no members to reduct amoung of API calls
+    //leave out groups with no members to reduce number of API calls
     groups = groups.filter((group) => group.directMembersCount > 0)
 
     //get an array of parent group objects
     const family = await getFamilyWithAllMembers(groups, theGroupOrUser)
+
+    if (family.length === 0) {
+      return []
+    }
 
     //get an array with membership details and timestamp for each parent/grandparent group of the target group/user
     const table = await getTable(family)

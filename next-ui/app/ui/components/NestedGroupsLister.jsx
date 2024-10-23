@@ -20,13 +20,13 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
  * group email, the type of membership (direct or indirect), and the timestamp
  * of when the membership was created.
  */
-//While it appears to be working and displays data, backend is still in process(needs checking etc.)
 function NestedGroupsLister() {
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)
   const [inputValue, setInputValue] = useState('')
   const [groupList, setGroupList] = useState([])
   const [clickCount, setClickCount] = useState(0)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchMembership = async (req, res) => {
@@ -46,14 +46,23 @@ function NestedGroupsLister() {
           { withCredentials: true }
         )
 
+        // if emtpy table is returned, set error 'No memberships found', otherwise set groupList
         if (response.status === 200) {
-          setGroupList(response.data)
+          response.data.length === 0
+            ? setError({ message: 'No memberships found. Please check if the email address is correct and try again.' })
+            : setGroupList(response.data)
         }
       } catch (error) {
-        console.error(error)
-        setGroupList([{ error: error.message }])
+        //if error is 404, set error 'Incorrect email address or you do not have access to this resource.',
+        //otherwise set error returned by the server
+        if (typeof error.response !== 'undefined' && error.response.status === 404) {
+          setError({ message: 'Incorrect email address or you do not have access to this resource.' })
+        } else {
+          setError(error)
+        }
       }
     }
+    setError(null)
     setGroupList([])
     fetchMembership()
   }, [clickCount])
@@ -73,6 +82,7 @@ function NestedGroupsLister() {
           Go
         </Button>
       </div>
+      <p>{error && error.message}</p>
       <Table>
         <TableCaption>A list of direct and indirect parents/grandparents for the target group or user.</TableCaption>
         <TableHeader>
