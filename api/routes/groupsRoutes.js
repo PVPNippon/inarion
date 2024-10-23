@@ -23,4 +23,7 @@ router.post('/get-group-joined-activity', groupsController.getGroupJoinedActivit
 //route to get nested membership table for a member(group or user)
 router.post('/get-nested-membership', groupsController.getNestedMembership)
 
+//route to get group hierarchy relative to a group(or potentially in the future a user)
+router.post('/get-group-hierarchy', groupsController.getGroupHierarchy)
+
 module.exports = router

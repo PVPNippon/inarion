@@ -299,6 +299,41 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
   }
 }
 
+function getHierarchy(nestedTableArray, queryEmail) {
+  const hierarchy = {
+    nodes: [],
+    edges: [],
+  }
+
+  hierarchy.nodes.push({
+    id: queryEmail,
+    label: queryEmail,
+    color: 'red',
+  })
+  nestedTableArray.forEach((row) => {
+    hierarchy.nodes.push({
+      id: row.email,
+      label: row.email,
+    })
+  })
+
+  nestedTableArray.forEach((row) => {
+    if (row.membership === 'Inherited') {
+      hierarchy.edges.push({
+        from: row.email,
+        to: row.inherited,
+      })
+    } else if (row.membership === 'Direct') {
+      hierarchy.edges.push({
+        from: row.email,
+        to: queryEmail,
+      })
+    }
+  })
+  return hierarchy
+}
+
 module.exports = {
   getNestedTable,
+  getHierarchy,
 }

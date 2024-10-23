@@ -1,3 +1,4 @@
+const { get } = require('../routes/groupsRoutes')
 const {
   listGroups,
   getGroupByEmail,
@@ -5,7 +6,7 @@ const {
   getAllGroupsLogs,
   getJoinGroupsLogs,
 } = require('../services/groupsService')
-const { getNestedTable } = require('../services/nestedGroupsService')
+const { getNestedTable, getHierarchy } = require('../services/nestedGroupsService')
 
 /**
  * Retrieves the list of all groups in the organization.
@@ -230,4 +231,25 @@ exports.getNestedMembership = async (req, res) => {
 
   //return nestedTable
   res.status(200).json(nestedTable)
+}
+
+exports.getGroupHierarchy = async (req, res) => {
+  let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
+
+  //fetch array with nested membership and timestamps
+  const nestedTable = await getNestedTable(
+    userEmail,
+    projectId,
+    serviceAccountEmail,
+    serviceAccountPrivateKey,
+    queryEmail
+  )
+
+  console.log(nestedTable)
+
+  const groupHierarchy = getHierarchy(nestedTable, queryEmail)
+
+  if (!groupHierarchy) res.status(500).json({ message: 'Error fetching nested membership' })
+
+  res.status(200).json(groupHierarchy)
 }
