@@ -145,7 +145,7 @@ async function listGroupMembers(
  * @param {string} projectId - The project ID of the GCP project.
  * @param {string} serviceAccountEmail - The email address of the service account.
  * @param {string} serviceAccountPrivateKey - The private key of the service account.
- * @param {string} [appName='groups_enterprise'] - The application name for filtering the logs('groups_enterprise','groups').
+ * @param {string} [appName='groups_enterprise'] - The application name for filtering the logs('groups_enterprise','groups', 'admin').
  * @param {string} [typeOfLogs=''] - The type of logs to retrieve.
  * @param {Object} [client=null] - The JWT client to use for the API calls.
  * @returns {Promise<Object[]>} - A promise that resolves to an array of activity logs.
@@ -165,6 +165,11 @@ async function getAllGroupsLogs(
   //https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups-enterprise
   //https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups
   if (appName === 'groups_enterprise' && typeOfLogs === 'join_via_mail') {
+    return
+  }
+
+  //in admin activity events we need only one event, so skip for all other activity types
+  if (appName === 'admin' && typeOfLogs !== 'add_member') {
     return
   }
 
@@ -204,6 +209,12 @@ async function getAllGroupsLogs(
       //=> we swap 'add_member' to 'add_user' if type of app is "groups"
       if (appName === 'groups' && typeOfLogs === 'add_member') {
         requestObj.eventName = 'add_user'
+      }
+
+      //'add_member' is called 'ADD_GROUP_MEMBER' in 'admin'
+      //and it's ...drumroll.. drumroll... CASE SENSITIVE
+      if (appName === 'admin' && typeOfLogs === 'add_member') {
+        requestObj.eventName = 'ADD_GROUP_MEMBER'
       }
 
       // Add the next page token if it exists
@@ -261,7 +272,7 @@ async function getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serv
     //Could not find a way to specify multiple activities in the eventName field
     // => fetch each eventName separately and concat the results
 
-    const appNames = ['groups_enterprise', 'groups']
+    const appNames = ['groups_enterprise', 'groups', 'admin']
     const activityNames = ['add_member', 'accept_invitation', 'join', 'approve_join_request', 'join_via_mail']
 
     //Iterate through each app and each activity and push all into promises array
