@@ -23,7 +23,7 @@ services:
     ports:
       - '3001:80'
     environment:
-      - PORT=3001   # Set the environment variable to use port 3001
+      - PORT=3001 # Set the environment variable to use port 3001
 
     stdin_open: true
 
@@ -36,9 +36,8 @@ services:
     #   - PORT=3000     
     #   - HOST=0.0.0.0
     stdin_open: true
-    networks: 
+    networks:
       - test
-
 
 networks:
   test:
