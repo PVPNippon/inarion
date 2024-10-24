@@ -28,7 +28,7 @@ function ListGroupsActivities() {
       }
       try {
         const response = await axios.post(
-          'http://localhost:4000/groups/get-group-activity',
+          'http://localhost:4000/groups/get-activity',
           {
             userEmail: email,
             projectId: projectData.projectData.projectId,

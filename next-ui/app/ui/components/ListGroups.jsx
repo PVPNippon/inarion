@@ -34,7 +34,7 @@ function ListGroups() {
       }
       try {
         const response = await axios.post(
-          'http://localhost:4000/groups/list-groups',
+          'http://localhost:4000/groups/list',
           {
             userEmail: email,
             projectId: projectData.projectData.projectId,

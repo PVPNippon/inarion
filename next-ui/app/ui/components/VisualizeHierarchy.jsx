@@ -24,7 +24,7 @@ function VisualizeHierarchy() {
           return
         }
         const response = await axios.post(
-          'http://localhost:4000/groups/get-group-hierarchy',
+          'http://localhost:4000/groups/get-hierarchy',
           {
             userEmail: email,
             projectId: projectData.projectData.projectId,
