@@ -118,45 +118,7 @@ exports.registerUser = async (req, res) => {
   }
 };
 
-// exports.registerUser = async (req, res) => {
-//   // Extract email and project name from request body
-//   const { email, projectName } = req.body;
 
-//   if (!email || !projectName) {
-//     return res.status(400).send('Email and project name are required');
-//   }
-
-//   try {
-//     console.log('Checking if the user already exists...');
-//     // Query the database to find a user by email
-//     const user = await User.findOne({ where: { email } });
-
-//     if (user) {
-//       if (user.projectName === projectName) {
-//         // User with the same project already exists
-//         console.log('User with this project already exists');
-//       } else {
-//         // User exists but with a different project, update the project name
-//         user.projectName = projectName;
-//         await user.save();
-//         console.log('Updated existing user with new project');
-//       }
-//     } else {
-//       // If the user does not exist, create a new user
-//       await User.create({ email, projectName });
-//       console.log('New user created');
-//     }
-
-//     const authUrl = getAuthUrl(email, projectName); // Generate the authentication URL
-
-//     console.log('Returning authUrl:', authUrl); // Log the authentication URL
-//     return res.status(200).json({ authUrl }); // Return the authentication URL
-
-//   } catch (error) {
-//     console.error('Error during registration:', error);
-//     return res.status(500).json({ error: 'An error occurred while registering the user' });
-//   }
-// };
 
 
 

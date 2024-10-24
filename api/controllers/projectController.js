@@ -101,6 +101,7 @@ exports.createProject = async (req, res) => {
     await retryAsync(() => googleService.enableAPI(oauth2Client, projectId, 'admin.googleapis.com'))
     // Enable the Google Drive API programmatically
     await retryAsync(() => googleService.enableAPI(oauth2Client, projectId, 'drive.googleapis.com'))
+    await retryAsync(() => googleService.enableAPI(oauth2Client, projectId, 'driveactivity.googleapis.com'))
 
     // Check for existing service account in Google Cloud
     const serviceAccountName = email.replace(/[@.]/g, '-')

@@ -16,5 +16,6 @@ router.post('/shared-drives', driveController.getSharedDrives);
 // Route to fetch all files in personal drives
 router.post('/personal-drives', driveController.getPersonalDriveFiles);
 router.post('/shared-drives-storage', driveController.getAllSharedDrivesWithStorage);
+router.post('/drive-activity', driveController.getDriveActivity);
 
 module.exports = router;

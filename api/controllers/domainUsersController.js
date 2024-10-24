@@ -39,7 +39,7 @@ exports.getDomainUsersList = async (req, res) =>{
   //   console.log('Came in here');
   //   projectId = projectData.projectId;
   // }
-  console.log(`ProjectID: ${projectId}`);
+  // console.log(`ProjectID: ${projectId}`);
 
   // Retrieve service account data using the project ID
   // let serviceAccountData = await dataController.getServiceAccountData(projectId);
