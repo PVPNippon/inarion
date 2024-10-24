@@ -299,6 +299,7 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
   }
 }
 
+//WARNING! Work in progress. Don't check it yet.
 function getHierarchy(nestedTableArray, queryEmail) {
   const hierarchy = {
     nodes: [],
