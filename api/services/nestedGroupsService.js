@@ -309,19 +309,25 @@ function getHierarchy(nestedTableArray, queryEmail) {
     id: queryEmail,
     label: queryEmail,
     color: 'red',
+    shape: 'box',
   })
   nestedTableArray.forEach((row) => {
     hierarchy.nodes.push({
       id: row.email,
       label: row.email,
+      shape: 'box',
     })
   })
 
   nestedTableArray.forEach((row) => {
     if (row.membership === 'Inherited') {
-      hierarchy.edges.push({
-        from: row.email,
-        to: row.inherited,
+      const inheritedParentArray = row.inherited.split(',')
+
+      inheritedParentArray.forEach((inheritedParent) => {
+        hierarchy.edges.push({
+          from: row.email,
+          to: inheritedParent.trim(),
+        })
       })
     } else if (row.membership === 'Direct') {
       hierarchy.edges.push({
