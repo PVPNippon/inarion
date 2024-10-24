@@ -269,6 +269,17 @@ const listServiceAccounts = async (authClient, projectId) => {
 };
 
 
+// Initialize the Google Workspace Activity API service
+const getActivityService = async (auth) => {
+  return google.appsactivity({
+    version: 'v2',
+    auth
+  });
+};
+
+
+
+
 /**
  * Exports a set of functions related to Google Cloud project and service account management.
  * 

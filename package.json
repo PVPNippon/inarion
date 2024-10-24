@@ -3,9 +3,11 @@
     "nodemon": "^3.1.4"
   },
   "dependencies": {
+    "@google-cloud/local-auth": "^2.1.0",
     "axios": "^1.7.7",
     "ejs": "^3.1.10",
     "express-session": "^1.18.0",
+    "googleapis": "^105.0.0",
     "htmx.org": "^1.9.12",
     "nanoid": "^5.0.7",
     "react-csv": "^2.2.2"

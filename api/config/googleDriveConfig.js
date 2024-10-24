@@ -11,17 +11,21 @@ const ServiceAccountKeys = require('../models/ServiceAccountKeys');
  * @returns {Promise<Object>} - A promise that resolves to the decoded and validated credentials object.
  * @throws Will throw an error if the service account key is not found, the credentials are invalid, or the JSON parsing fails.
  */
-async function getCredentials(serviceAccountEmail) {
-  // Fetch the service account key from the database using the provided email.
-  let serviceAccountKeyInDB = await ServiceAccountKeys.findOne({ where: { serviceAccountEmail: serviceAccountEmail } });
-
-  // If the service account key is not found, throw an error to indicate the issue.
-  if (!serviceAccountKeyInDB) {
-    throw new Error(`Service account key not found for ${serviceAccountEmail}`);
+async function  getCredentials(serviceAccountEmail, serviceAccountPrivateKey) {
+  let serviceAccountKeyInDB = ""
+  if(!serviceAccountPrivateKey){
+    // Fetch the service account key from the database using the provided email.
+    serviceAccountKeyInDB = await ServiceAccountKeys.findOne({ where: { serviceAccountEmail: serviceAccountEmail } });
+    // If the service account key is not found, throw an error to indicate the issue.
+    if (!serviceAccountKeyInDB) {
+      throw new Error(`Service account key not found for ${serviceAccountEmail}`);
+    }
+    serviceAccountPrivateKey = serviceAccountKeyInDB
   }
 
+
   // Decode the base64-encoded privateKeyData to get the actual JSON credentials.
-  const decodedCredentials = Buffer.from(serviceAccountKeyInDB.privateKeyData, 'base64').toString('utf8');
+  const decodedCredentials = Buffer.from(serviceAccountPrivateKey, 'base64').toString('utf8');
 
   let credentials;
   try {
@@ -59,7 +63,6 @@ async function initializeGoogleAuth(credentials) {
   });
 
   // Return the initialized auth client.
-  console.log(auth);
   return auth;
 }
 

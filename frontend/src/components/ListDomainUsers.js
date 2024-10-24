@@ -21,7 +21,6 @@ function ListDomainUsers() {
             }, 
             {withCredentials: true},
         );
-
             setUsersList(response.data);
         };
     fetchDomainUsers();

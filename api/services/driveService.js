@@ -16,14 +16,13 @@ const { google } = require('googleapis'); // Google APIs client library
  * @returns {Promise<Object>} - A promise that resolves to the Google Drive client instance.
  * @throws Will throw an error if there is an issue initializing the Google Drive instance.
  */
-async function getDriveInstance(user, serviceAccountEmail) {
+async function getDriveInstance(user, serviceAccountEmail, serviceAccountPrivateKey) {
   try {
     // The service account email, which is used to authenticate API requests, is retrieved from the configuration file.
     // const serviceAccountEmail = config.CLIENT_SERVICE_ACCOUNT_EMAIL;
 
     // Fetch the service account credentials from the database and decode them.
-    console.log(`service acc email: ${serviceAccountEmail}`);
-    const credentials = await getCredentials(serviceAccountEmail);
+    const credentials = await getCredentials(serviceAccountEmail, serviceAccountPrivateKey);
 
     // Initialize the Google Auth client using the retrieved credentials.
     const auth = await initializeGoogleAuth(credentials);
@@ -59,6 +58,7 @@ const fetchFilesFromDrive = async (drive, driveId = null) => {
           includeItemsFromAllDrives: true,
           supportsAllDrives: true,
           fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, parents, size)', 
+          fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, parents, size)', 
           q: 'trashed=false', 
           pageToken: nextPageToken,
         });
@@ -66,6 +66,7 @@ const fetchFilesFromDrive = async (drive, driveId = null) => {
         // For personal drives, only the 'user' corpora is required
         filesResponse = await drive.files.list({
           corpora: 'user', 
+          fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, parents, size)', 
           fields: 'nextPageToken, files(id, name, mimeType, modifiedTime, parents, size)', 
           q: 'trashed=false',
           pageToken: nextPageToken,
@@ -100,7 +101,8 @@ const fetchFilesFromDrive = async (drive, driveId = null) => {
  * @param {string} driveName - The name of the Google Drive (for display purposes).
  * @returns {Object} - The file node with updated hierarchy and path information.
  */
-const organizeFileInHierarchy = (file, fileMap, rootItems, rootFolderId, currentDepth = 1, parentPath = '', driveName = '') => {
+
+const organizeFileInHierarchy = (file, fileMap, rootItems, currentDepth, parentPath, driveName) => {
   // Full path is built based on the current file's name and parent path
   const fullPath = currentDepth === 1 && parentPath === '' ? `${driveName}/${file.name}` : `${parentPath}/${file.name}`;
 
@@ -124,7 +126,7 @@ const organizeFileInHierarchy = (file, fileMap, rootItems, rootFolderId, current
     const parentId = file.parents[0];
 
     const parent = fileMap.get(parentId);  // Retrieve parent file from map
-    if (parent) {
+    if (parent) { 
       // Avoid duplicates by checking if the file is already added to its parent
       if (!parent.children.some(child => child.id === file.id)) {
         parent.children.push(fileNode);  // Add the file as a child of its parent
@@ -144,32 +146,18 @@ const organizeFileInHierarchy = (file, fileMap, rootItems, rootFolderId, current
 
   // If the file is a folder, recursively organize its children
   if (file.mimeType.includes('application/vnd.google-apps.folder')) {
-    let folderFileCount = 0;  // Initialize the number of files inside the folder
-    let folderFolderCount = 0;  // Initialize the number of folders inside the folder
-    let folderSize = 0;  // Initialize the total size inside the folder
-
-    // Populate the children array recursively with updated child nodes
-    const updatedChildren = fileMap.get(file.id).children.map(childFile => {
-      const updatedChild = organizeFileInHierarchy(childFile, fileMap, rootItems, rootFolderId, currentDepth + 1, fileNode.path, driveName);
-
-      // Accumulate child file/folder counts and size
-      folderFileCount += updatedChild.type === 'file' ? 1 : updatedChild.fileCount;
-      folderFolderCount += updatedChild.type === 'folder' ? 1 : updatedChild.folderCount;
-      folderSize += updatedChild.totalSize;
-
-      return updatedChild;
-    });
-
-    fileNode.children = updatedChildren;  // Assign the recursively updated children
-    fileNode.fileCount = folderFileCount;  // Total number of files inside the folder
-    fileNode.folderCount = folderFolderCount;  // Total number of folders inside the folder
-    fileNode.totalSize = folderSize;  // Total size of all files inside the folder
+    // Loop through each file to find its children
+    for (let childFile of fileMap.values()) {
+      if (childFile.parents && childFile.parents[0] === file.id) {
+        const childNode = organizeFileInHierarchy(childFile, fileMap, rootItems, currentDepth + 1, fileNode.path, driveName);
+        fileNode.children.push(childNode);
+      }
+    }
   }
 
   // Return the updated file node
   return fileNode;
 };
-
 /**
  * Builds a hierarchical structure from a flat list of files.
  * 
@@ -189,7 +177,8 @@ const buildHierarchy = (files, rootFolderId, driveName) => {
 
   // Then, organize files based on their parent relationships
   for (let file of files) {
-    organizeFileInHierarchy(file, fileMap, rootItems, rootFolderId, driveName);  
+    // organizeFileInHierarchy(file, fileMap, rootItems, rootFolderId, driveName);  
+    organizeFileInHierarchy(file, fileMap, rootItems, 1, '', driveName);  
   }
 
   return rootItems;  // Return the fully built hierarchy
@@ -211,6 +200,16 @@ const fetchAndBuildDriveFiles = async (drive, driveName, isSharedDrive, rootFold
   // Build the hierarchical structure for the fetched files
   const children = buildHierarchy(files, rootFolderId, driveName);
 
+  // If sahred drive then return the id as well
+  const driveId = rootFolderId;
+  if(isSharedDrive)
+    return {
+      driveId, // ID of the shared drive
+      driveName,  // Name of the drive
+      depth: 0,  // Root of the drive has depth 0
+      path: driveName,  // Root path is the drive's name
+      children,  // Hierarchical structure of files and folders
+    }
   // Return the drive structure including the hierarchy
   return {
     driveName,  // Name of the drive
@@ -225,10 +224,10 @@ const fetchAndBuildDriveFiles = async (drive, driveName, isSharedDrive, rootFold
  * 
  * @returns {Promise<Array>} - A promise that resolves to an array of shared drives with their file hierarchies.
  */
-const fetchAllSharedDrives = async (userEmail, serviceAccountEmail) => {
+const fetchAllSharedDrives = async (userEmail, serviceAccountEmail, serviceAccountPrivateKey) => {
   try {
     // const drive = await getDriveInstance(config.SUPER_ADMIN_EMAIL);
-    const drive = await getDriveInstance(userEmail, serviceAccountEmail);  // Get Google Drive instance as super admin
+    const drive = await getDriveInstance(userEmail, serviceAccountEmail, serviceAccountPrivateKey);  // Get Google Drive instance as super admin
     // Get Google Drive instance as super admin
     const drivesResponse = await drive.drives.list();  // Fetch all shared drives
     const sharedDrives = drivesResponse.data.drives || [];  // Fallback to an empty array if no drives are found
@@ -276,7 +275,7 @@ const fetchPersonalDriveFiles = async ( adminEmail, projectId, serviceAccountEma
     for (const email of emailList) {
       
       try {
-        const drive = await getDriveInstance(email, serviceAccountEmail);  // Get Google Drive instance for the user
+        const drive = await getDriveInstance(email, serviceAccountEmail, serviceAccountPrivateKey);  // Get Google Drive instance for the user
 
         // Fetch and build hierarchy for the user's personal drive
         const driveFiles = await fetchFilesFromDrive(drive, null);  // Fetch files from user's personal drive
@@ -298,7 +297,6 @@ const fetchPersonalDriveFiles = async ( adminEmail, projectId, serviceAccountEma
         console.error(`Failed to process email ${email}:`, error.message);
       }
     }
-    console.log()
 
     return personalDrivesWithFiles;  // Return the array of personal drives with their file structures
   } catch (error) {
@@ -322,10 +320,10 @@ const fetchPersonalDriveFiles = async ( adminEmail, projectId, serviceAccountEma
  * @returns {Promise<Object>} - A promise that resolves to an object containing the file's metadata.
  * @throws Will throw an error if there is an issue with impersonating the user or fetching the file metadata.
  */
-async function fetchFilesDetailsData(emailToImpersonate, fileId,  serviceAccountEmail) {
+async function fetchFilesDetailsData(emailToImpersonate, fileId,  serviceAccountEmail, serviceAccountPrivateKey) {
 
   // Get the Google Drive instance using the impersonated user's email.
-  let drive = await getDriveInstance(emailToImpersonate, serviceAccountEmail);
+  let drive = await getDriveInstance(emailToImpersonate, serviceAccountEmail, serviceAccountPrivateKey);
 
 
 // Get the metadata of the file identified by the fileId from the user's Google Drive.
@@ -338,36 +336,6 @@ async function fetchFilesDetailsData(emailToImpersonate, fileId,  serviceAccount
   // Return the file's metadata.
     return(fileData.data);
 }
-
-
-
-
-// Obsolete Function to build a hierarchy from files and folders
-// const buildFileHierarchy = (files, rootFolderId, driveName) => {
-//   const fileMap = {}; // Map to store file by ID
-//   const result = [];  // Resulting hierarchy array
-
-//   // Step 1: Map all files by their ID
-//   files.forEach(file => {
-//     fileMap[file.id] = { ...file, children: [] };  // Initialize each file/folder with an empty children array
-//   });
-
-//   // Step 2: Organize files into a hierarchy
-//   files.forEach(file => {
-//     if (file.parents && file.parents.length > 0 && file.parents[0] !== rootFolderId) {
-//       // If the file has a parent and it's not the root, add it as a child of the parent
-//       const parent = fileMap[file.parents[0]];
-//       if (parent) {
-//         parent.children.push(fileMap[file.id]);
-//       }
-//     } else {
-//       // If the file has no parent or is in the root folder, add it to the root of the hierarchy
-//       result.push(fileMap[file.id]);
-//     }
-//   });
-
-//   return result;  // Return the hierarchical structure
-// };
 
 /**
  * Formats a given size in bytes into a human-readable string, either in KB or MB.
@@ -426,7 +394,7 @@ const buildFilePath = (file, files) => {
  * @param {string} rootFolderId - The ID of the root folder of the drive.
  * @returns {Object} - An object containing total storage, file count, file details, folder details, and hierarchy.
  */
-const fetchAndBuildDriveFilesWithStorage = async (drive, driveName, isSharedDrive, rootFolderId) => {
+const fetchAndBuildDriveFilesWithStorage = async (drive, activityService, driveName, isSharedDrive, rootFolderId) => {
 
   // Fetch all files for the specified drive (shared or personal), including size
   const files = await fetchFilesFromDrive(drive, isSharedDrive ? rootFolderId : null);
@@ -451,11 +419,59 @@ const fetchAndBuildDriveFilesWithStorage = async (drive, driveName, isSharedDriv
   console.log(`Total Storage Used: ${formatSize(totalStorage)}`);
   console.log(`Total Number of Files: ${totalFiles}`);
 
+  // Helper function to fetch activity data (downloads, views, active users)
+  const getFileActivity = async (fileId) => {
+    try {
+      // const act = await activityService.acti
+      const activity = await activityService.activity.query({
+        resource: {
+          // pageSize: 10,
+          // filter: `detail.action_detail_case:VIEW OR detail.action_detail_case:DOWNLOAD`,
+          // filter: 'detail.action_detail_case:(VIEW OR DOWNLOAD) AND time >= "2023-01-01T00:00:00Z"',
+
+          // itemName: `items/${fileId}`,
+          // "pageSize": 10,
+          // ancestorName: `items/${fileId}`, // Use ancestorName
+          ancestorName:`items/root`,
+          // filter: "time >= \"2018-01-01T00:00:00-05:00\""
+          // itemName: `items/${fileId}`,
+          // pageSize: 10,
+          // Include the filter if needed
+          // filter: 'detail.action_detail_case:(VIEW OR DOWNLOAD)',
+
+        }
+      });
+     
+      return activity.data.activities || [];
+    } catch (error) {
+      console.error(`Error fetching activity for file ${fileId}:`, error.message);
+      return [];
+    }
+  };
+
+  // Helper function to calculate active users from activity data
+  const getActiveUsers = (activities) => {
+    const userActions = {};
+    activities.forEach(act => {
+      const user = act.actors[0]?.user?.knownUser?.personName || 'Unknown User';
+      if (!userActions[user]) {
+        userActions[user] = 0;
+      }
+      userActions[user] += 1;
+    });
+    return Object.entries(userActions)
+      .map(([user, count]) => ({ user, actions: count }))
+      .sort((a, b) => b.actions - a.actions);  // Sort by action count
+  };
+
   // Loop through files and folders to separate them and collect details
-  files.forEach(file => {
+  for (const file of files) {
     if (file.mimeType === 'application/vnd.google-apps.folder') {
       // If it's a folder, count the number of files inside it
       const folderFileCount = files.filter(f => f.parents && f.parents.includes(file.id)).length;
+
+      // For folders, you might decide whether to fetch activity or not
+      // Skipping activity fetch for folders in this example
 
       folderDetails.push({
         folderName: file.name,
@@ -465,21 +481,28 @@ const fetchAndBuildDriveFilesWithStorage = async (drive, driveName, isSharedDriv
 
       console.log(`Folder: ${file.name}, Files inside: ${folderFileCount}`);
     } else {
-      // If it's a file, store its details
+      // If it's a file, fetch activity data
+      const activities = await getFileActivity(file.id);
+      const activeUsers = getActiveUsers(activities);
+      const viewsAndDownloads = activities.length;  // Number of views/downloads
+
+      // Store file details including activity data
       fileDetails.push({
         fileName: file.name,
         fileSize: formatSize(file.size),
-        filePath: buildFilePath(file, files)  // Use buildFilePath to construct the full path
+        filePath: buildFilePath(file, files),  // Use buildFilePath to construct the full path
+        viewsAndDownloads,  // Number of views/downloads
+        activeUsers  // Users most active on the file
       });
 
-      console.log(`${file.name}: ${formatSize(file.size)}`);
+      console.log(`${file.name}: ${formatSize(file.size)}, Views/Downloads: ${viewsAndDownloads}`);
     }
-  });
+  }
 
   // Build the hierarchical structure for the fetched files and folders
   const children = buildHierarchy(files, rootFolderId, driveName);
   printHierarchy(children);  // Optional: Print hierarchy for debugging purposes
-  
+
   // Return the result, including drive name, total storage, file count, and details of files and folders
   return {
     driveName,
@@ -488,10 +511,11 @@ const fetchAndBuildDriveFilesWithStorage = async (drive, driveName, isSharedDriv
     depth: 0,
     path: driveName,
     children,
-    fileDetails,  // File details including name, size, and path
+    fileDetails,  // File details including name, size, path, views/downloads, active users
     folderDetails  // Folder details including name, file count, and path
   };
 };
+
 
 
 /**
@@ -504,10 +528,11 @@ const fetchAndBuildDriveFilesWithStorage = async (drive, driveName, isSharedDriv
  * @returns {Promise<Object>} - An object containing the shared drives, their total storage, file details, and folder hierarchy.
  * @throws {Error} - If the API request fails or there is an issue fetching the drives.
  */
-const fetchAllSharedDrivesWithStorage = async ( userEmail, serviceAccountEmail) =>{
+const fetchAllSharedDrivesWithStorage = async ( userEmail, serviceAccountEmail, serviceAccountPrivateKey) =>{
   try{
+    const { activityService } = await getGoogleServices( serviceAccountEmail, serviceAccountPrivateKey);
     // Get the Google Drive instance
-    const drive = await getDriveInstance(userEmail, serviceAccountEmail);
+    const drive = await getDriveInstance(userEmail, serviceAccountEmail, serviceAccountPrivateKey);
     // Fetch all shared drives
     const drivesResponse = await drive.drives.list();
     const sharedDrives = drivesResponse.data.drives || [];  // Fallback to an empty array if no drives are found
@@ -515,29 +540,40 @@ const fetchAllSharedDrivesWithStorage = async ( userEmail, serviceAccountEmail) 
     const sharedDrivesWithFiles = [];
     // Loop through each shared drive and fetch files with storage info
     for (const sharedDrive of sharedDrives){
-      const driveFiles = await fetchAndBuildDriveFilesWithStorage(drive, sharedDrive.name, true, sharedDrive.id);
+      const driveFiles = await fetchAndBuildDriveFilesWithStorage(drive, activityService, sharedDrive.name, true, sharedDrive.id);
       sharedDrivesWithFiles.push(driveFiles);  // Add the built hierarchy to the array
 
     }
     // Return the shared drives with files and storage information
     return sharedDrivesWithFiles;
-
-
-    // res.status(200).json({
-    //   message: "Shared Drive Storage Breakdown",
-    //   drives: sharedDrivesWithFiles.map(drive => ({
-    //     driveName: drive.driveName,
-    //     totalStorage: drive.totalStorage,
-    //     details: drive.details, // Include the detailed info for each drive,
-    //     fileDetails: drive.fileDetails,  // Include the detailed info for each drive, including file details
-
-    //   }))
-    // });
   } catch (error){
-    console.log(error.message);
     res.status(500).json({ error: error.message });  
   }
 }
+
+
+
+
+
+const getGoogleServices = async ( serviceAccountEmail, serviceAccountPrivateKey) => {
+  try {
+    const credentials = await getCredentials(serviceAccountEmail, serviceAccountPrivateKey);
+
+    // Initialize the Google Auth client
+    const auth = await initializeGoogleAuth(credentials);
+
+    // Initialize the Google Drive API client
+    const drive = google.drive({ version: 'v3', auth });
+
+    // Initialize the Google Workspace Activity API client
+    const activityService =  google.driveactivity({ version: 'v2', auth });
+
+    return { activityService }; 
+  } catch (error) {
+    console.error("Error initializing Google services:", error.message);
+    throw error;
+  }
+};
 
 
 module.exports = {
@@ -547,5 +583,6 @@ module.exports = {
   getDriveInstance, 
   fetchFilesFromDrive,
   fetchAllSharedDrivesWithStorage,
+  getGoogleServices,
 
 };
