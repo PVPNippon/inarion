@@ -244,8 +244,6 @@ exports.getGroupHierarchy = async (req, res) => {
     queryEmail
   )
 
-  console.log(groupHierarchy)
-
   if (!groupHierarchy) res.status(500).json({ message: 'Error fetching nested membership' })
 
   res.status(200).json(groupHierarchy)
