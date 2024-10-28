@@ -244,7 +244,17 @@ exports.getGroupHierarchy = async (req, res) => {
     queryEmail
   )
 
-  if (!groupHierarchy) res.status(500).json({ message: 'Error fetching nested membership' })
+  if (!groupHierarchy) {
+    res.status(500).json({ message: 'Error fetching hierarchy' })
+    return
+  }
+
+  if (groupHierarchy.nodes.length === 1 && groupHierarchy.edges.length === 0) {
+    res.status(200).json({
+      message: 'No parent groups or members found. Please check if the email address is correct and try again.',
+    })
+    return
+  }
 
   res.status(200).json(groupHierarchy)
 }
