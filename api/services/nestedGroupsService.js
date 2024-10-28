@@ -59,14 +59,14 @@ function hasRelation(suspectedParent, theGroupOrUser, family) {
  *
  * The function returns an array of group objects, each containing a group object and a list of all its members(direct+indirect).
  */
-async function getFamilyWithAllMembers(
+async function getFamilyWithAllMembers({
   userEmail,
   projectId,
   serviceAccountEmail,
   serviceAccountPrivateKey,
   groups,
-  theGroupOrUser
-) {
+  theGroupOrUser,
+}) {
   const promises = []
   const family = []
 
@@ -109,21 +109,21 @@ async function getFamilyWithAllMembers(
  * @param {Object[]} family - An array of group objects, each containing a `group` with an `email`.
  * @returns {Promise<Object[][]>} - A promise that resolves to an array of arrays, each containing the direct members of a group.
  */
-async function getDirectMembersArray(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, family) {
+async function getDirectMembersArray({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, family }) {
   const promises = []
   const directMemberArray = []
 
   family.forEach(async (groupObj) => {
     const directMembers = new Promise((resolve, reject) => {
       resolve(
-        listGroupMembers(
+        listGroupMembers({
           userEmail,
           projectId,
           serviceAccountEmail,
           serviceAccountPrivateKey,
-          groupObj.group.email,
-          false
-        )
+          groupEmail: groupObj.group.email,
+          includeDerivedMembership: false,
+        })
       )
     })
     promises.push(directMembers)
@@ -250,7 +250,7 @@ function getJoinedTime(allActivities, memberId, groupId) {
  * @param {string} queryEmail - The email address of the group or user to query.
  * @returns {Promise<Object[]>} - A promise that resolves to an array of objects containing membership details for direct/indirect parents of the target group.
  */
-async function getNestedTable(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail) {
+async function getNestedTable({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail }) {
   /**
    * Given a family of groups, retrieves the membership details of each direct/indirect parents of the target group/user.
    * For each direct member, determines if their membership is direct or inherited, and provides the timestamp of their membership.
@@ -264,19 +264,24 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
     //get an array with group joining logs for the last 6 months
     //the reason why we need them is because google API does not provide a joined timestamp
     //so we need to get it ourselves in a roundabout way
-    const allActivities = await getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey)
+    const allActivities = await getJoinGroupsLogs({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey,
+    })
 
     //for each group in the family, fetch all its direct members
     //the reason why we need to fetch all direct members separately is because
     //the API method which returns all members(direct and indirect) does not say which member is direct and which is indirect
     //so we need to find it out by ourselves in a roundabout way
-    const directMembers = await getDirectMembersArray(
+    const directMembers = await getDirectMembersArray({
       userEmail,
       projectId,
       serviceAccountEmail,
       serviceAccountPrivateKey,
-      family
-    )
+      family,
+    })
 
     //for each parent group, create JSON object containing membership details
     directMembers.forEach((directMember) => {
@@ -316,14 +321,14 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
     groups = groups.filter((group) => group.directMembersCount > 0)
 
     //get an array of parent group objects
-    const family = await getFamilyWithAllMembers(
+    const family = await getFamilyWithAllMembers({
       userEmail,
       projectId,
       serviceAccountEmail,
       serviceAccountPrivateKey,
       groups,
-      theGroupOrUser
-    )
+      theGroupOrUser,
+    })
 
     if (family.length === 0) {
       return []
@@ -356,7 +361,7 @@ async function getNestedTable(userEmail, projectId, serviceAccountEmail, service
  * @param {Object[]} allMembersOfTheGroup - An array of all members (direct and indirect) of the group.
  * @returns {Object} - The updated hierarchy with nodes and edges representing the group's structure.
  */
-async function getChildren(
+async function getChildren({
   userEmail,
   projectId,
   serviceAccountEmail,
@@ -365,8 +370,8 @@ async function getChildren(
   hierarchy,
   directMembersOfTheGroup,
   indirectMembersOfTheGroup,
-  allMembersOfTheGroup
-) {
+  allMembersOfTheGroup,
+}) {
   //filter user and group members separately
   const users = directMembersOfTheGroup.filter((member) => member.type === 'USER')
   const groups = directMembersOfTheGroup.filter((member) => member.type === 'GROUP')
@@ -404,27 +409,26 @@ async function getChildren(
     //filter out only groups from all members of the group
     let childGroups = allMembersOfTheGroup.filter((member) => member.type === 'GROUP')
     const childGroupFamily = []
+
     if (childGroups.length > 0) {
       childGroups.forEach((childGroup) => {
-        // if (childGroup.type === 'GROUP') {
         const groupObj = {
           group: {
             email: childGroup.email,
           },
         }
         childGroupFamily.push(groupObj)
-        // }
       })
     }
 
     //get an array of direct members for each group in the downstreamfamily
-    const directMembersOfChildGroups = await getDirectMembersArray(
+    const directMembersOfChildGroups = await getDirectMembersArray({
       userEmail,
       projectId,
       serviceAccountEmail,
       serviceAccountPrivateKey,
-      childGroupFamily
-    )
+      childGroupFamily,
+    })
 
     //loop through each child group and its direct member array and create a node(if it doesn't already exist) and edge for each group and member
     //this is the hierarchy building "algorithm"
@@ -454,7 +458,7 @@ async function getChildren(
   return hierarchy
 }
 
-async function getHierarchy(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail) {
+async function getHierarchy({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail }) {
   /**
    * Given a family of groups, creates a hierarchical object
    * containing a nodes list and an edges list.
@@ -473,13 +477,13 @@ async function getHierarchy(userEmail, projectId, serviceAccountEmail, serviceAc
     }
 
     //for each group in the family, fetch all its direct members
-    const directMembers = await getDirectMembersArray(
+    const directMembers = await getDirectMembersArray({
       userEmail,
       projectId,
       serviceAccountEmail,
       serviceAccountPrivateKey,
-      family
-    )
+      family,
+    })
 
     //for each parent group, create JSON object containing membership details
     family.forEach((group) => {
@@ -535,7 +539,7 @@ async function getHierarchy(userEmail, projectId, serviceAccountEmail, serviceAc
 
   try {
     //get a list of all groups in customer organization
-    const allGroups = await listGroups(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey)
+    const allGroups = await listGroups({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey })
 
     //If it's not in the list, we assume that it's a user(therefore, no need to build the downstream family)
     const isGroup = allGroups.some((group) => group.email === theGroupOrUser)
@@ -544,14 +548,14 @@ async function getHierarchy(userEmail, projectId, serviceAccountEmail, serviceAc
     const groups = allGroups.filter((group) => group.directMembersCount > 0)
 
     //get an array of parent group objects
-    const family = await getFamilyWithAllMembers(
+    const family = await getFamilyWithAllMembers({
       userEmail,
       projectId,
       serviceAccountEmail,
       serviceAccountPrivateKey,
       groups,
-      theGroupOrUser
-    )
+      theGroupOrUser,
+    })
 
     //get a hierarchy object for the upward family of the target group/user
     let hierarchy = await getHierarhyObj(family)
@@ -585,24 +589,24 @@ async function getHierarchy(userEmail, projectId, serviceAccountEmail, serviceAc
     if (groupObj.directMembersCount === 0) return hierarchy
 
     //get all direct and indirect members of the target group
-    const allMembersOfTheGroup = await listGroupMembers(
+    const allMembersOfTheGroup = await listGroupMembers({
       userEmail,
       projectId,
       serviceAccountEmail,
       serviceAccountPrivateKey,
-      groupObj.email,
-      true
-    )
+      groupEmail: groupObj.email,
+      includeDerivedMembership: true,
+    })
 
     //get direct members of the group
-    const directMembersOfTheGroup = await listGroupMembers(
+    const directMembersOfTheGroup = await listGroupMembers({
       userEmail,
       projectId,
       serviceAccountEmail,
       serviceAccountPrivateKey,
-      groupObj.email,
-      false
-    )
+      groupEmail: groupObj.email,
+      includeDerivedMembership: false,
+    })
 
     //get indirect members of the group by subtracting direct members from all members
     //we have to do it because google API doesn't provide information about which member is direct and which is indirect
@@ -611,7 +615,7 @@ async function getHierarchy(userEmail, projectId, serviceAccountEmail, serviceAc
     )
 
     //construct the downstream hierarchy
-    hierarchy = getChildren(
+    hierarchy = getChildren({
       userEmail,
       projectId,
       serviceAccountEmail,
@@ -620,8 +624,8 @@ async function getHierarchy(userEmail, projectId, serviceAccountEmail, serviceAc
       hierarchy,
       directMembersOfTheGroup,
       indirectMembersOfTheGroup,
-      allMembersOfTheGroup
-    )
+      allMembersOfTheGroup,
+    })
 
     return hierarchy
   } catch (error) {

@@ -1,10 +1,4 @@
-const {
-  listGroups,
-  getGroupByEmail,
-  listGroupMembers,
-  getAllGroupsLogs,
-  getJoinGroupsLogs,
-} = require('../services/groupsService')
+const groupsService = require('../services/groupsService')
 const { getNestedTable, getHierarchy } = require('../services/nestedGroupsService')
 
 /**
@@ -20,10 +14,15 @@ const { getNestedTable, getHierarchy } = require('../services/nestedGroupsServic
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.listAllGroups = async (req, res) => {
-  let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
   try {
     // Get an array with all organization's groups
-    const groups = await listGroups(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey)
+    const groups = await groupsService.listGroups({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey,
+    })
 
     // Return the list of all organization's groups
     res.status(200).json(groups)
@@ -44,16 +43,16 @@ exports.listAllGroups = async (req, res) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getGroup = async (req, res) => {
-  let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body
 
   try {
-    const response = await getGroupByEmail(
+    const response = await groupsService.getGroupByEmail({
       userEmail,
       projectId,
       serviceAccountEmail,
       serviceAccountPrivateKey,
-      groupEmail
-    )
+      groupEmail,
+    })
 
     // Return the group's details
     res.status(200).json(response)
@@ -83,17 +82,17 @@ exports.getGroup = async (req, res) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.listDirectMembers = async (req, res) => {
-  let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body
 
   try {
-    const response = await listGroupMembers(
+    const response = await groupsService.listGroupMembers({
       userEmail,
       projectId,
       serviceAccountEmail,
       serviceAccountPrivateKey,
       groupEmail,
-      false //set derived membership to false
-    ) // Get the list of direct members
+      includeDerivedMembership: false, //set derived membership to false
+    }) // Get the list of direct members
 
     // Return the list of direct members of the group
     res.status(200).json(response)
@@ -119,17 +118,17 @@ exports.listDirectMembers = async (req, res) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.listAllMembers = async (req, res) => {
-  let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body
 
   try {
-    const response = await listGroupMembers(
+    const response = await groupsService.listGroupMembers({
       userEmail,
       projectId,
       serviceAccountEmail,
       serviceAccountPrivateKey,
       groupEmail,
-      true //set derived membership to true
-    ) // Get the list of direct members
+      includeDerivedMembership: true, //set derived membership to true
+    }) // Get the list of direct members
 
     // Return the list of direct members of the group
     res.status(200).json(response)
@@ -157,11 +156,16 @@ exports.listAllMembers = async (req, res) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getGroupActivity = async (req, res) => {
-  let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
 
   try {
     // Get the list of group activity
-    const response = await getAllGroupsLogs(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey)
+    const response = await groupsService.getAllGroupsLogs({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey,
+    })
     // Return the list of group activity in customer organization
     res.status(200).json(response)
   } catch (error) {
@@ -183,11 +187,16 @@ exports.getGroupActivity = async (req, res) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getGroupJoinedActivity = async (req, res) => {
-  let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
 
   try {
     //Return the list of group joined activity in customer organization
-    const allActivities = await getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey)
+    const allActivities = await groupsService.getJoinGroupsLogs({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey,
+    })
     res.status(200).json(allActivities)
   } catch (error) {
     console.error('Error fetching group joined activity:', error)
@@ -208,16 +217,18 @@ exports.getGroupJoinedActivity = async (req, res) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getNestedMembership = async (req, res) => {
-  let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
 
   //fetch array with nested membership and timestamps
-  const nestedTable = await getNestedTable(
+  const nestedTable = await getNestedTable({
     userEmail,
     projectId,
     serviceAccountEmail,
     serviceAccountPrivateKey,
-    queryEmail
-  )
+    queryEmail,
+  })
+
+  console.log(nestedTable)
 
   //if nestedTable is null, return 404
   if (nestedTable === null) return res.status(404).json({ message: 'Group or user not found' })
@@ -233,16 +244,16 @@ exports.getNestedMembership = async (req, res) => {
 }
 
 exports.getGroupHierarchy = async (req, res) => {
-  let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
 
   //fetch array with nested membership and timestamps
-  const groupHierarchy = await getHierarchy(
+  const groupHierarchy = await getHierarchy({
     userEmail,
     projectId,
     serviceAccountEmail,
     serviceAccountPrivateKey,
-    queryEmail
-  )
+    queryEmail,
+  })
 
   if (!groupHierarchy) {
     res.status(500).json({ message: 'Error fetching hierarchy' })

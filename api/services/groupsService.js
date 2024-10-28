@@ -15,7 +15,7 @@ const { getClient } = require('../utility/groupsUtilityFunctions')
  * @returns {Promise<Array<Object>>} - A promise that resolves to an array of group objects.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function listGroups(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey) {
+async function listGroups({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey }) {
   const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) // Create the JWT client
   let nextPageToken = null // Token to manage pagination
   let groups = [] // Container for all groups retrieved
@@ -62,7 +62,7 @@ async function listGroups(userEmail, projectId, serviceAccountEmail, serviceAcco
  * @returns {Promise<Object>} - A promise that resolves to the group details.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function getGroupByEmail(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail) {
+async function getGroupByEmail({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail }) {
   const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) // Create the JWT client
   try {
     const admin = google.admin({ version: 'directory_v1', auth: jwtClient }) // Create the Admin Directory API client
@@ -91,14 +91,14 @@ async function getGroupByEmail(userEmail, projectId, serviceAccountEmail, servic
  * @returns {Promise<Object[]>} - A promise that resolves to an array of group members.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function listGroupMembers(
+async function listGroupMembers({
   userEmail,
   projectId,
   serviceAccountEmail,
   serviceAccountPrivateKey,
   groupEmail,
-  includeDerivedMembership
-) {
+  includeDerivedMembership,
+}) {
   const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) // Create the JWT client
   let nextPageToken = null // Token to manage pagination
   let members = [] // Container for members retrieved
@@ -138,24 +138,24 @@ async function listGroupMembers(
 }
 
 /**
- * Retrieves all activity logs related to a specific application or type of logs in the organization.
- * Uses the provided user email, project ID, service account email, and private key to authenticate.
+ * Retrieves the list of activity logs related to groups in the organization.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to list all activity logs related to groups in the organization.
  *
  * @param {string} userEmail - The email address of the user to impersonate.
- * @param {string} projectId - The project ID of the GCP project.
+ * @param {string} projectId - The project ID of the service account key.
  * @param {string} serviceAccountEmail - The email address of the service account.
  * @param {string} serviceAccountPrivateKey - The private key of the service account.
- * @param {string} [appName='groups_enterprise'] - The application name for filtering the logs('groups_enterprise','groups', 'admin').
- * @param {string} [typeOfLogs=''] - The type of logs to retrieve.
- * @param {Object} [client=null] - The JWT client to use for the API calls.
+ * @param {string} [appName='groups_enterprise'] - The type of Google service to get activity logs from.
+ * @param {string} [typeOfLog=''] - The type of activity logs to get.
+ * @param {Object} [client=null] - The JWT client to use to authenticate the API call.
  * @returns {Promise<Object[]>} - A promise that resolves to an array of activity logs.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 async function getAllGroupsLogs(
-  userEmail,
-  projectId,
-  serviceAccountEmail,
-  serviceAccountPrivateKey,
+  { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey },
   appName = 'groups_enterprise',
   typeOfLogs = '',
   client = null
@@ -257,7 +257,7 @@ async function getAllGroupsLogs(
  * @returns {Promise<Object[]>} - A promise that resolves to an array of group joined activity logs.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey) {
+async function getJoinGroupsLogs({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey }) {
   const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) // Create the JWT client
 
   //Fetch activity logs
@@ -281,10 +281,12 @@ async function getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serv
         const x = new Promise(async (resolve, reject) => {
           resolve(
             getAllGroupsLogs(
-              userEmail,
-              projectId,
-              serviceAccountEmail,
-              serviceAccountPrivateKey,
+              {
+                userEmail,
+                projectId,
+                serviceAccountEmail,
+                serviceAccountPrivateKey,
+              },
               appName,
               activityName,
               jwtClient
