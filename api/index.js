@@ -56,7 +56,7 @@ app.use('/user', userRoutes)
 // app.use('/drive', driveRoutes);
 app.use('/api/drive', driveRoutes)
 app.use('/users', domainUsersRoutes)
-app.use('/groups', groupsRoutes)
+app.use('/api/groups', groupsRoutes)
 
 app.get('/', (req, res) => {
   res.send('<h1>Home Page</h1>')
