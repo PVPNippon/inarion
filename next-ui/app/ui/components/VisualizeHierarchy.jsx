@@ -5,6 +5,7 @@ import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import Graph from 'react-graph-vis'
 
 function VisualizeHierarchy() {
   const { email } = useContext(LoggedInUserContext)
@@ -16,6 +17,40 @@ function VisualizeHierarchy() {
   })
   const [clickCount, setClickCount] = useState(0)
   const [error, setError] = useState(null)
+
+  const options = {
+    layout: {
+      improvedLayout: true,
+      hierarchical: {
+        enabled: true,
+        levelSeparation: 150,
+        nodeSpacing: 200,
+        treeSpacing: 200,
+        blockShifting: true,
+        edgeMinimization: true,
+        parentCentralization: true,
+        direction: 'UD', // UD, DU, LR, RL
+        sortMethod: 'directed', // hubsize, directed
+      },
+    },
+    physics: {
+      enabled: true,
+      hierarchicalRepulsion: {
+        nodeDistance: 200, // Put more distance between the nodes.
+      },
+      stabilization: true,
+    },
+    edges: {
+      color: 'blue',
+    },
+    height: '1000px',
+  }
+
+  const events = {
+    select: function (event) {
+      var { nodes, edges } = event
+    },
+  }
 
   useEffect(() => {
     const fetchHierarchy = async (req, res) => {
@@ -76,6 +111,7 @@ function VisualizeHierarchy() {
       </div>
       <p>{error && error.message}</p>
       <div>{groupList && JSON.stringify(groupList)}</div>
+      <Graph graph={groupList} options={options} events={events} getNetwork={(network) => {}} />
     </div>
   )
 }
