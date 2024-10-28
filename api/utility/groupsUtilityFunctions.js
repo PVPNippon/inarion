@@ -33,6 +33,7 @@ async function getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmai
       'https://www.googleapis.com/auth/admin.directory.group',
       'https://www.googleapis.com/auth/admin.reports.audit.readonly',
       'https://www.googleapis.com/auth/admin.directory.user.readonly',
+      'https://www.googleapis.com/auth/directory.readonly',
     ],
     subject: userEmail, // Impersonating this user
   })
