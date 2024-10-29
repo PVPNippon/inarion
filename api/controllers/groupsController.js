@@ -228,8 +228,6 @@ exports.getNestedMembership = async (req, res) => {
     queryEmail,
   })
 
-  console.log(nestedTable)
-
   //if nestedTable is null, return 404
   if (nestedTable === null) return res.status(404).json({ message: 'Group or user not found' })
 

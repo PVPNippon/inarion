@@ -73,7 +73,16 @@ async function getFamilyWithAllMembers({
   //For each group in the array, fetch all its members(direct and indirect)
   groups.forEach(async (group) => {
     const x = new Promise((resolve, reject) => {
-      resolve(listGroupMembers(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, group.email, true))
+      resolve(
+        listGroupMembers({
+          userEmail,
+          projectId,
+          serviceAccountEmail,
+          serviceAccountPrivateKey,
+          groupEmail: group.email,
+          includeDerivedMembership: true,
+        })
+      )
     })
     promises.push(x)
   })
@@ -300,7 +309,6 @@ async function getNestedTable({ userEmail, projectId, serviceAccountEmail, servi
         obj.timestamp = getJoinedTime(allActivities, theGroupOrUser, groupObj.group.email)
       } else {
         const inheritedVia = getTransitive(family, directMembers, theGroupOrUser, groupObj) || ''
-        // const inheritedVia = getTransitive(family, directMembers, theGroupOrUser, groupObj) || ''
         obj.membership = 'Inherited' //the "membership type" column of the table
         obj.inherited = inheritedVia //"inherited via" column of the table
         obj.timestamp = '' //"timestamp" column of the table, left empty for inherited memberships (for now)
@@ -315,7 +323,7 @@ async function getNestedTable({ userEmail, projectId, serviceAccountEmail, servi
 
   try {
     //get a list of all groups in customer organization
-    let groups = await listGroups(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey)
+    let groups = await listGroups({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey })
 
     //leave out groups with no members to reduce number of API calls
     groups = groups.filter((group) => group.directMembersCount > 0)
@@ -427,7 +435,7 @@ async function getChildren({
       projectId,
       serviceAccountEmail,
       serviceAccountPrivateKey,
-      childGroupFamily,
+      family: childGroupFamily,
     })
 
     //loop through each child group and its direct member array and create a node(if it doesn't already exist) and edge for each group and member
