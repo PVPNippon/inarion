@@ -15,35 +15,30 @@ const { getClient } = require('../utility/groupsUtilityFunctions')
  * @returns {Promise<Array<Object>>} - A promise that resolves to an array of group objects.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function listGroups(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey) {
+async function listGroups({userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey}) {
   const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) // Create the JWT client
+  const directory = google.admin({
+    version: 'directory_v1',
+    auth: jwtClient,
+  }) // Create the Admin Directory API client
   let nextPageToken = null // Token to manage pagination
-  let groups = [] // Container for all groups retrieved
+  const groups = [] // Container for all groups retrieved
   let groupsResponse // Response from the API
 
   // Fetch all groups
   do {
-    try {
-      const directory = google.admin({
-        version: 'directory_v1',
-        auth: jwtClient,
-      })
-      groupsResponse = await directory.groups.list({
-        customer: 'my_customer',
-        maxResults: 200, //max allowed value
-        orderBy: 'email',
-        pageToken: nextPageToken,
-      })
-      // Append the fetched groups to the groups array
-      groups.push(...groupsResponse.data.groups)
+    groupsResponse = await directory.groups.list({
+      customer: 'my_customer',
+      maxResults: 200, //max allowed value
+      orderBy: 'email',
+      pageToken: nextPageToken,
+    })
 
-      // Store the next page token for pagination
-      nextPageToken = groupsResponse.data.nextPageToken
-    } catch (error) {
-      // Log the error and rethrow it if groups fetching fails
-      console.error('Error fetching groups:', error.message)
-      throw error
-    }
+    // Append the fetched groups to the groups array
+    groups.push(...groupsResponse.data.groups)
+
+    // Store the next page token for pagination
+    nextPageToken = groupsResponse.data.nextPageToken
   } while (nextPageToken) // Continue fetching groups while there are more pages
 
   return groups // Return all fetched groups
@@ -62,18 +57,18 @@ async function listGroups(userEmail, projectId, serviceAccountEmail, serviceAcco
  * @returns {Promise<Object>} - A promise that resolves to the group details.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function getGroupByEmail(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail) {
+async function getGroupByEmail({userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail}) {
   const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) // Create the JWT client
-  try {
-    const admin = google.admin({ version: 'directory_v1', auth: jwtClient }) // Create the Admin Directory API client
-    const response = await admin.groups.get({
-      groupKey: groupEmail,
-    }) // Get the group details
-    return response.data // Return the group details
-  } catch (error) {
-    console.error('Error fetching group:', error)
-    throw error
-  }
+  const directory = google.admin({
+    version: 'directory_v1',
+    auth: jwtClient,
+  }) // Create the Admin Directory API client
+
+  const group = await directory.groups.get({
+    groupKey: groupEmail,
+  }) // Get the group details
+
+  return group.data // Return the group details
 }
 
 /**
@@ -91,47 +86,41 @@ async function getGroupByEmail(userEmail, projectId, serviceAccountEmail, servic
  * @returns {Promise<Object[]>} - A promise that resolves to an array of group members.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function listGroupMembers(
+async function listGroupMembers({
   userEmail,
   projectId,
   serviceAccountEmail,
   serviceAccountPrivateKey,
   groupEmail,
   includeDerivedMembership
-) {
+}) {
   const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) // Create the JWT client
+  const directory = google.admin({
+    version: 'directory_v1',
+    auth: jwtClient,
+  }) // Create the Admin Directory API client
   let nextPageToken = null // Token to manage pagination
-  let members = [] // Container for members retrieved
+  const members = [] // Container for members retrieved
   let membersResponse // Response from the API
 
   //Fetch members
   do {
-    try {
-      const directory = google.admin({
-        version: 'directory_v1',
-        auth: jwtClient,
-      })
-      membersResponse = await directory.members.list({
-        groupKey: groupEmail,
-        maxResults: 200, //max allowed value
-        includeDerivedMembership: includeDerivedMembership,
-        pageToken: nextPageToken,
-      })
+    membersResponse = await directory.members.list({
+      groupKey: groupEmail,
+      maxResults: 200, //max allowed value
+      includeDerivedMembership,
+      pageToken: nextPageToken,
+    })
 
-      if (typeof membersResponse.data.members === 'undefined') {
-        return [{ response: 'no members found' }]
-      } // Return an array with error message if no members are found(temporary "error handling")
+    if (typeof membersResponse.data.members === 'undefined') {
+      return [{ response: 'no members found' }]
+    } // Return an array with error message if no members are found(temporary "error handling")
 
-      // Append the fetched groups to the members array
-      members.push(...membersResponse.data.members)
+    // Append the fetched groups to the members array
+    members.push(...membersResponse.data.members)
 
-      // Store the next page token for pagination
-      nextPageToken = membersResponse.data.nextPageToken
-    } catch (error) {
-      // Log the error and rethrow it if member fetching fails
-      console.error('Error fetching members:', error.message)
-      throw error
-    }
+    // Store the next page token for pagination
+    nextPageToken = membersResponse.data.nextPageToken
   } while (nextPageToken) // Continue fetching members while there are more pages
 
   return members // Return all fetched members
@@ -151,15 +140,15 @@ async function listGroupMembers(
  * @returns {Promise<Object[]>} - A promise that resolves to an array of activity logs.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function getAllGroupsLogs(
+async function getAllGroupsLogs({
   userEmail,
   projectId,
   serviceAccountEmail,
   serviceAccountPrivateKey,
   appName = 'groups_enterprise',
-  typeOfLogs = '',
-  client = null
-) {
+  typeOfLogs,
+  client
+}) {
   //'groups_enterprise' don't have 'join_via_mail' type of logs, but "groups" have
   //=> if appName is 'groups_enterprise' and typeOfLogs is 'join_via_mail', return nothing
   //https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups-enterprise
@@ -173,70 +162,49 @@ async function getAllGroupsLogs(
     return
   }
 
-  let jwtClient = client // get JWT client from the parameter
+  // get JWT client from the parameter
   // If the client is not provided, create a new one
-  if (!client) {
-    jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+  const directory = google.admin({
+    version: 'reports_v1',
+    auth: jwtClient,
+  })
+
+  const requestObj = {
+    customerId: 'my_customer',
+    userKey: 'all',
+    applicationName: appName,
+    maxResults: 1000, // max allowed value
+    eventName: typeOfLogs,
+  }
+  //the same type of logs are called 'add_member' in 'enterprise_groups' and 'add_user' in 'groups'
+  //by the way, in both cases member or user means both users or groups, so 'add_user' is kinda misleading
+  //=> we swap 'add_member' to 'add_user' if type of app is "groups"
+  if (appName === 'groups' && typeOfLogs === 'add_member') {
+    requestObj.eventName = 'add_user'
+  }
+
+  //'add_member' is called 'ADD_GROUP_MEMBER' in 'admin'
+  //and it's ...drumroll.. drumroll... CASE SENSITIVE
+  if (appName === 'admin' && typeOfLogs === 'add_member') {
+    requestObj.eventName = 'ADD_GROUP_MEMBER'
   }
 
   let nextPageToken = null // Token to manage pagination
-  let activityLogs = [] // Container for activity logs retrieved
+  const activityLogs = [] // Container for activity logs retrieved
   let activityResponse // Response from the API
 
   //Fetch activity logs
   do {
-    try {
-      const directory = google.admin({
-        version: 'reports_v1',
-        auth: jwtClient,
-      })
+    activityResponse = await directory.activities.list(requestObj) // Call the API
 
-      // Create the request object
-      const requestObj = {
-        customerId: 'my_customer',
-        userKey: 'all',
-        applicationName: appName,
-        maxResults: 1000, //max allowed value
-      }
-
-      // Add the type of logs if it is provided
-      if (typeOfLogs) {
-        requestObj.eventName = typeOfLogs
-      }
-
-      //the same type of logs are called 'add_member' in 'enterprise_groups' and 'add_user' in 'groups'
-      //by the way, in both cases member or user means both users or groups, so 'add_user' is kinda misleading
-      //=> we swap 'add_member' to 'add_user' if type of app is "groups"
-      if (appName === 'groups' && typeOfLogs === 'add_member') {
-        requestObj.eventName = 'add_user'
-      }
-
-      //'add_member' is called 'ADD_GROUP_MEMBER' in 'admin'
-      //and it's ...drumroll.. drumroll... CASE SENSITIVE
-      if (appName === 'admin' && typeOfLogs === 'add_member') {
-        requestObj.eventName = 'ADD_GROUP_MEMBER'
-      }
-
-      // Add the next page token if it exists
-      //unlike drive or directory, reports do not support null page tokens
-      //that's why I needed to add this logic
-      if (nextPageToken !== null) {
-        requestObj.pageToken = nextPageToken
-      }
-
-      activityResponse = await directory.activities.list(requestObj) // Call the API
-
-      // Append the fetched groups to the activity logs array
-      if (typeof activityResponse.data.items !== 'undefined') {
-        activityLogs.push(...activityResponse.data.items)
-        nextPageToken = activityResponse.data.nextPageToken // Store the next page token for pagination
-      } else {
-        nextPageToken = null //reset nextPageToken to null if no more pages return
-      }
-    } catch (error) {
-      // Log the error and rethrow it if activity logs fetching fails
-      console.error('Error fetching activity logs:', error.message)
-      throw error
+    // Append the fetched groups to the activity logs array
+    if (typeof activityResponse.data.items !== 'undefined') {
+      activityLogs.push(...activityResponse.data.items)
+      nextPageToken = activityResponse.data.nextPageToken // Store the next page token for pagination
+      requestObj.pageToken = nextPageToken // Unlike drive or directory, reports do not support null page tokens
+    } else {
+      nextPageToken = null //reset nextPageToken to null if no more pages return
     }
   } while (nextPageToken) // Continue fetching activity logs while there are more pages
 
@@ -257,7 +225,7 @@ async function getAllGroupsLogs(
  * @returns {Promise<Object[]>} - A promise that resolves to an array of group joined activity logs.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey) {
+async function getJoinGroupsLogs({userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey}) {
   const jwtClient = await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) // Create the JWT client
 
   //Fetch activity logs
@@ -317,10 +285,124 @@ async function getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serv
   }
 }
 
+async function listAllMembersInExportFormat({userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail}) {
+  const AllMembers = await listGroupMembers({
+    userEmail,
+    projectId,
+    serviceAccountEmail,
+    serviceAccountPrivateKey,
+    groupEmail,
+    includeDerivedMembership: true
+  })
+
+  const directMembersSet = new Set((await listGroupMembers({
+    userEmail,
+    projectId,
+    serviceAccountEmail,
+    serviceAccountPrivateKey,
+    groupEmail,
+    includeDerivedMembership: false
+  })).map(member => member.email))
+
+  // Redis can be used
+  const groupNameMap = new Map((await listGroups({
+    userEmail,
+    projectId,
+    serviceAccountEmail,
+    serviceAccountPrivateKey
+  })).map(group => [group.email, group.name]))
+
+  // Redis can be used
+  const userNameMap = new Map((await listUsers({
+    userEmail,
+    projectId,
+    serviceAccountEmail,
+    serviceAccountPrivateKey
+  })).map(user => [user.primaryEmail, user.name.fullName]))
+
+  const members = AllMembers.map(member => ({
+    groupEmail,
+    email: member.email,
+    memberRelationType: directMembersSet.has(member.email) ? 'DIRECT' : 'INDIRECT',
+    memberType: member.type
+  }))
+
+  members.forEach(member => {
+    switch (member.memberType) {
+      case 'GROUP':
+        member.name = groupNameMap.get(member.email)
+        break
+      case 'USER':
+        member.name = userNameMap.get(member.email)
+        break
+      case 'CUSTOM':
+        member.name = 'All users in the organization'
+        break
+    }
+  })
+  
+  const actualKeys = [
+    'groupEmail',
+    'email',
+    'name',
+    'memberRelationType',
+    'memberType',
+  ]
+
+  const displayKeys = [
+    'Group Email [Required]',
+    'Member Email',
+    'Member Name',
+    'Member Relation Type',
+    'Member Type',
+  ]
+
+  return members
+}
+
+
+// broken
+async function listUsers({userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey}) {
+  const jwtClient = getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+  let nextPageToken = null // Token to manage pagination
+  const users = [] // Container for all users retrieved
+  let usersResponse // Response from the API
+
+  // Fetch all users
+  do {
+    try {
+      const directory = google.admin({
+        version: 'directory_v1',
+        auth: jwtClient,
+      })
+
+      usersResponse = await directory.users.list({
+        // customer: 'my_customer',
+        // maxResults: 200, //max allowed value
+        // orderBy: 'email',
+        // pageToken: nextPageToken,
+        domain: process.env.DOMAIN_TEST,
+      })
+      // Append the fetched users to the users array
+      users.push(...usersResponse.data.users)
+
+      // Store the next page token for pagination
+      nextPageToken = groupsResponse.data.nextPageToken
+    } catch (error) {
+      // Log the error and rethrow it if users fetching fails
+      console.error('Error fetching users:', error.message)
+      throw error
+    }
+  } while (nextPageToken) // Continue fetching users while there are more pages
+
+  return users // Return all fetched users
+}
+
 module.exports = {
   listGroups,
   getGroupByEmail,
   listGroupMembers,
   getAllGroupsLogs,
   getJoinGroupsLogs,
+  listAllMembersInExportFormat
 }
