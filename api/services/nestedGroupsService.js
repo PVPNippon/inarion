@@ -475,6 +475,90 @@ async function getChildren({
 }
 
 /**
+ * Given an array of group objects, returns a hierarchical object containing nodes and edges
+ * representing the membership structure of the groups.
+ *
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @param {string} projectId - The GCP project ID.
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} serviceAccountPrivateKey - The private key of the service account.
+ * @param {Object[]} family - An array of group objects, each containing a group object and a list of all its members(direct and indirect).
+ * @returns {Object} - A hierarchical object containing nodes and edges representing the group structure.
+ */
+async function getHierarchyObj({
+  userEmail,
+  projectId,
+  serviceAccountEmail,
+  serviceAccountPrivateKey,
+  family,
+  theGroupOrUser,
+}) {
+  //prepare the hierarchical object
+  const hierarchy = {
+    nodes: [],
+    edges: [],
+  }
+
+  //for each group in the family, fetch all its direct members
+  const directMembers = await getDirectMembersArray({
+    userEmail,
+    projectId,
+    serviceAccountEmail,
+    serviceAccountPrivateKey,
+    family,
+  })
+
+  //for each parent group, create JSON object containing membership details
+  family.forEach((group) => {
+    //create a node for the parent group
+    if (!alreadyExists(hierarchy, group.group.email)) {
+      hierarchy.nodes.push({ id: group.group.email, label: group.group.email, shape: 'box' })
+    }
+
+    //retrieve an array with direct members of the parent group
+    const index = family.indexOf(group)
+    const directMemberArray = directMembers[index]
+
+    //for each direct member, add its node and edge to the hierarchy if it's related to the target group directly or indirectly
+    directMemberArray.forEach((directMember) => {
+      if (hasRelation(directMember.email, theGroupOrUser, family) || directMember.email === theGroupOrUser) {
+        const nodeObj = {
+          id: directMember.email,
+          label: directMember.email,
+          shape: 'box',
+        }
+
+        //if a node contains the target group, color it red
+        if (directMember.email === theGroupOrUser) {
+          nodeObj.color = 'red'
+        }
+
+        //to prevent duplicates, check if the node is already in the hierarchy, then add it
+        if (!alreadyExists(hierarchy, directMember.email)) {
+          hierarchy.nodes.push(nodeObj)
+        }
+
+        //prepare an object containing edge details
+        const edgeObj = {
+          from: group.group.email,
+          to: directMember.email,
+        }
+
+        //if an edge connects directly from parent group to the target group, color it red
+        if (directMember.email === theGroupOrUser) {
+          edgeObj.color = 'red'
+        }
+
+        //push the edge to the hierarchy
+        hierarchy.edges.push(edgeObj)
+      }
+    })
+  })
+
+  return hierarchy
+}
+
+/**
  * Given a target group or user, creates a hierarchical object
  * containing a nodes list and an edges list.
  * The nodes list contains objects with id, label, shape, and color keys.
@@ -488,82 +572,6 @@ async function getChildren({
  * @returns {Object} - A hierarchical object containing a nodes list and an edges list.
  */
 async function getHierarchy({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail }) {
-  /**
-   * Given a family of groups, creates a hierarchical object
-   * containing a nodes list and an edges list.
-   * The nodes list contains objects with id, label, shape, and color keys.
-   * The edges list contains objects with from, to, and color keys.
-   * The color key is used to highlight the path from the target group/user to the root group.
-   * @param {Object[]} family - An array of group objects, each containing a group object and a list of all its members(direct and indirect).
-   * @returns {Object} - A hierarchical object containing a nodes list and an edges list.
-   */
-
-  async function getHierarhyObj(family) {
-    //prepare the hierarchical object
-    const hierarchy = {
-      nodes: [],
-      edges: [],
-    }
-
-    //for each group in the family, fetch all its direct members
-    const directMembers = await getDirectMembersArray({
-      userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
-      family,
-    })
-
-    //for each parent group, create JSON object containing membership details
-    family.forEach((group) => {
-      //create a node for the parent group
-      if (!alreadyExists(hierarchy, group.group.email)) {
-        hierarchy.nodes.push({ id: group.group.email, label: group.group.email, shape: 'box' })
-      }
-
-      //retrieve an array with direct members of the parent group
-      const index = family.indexOf(group)
-      const directMemberArray = directMembers[index]
-
-      //for each direct member, add its node and edge to the hierarchy if it's related to the target group directly or indirectly
-      directMemberArray.forEach((directMember) => {
-        if (hasRelation(directMember.email, theGroupOrUser, family) || directMember.email === theGroupOrUser) {
-          const nodeObj = {
-            id: directMember.email,
-            label: directMember.email,
-            shape: 'box',
-          }
-
-          //if a node contains the target group, color it red
-          if (directMember.email === theGroupOrUser) {
-            nodeObj.color = 'red'
-          }
-
-          //to prevent duplicates, check if the node is already in the hierarchy, then add it
-          if (!alreadyExists(hierarchy, directMember.email)) {
-            hierarchy.nodes.push(nodeObj)
-          }
-
-          //prepare an object containing edge details
-          const edgeObj = {
-            from: group.group.email,
-            to: directMember.email,
-          }
-
-          //if an edge connects directly from parent group to the target group, color it red
-          if (directMember.email === theGroupOrUser) {
-            edgeObj.color = 'red'
-          }
-
-          //push the edge to the hierarchy
-          hierarchy.edges.push(edgeObj)
-        }
-      })
-    })
-
-    return hierarchy
-  }
-
   const theGroupOrUser = queryEmail
 
   //get a list of all groups in customer organization
@@ -588,7 +596,14 @@ async function getHierarchy({ userEmail, projectId, serviceAccountEmail, service
   })
 
   //get a hierarchy object for the upward family of the target group/user
-  let hierarchy = await getHierarhyObj(family)
+  let hierarchy = await getHierarchyObj({
+    userEmail,
+    projectId,
+    serviceAccountEmail,
+    serviceAccountPrivateKey,
+    family,
+    theGroupOrUser,
+  })
 
   //if the hierarchy is empty, add the target group/user to the hierarchy
   //this is done for error handling to differentiate from server errors

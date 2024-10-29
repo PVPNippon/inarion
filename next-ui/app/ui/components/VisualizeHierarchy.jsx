@@ -103,7 +103,7 @@ function VisualizeHierarchy() {
           name="email"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Enter a group email address"
+          placeholder="Enter a group or user email address"
         />
         <Button onClick={() => setClickCount(clickCount + 1)} type="submit">
           Go
