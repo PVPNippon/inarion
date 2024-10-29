@@ -43,6 +43,21 @@ async function getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmai
   return jwtClient
 }
 
+function toCSV(objects, actualKeys, displayKeys) {
+  displayKeys ??= actualKeys
+
+  const CSVRows = [displayKeys.join()]
+
+  objects.forEach(obj => {
+    const list = []
+    actualKeys.forEach(key => list.push(obj[key] ?? ""))
+    CSVRows.push(list.join())
+  })
+
+  return CSVRows.join("\n")
+
+}
+
 module.exports = {
   getClient,
 }
