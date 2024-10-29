@@ -31,7 +31,7 @@ function ListGroupJoinedActivities() {
       }
       try {
         const response = await axios.post(
-          'http://localhost:4000/groups/get-joined-activity',
+          'http://localhost:4000/api/groups/get-joined-activity',
           {
             userEmail: email,
             projectId: projectData.projectData.projectId,

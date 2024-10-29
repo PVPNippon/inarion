@@ -234,13 +234,24 @@ exports.getNestedMembership = async (req, res) => {
   //if nestedTable is empty, return 200 with empty array
   if (nestedTable.length === 0) return res.status(200).json([])
 
-  //return nestedTable
-  if (!nestedTable) res.status(500).json({ message: 'Error fetching nested membership' })
+  //if nestedTable is not returned, return 500
+  if (!nestedTable) return res.status(500).json({ message: 'Error fetching nested membership' })
 
-  //return nestedTable
+  //otherwise, return nestedTable
   res.status(200).json(nestedTable)
 }
 
+/**
+ * Retrieves a hierarchical representation of groups for a given email address.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `queryEmail` from the request body.
+ * It uses these values to fetch a hierarchy of groups that the specified email address belongs to, including nodes and edges.
+ *
+ * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `queryEmail` in the request body.
+ * @param {Object} res - The response object used to return the group hierarchy or an error message.
+ * @returns {Promise<void>} - Responds with the group hierarchy or an error message.
+ * @throws {Error} - Throws an error if there is an issue with the API call or if the hierarchy cannot be fetched.
+ */
 exports.getGroupHierarchy = async (req, res) => {
   const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
 
@@ -253,11 +264,13 @@ exports.getGroupHierarchy = async (req, res) => {
     queryEmail,
   })
 
+  //if no group hierarchy, return 500
   if (!groupHierarchy) {
     res.status(500).json({ message: 'Error fetching hierarchy' })
     return
   }
 
+  //if hierarchy has only one node and no edges, return 200 with a message
   if (groupHierarchy.nodes.length === 1 && groupHierarchy.edges.length === 0) {
     res.status(200).json({
       message: 'No parent groups or members found. Please check if the email address is correct and try again.',
@@ -265,5 +278,6 @@ exports.getGroupHierarchy = async (req, res) => {
     return
   }
 
+  //otherwise, return groupHierarchy
   res.status(200).json(groupHierarchy)
 }

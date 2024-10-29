@@ -34,7 +34,7 @@ function ListDirectMembers() {
         }
 
         const response = await axios.post(
-          'http://localhost:4000/groups/list-direct-members',
+          'http://localhost:4000/api/groups/list-direct-members',
           {
             userEmail: email,
             projectId: projectData.projectData.projectId,

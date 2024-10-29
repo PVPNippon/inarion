@@ -44,7 +44,7 @@ function ListAllMembers() {
         }
 
         const response = await axios.post(
-          'http://localhost:4000/groups/list-all-members',
+          'http://localhost:4000/api/groups/list-all-members',
           {
             userEmail: email,
             projectId: projectData.projectData.projectId,

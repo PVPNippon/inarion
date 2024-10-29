@@ -35,7 +35,7 @@ function NestedGroupsLister() {
           return
         }
         const response = await axios.post(
-          'http://localhost:4000/groups/get-nested-membership',
+          'http://localhost:4000/api/groups/get-nested-membership',
           {
             userEmail: email,
             projectId: projectData.projectData.projectId,
