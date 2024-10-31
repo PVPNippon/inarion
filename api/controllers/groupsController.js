@@ -1,5 +1,6 @@
 const groupsService = require('../services/groupsService')
 const { getNestedTable, getHierarchy } = require('../services/nestedGroupsService')
+const {toCSV} = require('../utility/groupsUtilityFunctions.js')
 
 /**
  * Retrieves the list of all groups in the organization.
@@ -17,7 +18,12 @@ exports.listAllGroups = async (req, res) => {
   const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
   try {
     // Get an array with all organization's groups
-    const groups = await groupsService.listGroups({userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey})
+    const groups = await groupsService.listGroups({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey
+    })
 
     // Return the list of all organization's groups
     res.status(200).json(groups)
@@ -155,7 +161,12 @@ exports.getGroupActivity = async (req, res) => {
 
   try {
     // Get the list of group activity
-    const response = await groupsService.getAllGroupsLogs({userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey})
+    const response = await groupsService.getAllGroupsLogs({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey
+    })
     // Return the list of group activity in customer organization
     res.status(200).json(response)
   } catch (error) {
@@ -177,11 +188,16 @@ exports.getGroupActivity = async (req, res) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getGroupJoinedActivity = async (req, res) => {
-  let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
 
   try {
     //Return the list of group joined activity in customer organization
-    const allActivities = await getJoinGroupsLogs(userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey)
+    const allActivities = await groupsService.getJoinGroupsLogs({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey
+    })
     res.status(200).json(allActivities)
   } catch (error) {
     console.error('Error fetching group joined activity:', error)
@@ -202,7 +218,7 @@ exports.getGroupJoinedActivity = async (req, res) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getNestedMembership = async (req, res) => {
-  let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
 
   //fetch array with nested membership and timestamps
   const nestedTable = await getNestedTable(
@@ -227,7 +243,7 @@ exports.getNestedMembership = async (req, res) => {
 }
 
 exports.getGroupHierarchy = async (req, res) => {
-  let { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
 
   //fetch array with nested membership and timestamps
   const groupHierarchy = await getHierarchy(
@@ -253,21 +269,39 @@ exports.getGroupHierarchy = async (req, res) => {
   res.status(200).json(groupHierarchy)
 }
 
-exports.getGroupMembersInExportFormat = async (req, res) => {
-  const {userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail} = req.body
+exports.listGroupsMembersInExportFormat = async (req, res) => {
+  const {userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groups} = req.body
 
   try {
-    const members = await listAllMembersInExportFormat({
+    const members = await groupsService.listMembersInExportFormat({
       userEmail,
       projectId,
       serviceAccountEmail,
       serviceAccountPrivateKey,
-      groupEmail
+      groups
     })
 
     res.status(200).json(members)
   } catch (error) {
-    console.error('Error fetching groups:', error)
-    res.status(500).json({ message: 'Error fetching groups' })
+    console.error('Error creating member lists in CSV format:', error)
+    res.status(500).json({ message: 'Error creating member lists in CSV format' })
+  }
+}
+
+exports.listAllUsers = async (req, res) => {
+  const {userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey} = req.body
+
+  try {
+    const users = await groupsService.listUsers({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey
+    })
+
+    res.status(200).json(users)
+  } catch (error) {
+    console.error('Error fetching users:', error)
+    res.status(500).json({ message: 'Error fetching users' })
   }
 }

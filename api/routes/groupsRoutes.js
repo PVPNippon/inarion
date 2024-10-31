@@ -26,6 +26,10 @@ router.post('/get-nested-membership', groupsController.getNestedMembership)
 //route to get group hierarchy relative to a group(or potentially in the future a user)
 router.post('/get-hierarchy', groupsController.getGroupHierarchy)
 
-router.post('/bulk-export', groupsController.getGroupMembersInExportFormat)
+//route to list members of groups in CSV format
+router.post('/bulk-export', groupsController.listGroupsMembersInExportFormat)
+
+//route to list all users in customer organization
+router.post('/list-all-users', groupsController.listAllUsers)
 
 module.exports = router
