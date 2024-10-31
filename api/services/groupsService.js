@@ -181,7 +181,7 @@ async function getAllGroupsLogs({
   const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
 
   // Create the Admin Reports API client
-  const directory = google.admin({
+  const reports = google.admin({
     version: 'reports_v1',
     auth: jwtClient,
   })
@@ -213,7 +213,7 @@ async function getAllGroupsLogs({
 
   // Fetch activity logs
   do {
-    activityResponse = await directory.activities.list(requestObj)
+    activityResponse = await reports.activities.list(requestObj)
     if (activityResponse.data.items) {
       activityLogs.push(...activityResponse.data.items)
     }
