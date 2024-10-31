@@ -33,29 +33,14 @@ async function getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmai
       'https://www.googleapis.com/auth/admin.directory.group',
       'https://www.googleapis.com/auth/admin.reports.audit.readonly',
       'https://www.googleapis.com/auth/admin.directory.user.readonly',
-      'https://www.googleapis.com/auth/directory.readonly',
     ],
     subject: userEmail, // Impersonating this user
   })
 
   // Authorize the client
   await jwtClient.authorize()
+
   return jwtClient
-}
-
-function toCSV(objects, actualKeys, displayKeys) {
-  displayKeys ??= actualKeys
-
-  const CSVRows = [displayKeys.join()]
-
-  objects.forEach(obj => {
-    const list = []
-    actualKeys.forEach(key => list.push(obj[key] ?? ""))
-    CSVRows.push(list.join())
-  })
-
-  return CSVRows.join("\n")
-
 }
 
 module.exports = {
