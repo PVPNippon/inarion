@@ -300,129 +300,9 @@ async function getJoinGroupsLogs({
 
 
 
+
+
 async function listMembersInExportFormat({
-  userEmail,
-  projectId,
-  serviceAccountEmail,
-  serviceAccountPrivateKey,
-  groups,
-  client
-}) {
-  // Create a JWT client if 'client' is not specified
-  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
-
-  // Redis can be used
-  // Need all groups in the customer's organization to get group names from group addresses
-  const groupNameMap = new Map()
-
-  const allGroupsInOrganization = await listGroups({
-    userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
-    client: jwtClient
-  })
-
-  allGroupsInOrganization.forEach(group => {
-    groupNameMap.set(group.email, group.name)
-
-    group.aliases?.forEach(alias => groupNameMap.set(alias, group.name))
-
-    group.nonEditableAliases?.forEach(nonEditableAlias => groupNameMap.set(nonEditableAlias, group.name))
-  })
-  
-  // Redis can be used
-  // Need all users in the customer's organization to get user names from user addresses
-  const userNameMap = new Map()
-
-  const allUsersInOrganization = await listUsers({
-    userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
-    client: jwtClient
-  })
-
-  allUsersInOrganization.forEach(user => user.emails.forEach(({address}) => userNameMap.set(address, user.name.fullName)))
-
-
-  const results = []
-  
-  for (const {groupEmail, includeDerivedMembership, includeAllColumns} of groups) {
-    // All direct and indirect members of the group if includeDerivedMembership is true,
-    // Otherwise all direct members of the group
-    const members = await listGroupMembers({
-      userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
-      groupEmail,
-      includeDerivedMembership,
-      client: jwtClient
-    })
-
-    // Set 'Member Email' as 'email', 'Member Type' as 'type' and 'Member Role' as 'role'
-    const result = members.map(member => ({
-      email: member.email ?? "",
-      type: member.type,
-      role: member.role
-    }))
-
-    // Set 'Member Name' as 'name'
-    // Let the name of external users or groups 'Member'
-    result.forEach(member => {
-      switch (member.type) {
-        case 'GROUP':
-          member.name = groupNameMap.get(member.email) ?? 'Member'
-          break
-        case 'USER':
-          member.name = userNameMap.get(member.email) ?? 'Member'
-          break
-        case 'CUSTOMER':
-          member.name = 'All users in the organization'
-          member.type = 'GROUP'
-          break
-      }
-    })
-
-    // Set 'Group Email [Required]' as 'group' if includedAllColumns is true
-    if (includeAllColumns) {
-      result.forEach(member => member.group = groupEmail)
-    }
-
-    // Remove 'Member Role' and set 'Member Relation Type' as 'relationType' if includeDerivedMembership is true
-    if (includeDerivedMembership) {
-      const directMembers = await listGroupMembers({
-        userEmail,
-        projectId,
-        serviceAccountEmail,
-        serviceAccountPrivateKey,
-        groupEmail,
-        includeDerivedMembership: false,
-        client: jwtClient
-      })
-      
-      const directMembersSet = new Set(directMembers.map(member => member.email))
-
-      result.forEach(member => {
-        delete member.role
-        member.relationType = directMembersSet.has(member.email) ? 'DIRECT' : 'INDIRECT'
-      })
-    }
-
-    results.push({
-      group: groupEmail,
-      includeDerivedMembership: includeDerivedMembership ? true : false,
-      includeAllColumns: includeAllColumns ? true : false,
-      members: result
-    })
-  }
-
-  return results
-}
-
-// testing
-async function listMembersInExportFormatPromise({
   userEmail,
   projectId,
   serviceAccountEmail,
@@ -571,6 +451,5 @@ module.exports = {
   listGroupMembers,
   getAllGroupsLogs,
   getJoinGroupsLogs,
-  listMembersInExportFormat,
-  listMembersInExportFormatPromise
+  listMembersInExportFormat
 }
