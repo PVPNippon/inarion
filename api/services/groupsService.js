@@ -313,62 +313,48 @@ async function listMembersInExportFormat({
   // Create a JWT client if 'client' is not specified
   const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
 
-  // Redis can be used
-  // Need all groups in the customer's organization to get group names from group addresses
+  // Map of all groups in the customer's organization to get group names from group addresses
+  // (key, value) = (group email address, group name)
   const groupNameMap = new Map()
 
-  const allGroupsInOrganization = await listGroups({
-    userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
-    client: jwtClient
-  })
-
+  const allGroupsInOrganization = await listGroups({ client: jwtClient })
   allGroupsInOrganization.forEach(group => {
+    // Add (key, value) = (primary email address, group name) to the map
     groupNameMap.set(group.email, group.name)
-
+    // For each alias of the group, add (key, value) = (alias, group name) to the map
     group.aliases?.forEach(alias => groupNameMap.set(alias, group.name))
-
+    // For each non-editable alias (e.g. test domain aliases), add (key, value) = (alias, group name) to the map
     group.nonEditableAliases?.forEach(nonEditableAlias => groupNameMap.set(nonEditableAlias, group.name))
   })
   
-  // Redis can be used
-  // Need all users in the customer's organization to get user names from user addresses
+  // Map of all users in the customer's organization to get user names from user addresses
+  // (key, value) = (user email address, user name)
   const userNameMap = new Map()
 
-  const allUsersInOrganization = await listUsers({
-    userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
-    client: jwtClient
-  })
-
+  // Add (key, value) = (user email (primary or alias), user name) to the map
+  const allUsersInOrganization = await listUsers({ client: jwtClient })
   allUsersInOrganization.forEach(user => user.emails.forEach(({address}) => userNameMap.set(address, user.name.fullName)))
 
+  // Each element is a list of all direct members of each requested group
   const directMembersArray = await Promise.all(groups.map(({groupEmail}) => listGroupMembers({
-    userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
     groupEmail,
     includeDerivedMembership: false,
     client: jwtClient
   })))
 
+  // Each element is either:
+  // (A) a list of all direct and indirect members of a group, if 'includeDerivedMembership' for the group is true
+  // (B) null, if 'includeDerivedMembership' for the group is false
   const allMembersArray = await Promise.all(groups.map(({groupEmail, includeDerivedMembership}) => includeDerivedMembership ?
     listGroupMembers({
-      userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
       groupEmail,
       includeDerivedMembership,
       client: jwtClient
-    }) : null
+    }) :
+    null
   ))
 
+  // Create the lists of members for all requested groups
   const result = groups.map((group, index) =>  {
     const members = group.includeDerivedMembership ?
       allMembersArray[index].map(member => ({
