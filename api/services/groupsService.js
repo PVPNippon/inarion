@@ -44,6 +44,10 @@ async function listGroups({
   // Fetch all groups
   do {
     groupsResponse = await directory.groups.list(requestObj)
+
+    // if there are no groups in the organization, return an empty array
+    if (typeof groupsResponse.data.groups === 'undefined') break
+
     groups.push(...groupsResponse.data.groups)
   } while (requestObj.pageToken = groupsResponse.data.nextPageToken) // Continue fetching groups while there are more pages
 
@@ -80,9 +84,7 @@ async function getGroupByEmail({
     auth: jwtClient,
   })
 
-  const group = await directory.groups.get({
-    groupKey: groupEmail,
-  }) // Get the group details
+  const group = await directory.groups.get({ groupKey: groupEmail }) // Get the group details
 
   return group.data // Return the group details
 }
