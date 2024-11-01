@@ -29,10 +29,6 @@ router.post('/get-hierarchy', groupsController.getGroupHierarchy)
 //route to list members of groups in CSV format
 router.post('/bulk-export', groupsController.listGroupsMembersInExportFormat)
 
-//route to list all users in customer organization
-router.post('/list-all-users', groupsController.listAllUsers)
-
-
 // testing
 router.post('/bulk-export-promise', groupsController.listGroupsMembersInExportFormatPromise)
 

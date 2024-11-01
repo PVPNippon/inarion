@@ -307,21 +307,3 @@ exports.listGroupsMembersInExportFormatPromise = async (req, res) => {
     res.status(500).json({ message: 'Error creating member lists in CSV format' })
   }
 }
-
-exports.listAllUsers = async (req, res) => {
-  const {userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey} = req.body
-
-  try {
-    const users = await groupsService.listUsers({
-      userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey
-    })
-
-    res.status(200).json(users)
-  } catch (error) {
-    console.error('Error fetching users:', error)
-    res.status(500).json({ message: 'Error fetching users' })
-  }
-}

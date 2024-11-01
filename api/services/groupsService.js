@@ -572,6 +572,5 @@ module.exports = {
   getAllGroupsLogs,
   getJoinGroupsLogs,
   listMembersInExportFormat,
-  listUsers,
   listMembersInExportFormatPromise
 }
