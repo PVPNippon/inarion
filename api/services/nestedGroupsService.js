@@ -454,15 +454,19 @@ async function getChildren({
 }
 
 /**
- * Given an array of group objects, returns a hierarchical object containing nodes and edges
- * representing the membership structure of the groups.
+ * Given a family of groups, returns a hierarchical object containing nodes and edges.
  *
+ * The function takes the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, `family`, and `theGroupOrUser` as arguments.
+ * It prepares a hierarchical object with nodes and edges by fetching all direct members of each group in the family,
+ * creating a JSON object containing membership details for each parent group and its direct members,
+ * and adding nodes and edges to the hierarchy if the direct member is related to the target group directly or indirectly.
  * @param {string} userEmail - The email address of the user to impersonate.
  * @param {string} projectId - The GCP project ID.
  * @param {string} serviceAccountEmail - The email address of the service account.
  * @param {string} serviceAccountPrivateKey - The private key of the service account.
- * @param {Object[]} family - An array of group objects, each containing a group object and a list of all its members(direct and indirect).
- * @returns {Object} - A hierarchical object containing nodes and edges representing the group structure.
+ * @param {Map} family - A map of group objects, where each key is a group's email and each value contains the group object and its members.
+ * @param {string} theGroupOrUser - The email address of the group or user to check.
+ * @returns {Promise<Object>} - A promise that resolves to the hierarchical object containing nodes and edges.
  */
 async function getHierarchyObj({
   userEmail,
@@ -487,6 +491,7 @@ async function getHierarchyObj({
     family,
   })
 
+  console.log(directMembers)
   //for each parent group, create JSON object containing membership details
   family.forEach((group, index) => {
     //create a node for the parent group
@@ -531,6 +536,22 @@ async function getHierarchyObj({
 
         //push the edge to the hierarchy
         hierarchy.edges.push(edgeObj)
+      }
+      if (directMember.type === 'CUSTOMER') {
+        if (!alreadyExists(hierarchy, theGroupOrUser)) {
+          hierarchy.nodes.push({
+            id: theGroupOrUser,
+            label: theGroupOrUser,
+            shape: 'box',
+            color: 'red',
+          })
+        }
+        //TODO: add logic to check if the edge already exists
+        hierarchy.edges.push({
+          from: group.group.email,
+          to: theGroupOrUser,
+          color: 'red',
+        })
       }
     })
   })
