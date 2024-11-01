@@ -45,7 +45,8 @@ async function listGroups({
   do {
     groupsResponse = await directory.groups.list(requestObj)
 
-    // if there are no groups in the organization, break this loop and return an empty array
+    // If there are no groups in the organization, groupsResponse.data does not have the 'groups' property (tested and confirmed)
+    // In that case, break this loop and return an empty array
     if (typeof groupsResponse.data.groups === 'undefined') break
 
     groups.push(...groupsResponse.data.groups)
@@ -136,9 +137,10 @@ async function listGroupMembers({
   do {
     membersResponse = await directory.members.list(requestObj)
 
-    // if there are no members in the group, break this loop and return an empty array
+    // If there are no members in the group, memberResponse.data does not have the 'members' property (tested and confirmed)
+    // In that case, break this loop and return an empty array
     if (typeof membersResponse.data.members === 'undefined') break
-    
+
     members.push(...membersResponse.data.members)
   } while (requestObj.pageToken = membersResponse.data.nextPageToken) // Continue fetching members while there are more pages
 
@@ -302,10 +304,43 @@ async function getJoinGroupsLogs({
   return allActivities
 }
 
-
-
-
-
+/**
+ * Retrieves the list of lists of members of specified groups in exportable format.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, `groups` and `client` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to create a list of lists of members of the specified groups in exportable format.
+ *
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @param {string} projectId - The project ID of the service account key.
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} serviceAccountPrivateKey - The private key of the service account.
+ * @param {Object[]} groups - An array of groups.
+ *                            Each element should be in the following format:
+ *                            {
+ *                              "groupEmail": <string: The email address of a group (REQUIRED)>,
+ *		                          "includeDerivedMembership": <boolean: whether or not you need all direct and indirect members (OPTIONAL, defaults to false)>,
+ *		                          "includeAllColumns": <boolean: whether or not you want to include the group email address of the group in each entry (OPTIONAL, defaults to false)>
+ *                            }
+ * @param {Object} [client=null] - The JWT client to use to authenticate the API call.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of objects. Each object represents a group and is in the following format:
+ *                                {
+ *                                  "group": <string: specified group's email address>,
+ *                                  "includeDerivedMembership": <boolean: the value you specified for the group>,
+ *                                  "includeAllColumns": <boolean: the value you specified for the group>,
+ *                                  "members": <array: an array of objects. Each object represents a member of the group and is in the following format:
+ *                                    {
+ *                                      "email": <string: member's email address>,
+ *                                      "role": <string: 'MEMBER', 'MANAGER' or 'OWNER' (Available only if "includeDerivedMembership" is false)>,
+ *                                      "type": <string: 'USER' or 'GROUP'>,
+ *                                      "name": <string: member's name>,
+ *                                      "relationType": <string: 'DIRECT' or 'INDIRECT' (Available only if "includeDerivedMembership" is true)>,
+ *                                      "group": <string: group's email (Available only if "includeAllColumns" is true)>
+ *                                    }
+ *                                  >
+ *                                }
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
 async function listMembersInExportFormat({
   userEmail,
   projectId,
@@ -335,18 +370,18 @@ async function listMembersInExportFormat({
   // (key, value) = (user email address, user name)
   const userNameMap = new Map()
 
-  // Add (key, value) = (user email (primary or alias), user name) to the map
+  // Add (key, value) = (user email (either primary or alias), user name) to the map
   const allUsersInOrganization = await listUsers({ client: jwtClient })
   allUsersInOrganization.forEach(user => user.emails.forEach(({address}) => userNameMap.set(address, user.name.fullName)))
 
-  // Each element is a list of all direct members of each requested group
+  // Each element of this array is a list of all direct members of each group specified in the 'groups' parameter
   const directMembersArray = await Promise.all(groups.map(({groupEmail}) => listGroupMembers({
     groupEmail,
     includeDerivedMembership: false,
     client: jwtClient
   })))
 
-  // Each element is either:
+  // Each element of this array is either:
   // (A) a list of all direct and indirect members of a group, if 'includeDerivedMembership' for the group is true
   // (B) null, if 'includeDerivedMembership' for the group is false
   const allMembersArray = await Promise.all(groups.map(({groupEmail, includeDerivedMembership}) => includeDerivedMembership ?
@@ -354,43 +389,91 @@ async function listMembersInExportFormat({
       groupEmail,
       includeDerivedMembership,
       client: jwtClient
-    }) :
-    null
+    }) :null
   ))
 
-  // Create the lists of members for all requested groups
-  const result = groups.map((group, index) =>  {
+  // Each element of this array is a list of members of each group specified in the 'groups' parameter,
+  // and each entry of the list, which represents a member, is in one of the 4 possible formats below:
+  //
+  // (1-a) Both 'includeDerivedMembership' and 'includeAllColumns' are true:
+  // {
+  //    group: <group's email>
+  //    email: <member's email>
+	//    name: <member's name>
+	//    relationType: <'DIRECT' or 'INDIRECT'>
+	//    type: <'USER' or 'GROUP'>
+  // }
+  //
+  // (1-b) 'includeDerivedMembership' is true, and 'includeAllColumns' is false:
+  // {
+  //    email: <member's email>
+	//    name: <member's name>
+	//    relationType: <'DIRECT' or 'INDIRECT'>
+	//    type: <'USER' or 'GROUP'>
+  // }
+  //
+  // (2-a) 'includeDerivedMembership' is false, and 'includeAllColumns' is true:
+  // {
+  //    group: <group's email>
+  //    email: <member's email>
+	//    name: <member's name>
+	//    role: <'MEMBER', 'MANAGER' or 'OWNER'>
+	//    type: <'USER' or 'GROUP'>
+  // }
+  //
+  // (2-b) Both 'includeDerivedMembership' and 'includeAllColumns' are false:
+  // {
+  //    email: <member's email>
+	//    name: <member's name>
+	//    role: <'MEMBER', 'MANAGER' or 'OWNER'>
+	//    type: <'USER' or 'GROUP'>
+  // }
+  //
+  return groups.map((group, index) =>  {
+
     const members = group.includeDerivedMembership ?
+      // If 'includeDerivedMembership' of the group is true, the list contains both direct and indirect members
+      // Each entry of the list has both 'email' and 'type' properties
+      // See (1-a) and (1-b) above
       allMembersArray[index].map(member => ({
-        email: member.email ?? '',
+        email: member.email,
         type: member.type
       })) :
+      // If 'includeDerivedMembership' of the group is false, the list contains only direct members
+      // Each entry of the list has 'email', 'role' and 'type' properties
+      // See (2-a) and (2-b) above
       directMembersArray[index].map(member => ({
-        email: member.email ?? '',
+        email: member.email,
         role: member.role,
         type: member.type
       }))
 
+    // Each entry of the list contains 'name' property
     members.forEach(member => {
       switch (member.type) {
         case 'GROUP':
-          member.name = groupNameMap.get(member.email) ?? 'Member'
+          member.name = groupNameMap.get(member.email) ?? 'Member' // Let us call external groups just 'Member'
           break
         case 'USER':
-          member.name = userNameMap.get(member.email) ?? 'Member'
+          member.name = userNameMap.get(member.email) ?? 'Member' // Let us call external users just 'Member'
           break
-        case 'CUSTOMER':
+        case 'CUSTOMER': // Means 'All members in the organization' (https://developers.google.com/admin-sdk/directory/reference/rest/v1/members#Member, https://support.google.com/a/answer/9689259)
           member.name = 'All users in the organization'
+          member.email = '' // 'All members in the organization' does not have the 'email' property
           member.type = 'GROUP'
           break
       }
     })
 
+    // If 'includeDerivedMembership' of the group is true, each entry of list has the 'relationType' property
+    // See (1-a) and (1-b) above
     if (group.includeDerivedMembership) {
-      const directMembersSet = new Set(directMembersArray[index].map(member => member.email))
+      const directMembersSet = new Set(directMembersArray[index].map(member => member.email)) // Set of all direct members of the group
       members.forEach(member => member.relationType = directMembersSet.has(member.email) ? 'DIRECT' : 'INDIRECT')
     }
 
+    // If 'includeAllColumns' of the group is true, each entry of the list has the 'group' property
+    // See (1-a) and (2-a) above
     if (group.includeAllColumns) {
       members.forEach(member => member.group = group.groupEmail)
     }
@@ -402,10 +485,23 @@ async function listMembersInExportFormat({
       members
     }
   })
-
-  return result
 }
 
+/**
+ * Retrieves the list of all users in the organization.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `client` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to list all users in the organization.
+ *
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @param {string} projectId - The project ID of the service account key.
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} serviceAccountPrivateKey - The private key of the service account.
+ * @param {Object} [client=null] - The JWT client to use to authenticate the API call.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of all users in the organization.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
 async function listUsers({userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, client}) {
   // Create a JWT client if 'client' is not specified
   const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
