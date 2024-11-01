@@ -5,10 +5,14 @@ import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { CSVLink, CSVDownload } from 'react-csv'
 import CsvDownloadButton from 'react-json-to-csv'
 import { Checkbox } from '@/components/ui/checkbox'
 
+//temporary component for dev purposes(WIP)
+//we plan to implement 4 types of csv export in the future
+//at present only one is implemented(includes derived membership:true, include all columns:true)
+//all members are downloaded in 1 csv file
+//we may alter that to download multiple csv files(or give the customer an option to select if they want to download separate files or one file)
 function ExportGroups() {
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)
@@ -16,128 +20,80 @@ function ExportGroups() {
   const [error, setError] = useState(null)
   const [data, setData] = useState([
     {
-      email: '',
-      type: '',
-      name: '',
       group: '',
+      email: '',
+      name: '',
       relationType: '',
+      type: '',
     },
   ])
-  const [derivedMembership, setDerivedMembership] = useState(false)
-  const [allColumns, setAllColumns] = useState(false)
+  const [derivedMembership, setDerivedMembership] = useState(true)
+  const [allColumns, setAllColumns] = useState(true)
+  const [count, setCount] = useState(0)
+  const [ready, setReady] = useState(false)
+  const headers = ['Group Email', 'Member Email', 'Member Name', ' Member Relation Type', 'Member Type']
 
-  async function fetchData() {
-    try {
-      let groups = inputValue.split(',')
-      groups = groups.map((group) => group.trim())
-
-      const groupsArray = groups.map((group) => ({
-        groupEmail: group,
-        includeDerivedMembership: derivedMembership,
-        includeAllColumns: allColumns,
-      }))
-      // const response = await axios.post(
-      //   'http://localhost:4000/api/groups/bulk-export',
-      //   {
-      //     userEmail: email,
-      //     projectId: projectData.projectData.projectId,
-      //     serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-      //     serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
-      //     groups: groupsArray,
-      //   },
-      //   { withCredentials: true }
-      // )
-
-      return [
-        {
-          email: 'admin@pvp-test-domain2.com',
-          type: 'USER',
-          name: 'admin admin',
-          group: 'g@pvp-test-domain2.com',
-          relationType: 'INDIRECT',
-        },
-        {
-          email: '',
-          type: 'GROUP',
-          name: 'All users in the organization',
-          group: 'g@pvp-test-domain2.com',
-          relationType: 'INDIRECT',
-        },
-        {
-          email: 'grandchild-group@pvp-test-domain2.com',
-          type: 'GROUP',
-          name: 'grandchild-group',
-          group: 'g@pvp-test-domain2.com',
-          relationType: 'INDIRECT',
-        },
-        {
-          email: 'childgroup@pvp-test-domain2.com',
-          type: 'GROUP',
-          name: 'childgroup',
-          group: 'g@pvp-test-domain2.com',
-          relationType: 'INDIRECT',
-        },
-        {
-          email: 'sister@pvp-test-domain2.com',
-          type: 'GROUP',
-          name: 'sister',
-          group: 'g@pvp-test-domain2.com',
-          relationType: 'DIRECT',
-        },
-        {
-          email: 'testadmin@pvp-test-domain2.com',
-          type: 'USER',
-          name: 'Admin Test-12',
-          group: 'g@pvp-test-domain2.com',
-          relationType: 'INDIRECT',
-        },
-        {
-          email: 'user1@pvp-test-domain2.com',
-          type: 'USER',
-          name: '山田太郎',
-          group: 'g@pvp-test-domain2.com',
-          relationType: 'INDIRECT',
-        },
-        {
-          email: 'all@pvp-test-domain2.com',
-          type: 'GROUP',
-          name: 'all',
-          group: 'g@pvp-test-domain2.com',
-          relationType: 'INDIRECT',
-        },
-        {
-          email: 'brother@pvp-test-domain2.com',
-          type: 'GROUP',
-          name: 'brother',
-          group: 'g@pvp-test-domain2.com',
-          relationType: 'DIRECT',
-        },
-        {
-          email: 'group@pvp-test-domain2.com',
-          type: 'GROUP',
-          name: 'group',
-          group: 'g@pvp-test-domain2.com',
-          relationType: 'DIRECT',
-        },
-      ]
-    } catch (error) {
-      setError(error)
+  //I added this function to download the file "on ready" because it was downloading before the csv data was updated
+  //There should be better ways in React, need to investigate more
+  useEffect(() => {
+    if (ready === true) {
+      const link = document.getElementById('csv')
+      link.click()
+      setReady(false)
     }
-  }
+  }, [ready])
 
-  async function HandleClick() {
-    if (inputValue === '') {
-      return
+  useEffect(() => {
+    async function FetchData() {
+      if (inputValue === '' || count === 0) {
+        return
+      }
+      try {
+        let groups = inputValue.split(',')
+        groups = groups.map((group) => group.trim())
+
+        const groupsArray = groups.map((group) => ({
+          groupEmail: group,
+          includeDerivedMembership: derivedMembership,
+          includeAllColumns: allColumns,
+        }))
+        const response = await axios.post(
+          'http://localhost:4000/api/groups/bulk-export',
+          {
+            userEmail: email,
+            projectId: projectData.projectData.projectId,
+            serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
+            serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
+            groups: groupsArray,
+          },
+          { withCredentials: true }
+        )
+
+        const tableData = response.data
+        if (tableData) {
+          const csvData = []
+          tableData.forEach((group) => {
+            group.members.forEach((member) => {
+              const memberObj = {
+                group: group.group,
+                email: member.email,
+                name: member.name,
+                relationType: member.relationType,
+                type: member.type,
+              }
+              csvData.push(memberObj)
+            })
+          })
+          setData(csvData)
+          setReady(true)
+        }
+      } catch (error) {
+        console.error(error)
+        setError(error)
+      }
     }
-    const tableData = await fetchData()
-    if (tableData) {
-      tableData.forEach((group) => {
-        setData(group.members)
-        const link = document.getElementById('csv')
-        link.click()
-      })
-    }
-  }
+    FetchData()
+  }, [count])
 
   return (
     <div className="ms-5">
@@ -151,19 +107,29 @@ function ExportGroups() {
           className="text-black"
         />
 
-        <CsvDownloadButton className="hidden" id="csv" data={data} filename={'groups.csv'}></CsvDownloadButton>
-        <Button onClick={HandleClick}>Export</Button>
+        <CsvDownloadButton
+          className="hidden"
+          id="csv"
+          data={data}
+          headers={headers}
+          filename={'groups.csv'}
+        ></CsvDownloadButton>
+        <Button onClick={() => setCount(count + 1)}>Export</Button>
       </div>
       <div className="flex">
         <Checkbox
           className="bg-white"
           id="derivedMembership"
           onChange={() => setDerivedMembership(!derivedMembership)}
+          checked={derivedMembership}
         ></Checkbox>
         <label htmlFor="derivedMembership">Include derived membership</label>
-        <Checkbox className="bg-white" id="allColumns" onChange={() => setAllColumns(!allColumns)}>
-          Include all columns
-        </Checkbox>
+        <Checkbox
+          className="bg-white"
+          id="allColumns"
+          onChange={() => setAllColumns(!allColumns)}
+          checked={allColumns}
+        ></Checkbox>
         <label htmlFor="allColumns">Include all columns</label>
       </div>
       <div>{error && `Error: ${error.message}`}</div>
