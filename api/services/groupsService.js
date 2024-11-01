@@ -45,7 +45,7 @@ async function listGroups({
   do {
     groupsResponse = await directory.groups.list(requestObj)
 
-    // if there are no groups in the organization, return an empty array
+    // if there are no groups in the organization, break this loop and return an empty array
     if (typeof groupsResponse.data.groups === 'undefined') break
 
     groups.push(...groupsResponse.data.groups)
@@ -135,9 +135,11 @@ async function listGroupMembers({
   // Fetch members
   do {
     membersResponse = await directory.members.list(requestObj)
-    if (membersResponse.data.members) {
-      members.push(...membersResponse.data.members)
-    }
+
+    // if there are no members in the group, break this loop and return an empty array
+    if (typeof membersResponse.data.members === 'undefined') break
+    
+    members.push(...membersResponse.data.members)
   } while (requestObj.pageToken = membersResponse.data.nextPageToken) // Continue fetching members while there are more pages
 
   return members // Return all fetched members
