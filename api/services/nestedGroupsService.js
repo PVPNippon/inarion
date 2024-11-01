@@ -175,6 +175,8 @@ function getJoinedTime(allActivities, memberId, groupId) {
   allActivities.forEach((activity) => {
     //if activity is undefined or null, return default joinedTime
     if (typeof activity === 'undefined' || activity === null) return joinedTime
+    //when first candidate(i.e. the latest timestamp) has been found, stop loopingTT
+    if (joinedTime !== 'not found') return joinedTime
 
     //retrieve member and group id from activity
     //all groups joined logs can be devided in 2 types: when added member is the actor, or  when they are target of the action
@@ -199,7 +201,7 @@ function getJoinedTime(allActivities, memberId, groupId) {
     //check if member and group id matches with target group and member
     //if yes, return the joining time
     //othewise, return default joinedTime
-    if (member_Id === memberId && group_Id === groupId) {
+    if ((member_Id === memberId || member_Id === '*') && group_Id === groupId) {
       const date = new Date(activity.id.time)
       joinedTime = date.toLocaleString('en-US', {
         year: 'numeric',
@@ -276,7 +278,9 @@ async function getNestedTable({ userEmail, projectId, serviceAccountEmail, servi
       }
 
       //sift through for each group's direct member array to find out if our target group is among direct members
-      const targetParentGroup = directMember.find((member) => member.email === theGroupOrUser)
+      const targetParentGroup = directMember.find(
+        (member) => member.email === theGroupOrUser || member.type === 'CUSTOMER'
+      )
 
       if (targetParentGroup) {
         obj.membership = 'Direct' //the "membership type" column of the table
