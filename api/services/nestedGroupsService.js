@@ -26,6 +26,7 @@ function hasRelation(suspectedParent, theGroupOrUser, family) {
   //if the suspected parent is not found, return false
   if (typeof suspectedParentObj === 'undefined') return false
 
+  //if the suspected parent has a membership relationship with the group or user, return true
   return suspectedParentObj.members.some((member) => member.email === theGroupOrUser)
 }
 
@@ -124,18 +125,15 @@ async function getDirectMembersArray({ userEmail, projectId, serviceAccountEmail
 }
 
 /**
- * Finds transitive same-level parents(stricly speaking, grandparents or great-grandparents) for a group or user in the given family array.
+ * Given a family of groups, a list of direct members for each group, and the target group or user,
+ * returns a string of transitive parents of the target group or user. A transitive parent is a group
+ * that the target group or user is a member of, either directly or indirectly.
  *
- * Given a group or user, this function finds all transitive(same level) parents by recursively
- * checking each group in the family array for direct members of the provided
- * `indirectParentObj`, and then checks each of those direct members for a
- * membership relationship with the `theGroupOrUser`.
- *
- * @param {Object[]} family - An array of group objects, each containing a `group` with an `email` and `members` list.
- * @param {Object[]} directMembersArray - An array of direct members for each group in the family array.
- * @param {string} theGroupOrUser - The email address of the target group or user.
- * @param {Object} indirectParentObj - A group object containing the email address of the indirect parent group.
- * @returns {string} - A string containing a comma-separated list of transitive parents, or an empty string if no transitive parents are found.
+ * @param {Map} family - A map of group objects, where each key is a group's email and each value contains the group object and its members.
+ * @param {Object[][]} directMembersArray - An array of arrays, each containing the direct members of a group.
+ * @param {string} theGroupOrUser - The email address of the group or user to check transitive parents for.
+ * @param {number} index - The index of the directMembersArray that corresponds to the group of theGroupOrUser.
+ * @returns {string} A string of transitive parents of the target group or user.
  */
 function getTransitive(family, directMembersArray, theGroupOrUser, index) {
   let transitiveParents = ''
@@ -234,11 +232,15 @@ function getJoinedTime(allActivities, memberId, groupId) {
  */
 async function getNestedTable({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail }) {
   /**
-   * Given a family of groups, retrieves the membership details of each direct/indirect parents of the target group/user.
-   * For each direct member, determines if their membership is direct or inherited, and provides the timestamp of their membership.
+   * Given a family of groups, returns a table of membership details for all direct/indirect parents of the target group.
    *
-   * @param {Object[]} family - A list of groups, each containing a group object and a list of all its members(direct and indirect).
-   * @returns {Object[]} - An array of objects containing membership details for direct/indirect parents of the target group.
+   * The function takes the family of groups as an argument, fetches all its direct members,
+   * and then creates a JSON object containing membership details for each parent group.
+   * The membership details include the email of the parent group, the type of membership (direct or inherited),
+   * and the timestamp of when the target group joined the parent group.
+   * For inherited memberships, the timestamp is left empty for now.
+   * @param {Map} family - A map of group objects, where each key is a group's email and each value contains the group object and its members.
+   * @returns {Promise<Object[]>} - A promise that resolves to an array of objects containing membership details for direct/indirect parents of the target group.
    */
   async function getTable(family) {
     const table = []
@@ -268,7 +270,6 @@ async function getNestedTable({ userEmail, projectId, serviceAccountEmail, servi
     //for each parent group, create JSON object containing membership details
     directMembers.forEach((directMember, index) => {
       const groupEmail = [...family][index][0]
-      const groupObj = family.get(groupEmail)
 
       const obj = {
         email: groupEmail, //the "group" column of the table
@@ -400,17 +401,16 @@ async function getChildren({
 
   if (childGroups.length === 0) return hierarchy
 
-  //if the target group has indirect members, create a "family" object with them
-  //the only purpose of creating the object is so that the "getDirectMembersArray" function can be reused
-  const childGroupFamily = []
+  //if the target group has indirect members, create a "family" Map with them
+  //the only purpose of creating the Map is so that the "getDirectMembersArray" function can be reused
+  const childGroupFamily = new Map()
 
   childGroups.forEach((childGroup) => {
-    const groupObj = {
+    childGroupFamily.set(childGroup.email, {
       group: {
         email: childGroup.email,
       },
-    }
-    childGroupFamily.push(groupObj)
+    })
   })
 
   //get an array of direct members for each group in the downstreamfamily
@@ -484,15 +484,16 @@ async function getHierarchyObj({
   })
 
   //for each parent group, create JSON object containing membership details
-  family.forEach((group) => {
+  family.forEach((group, index) => {
     //create a node for the parent group
     if (!alreadyExists(hierarchy, group.group.email)) {
       hierarchy.nodes.push({ id: group.group.email, label: group.group.email, shape: 'box' })
     }
 
     //retrieve an array with direct members of the parent group
-    const index = family.indexOf(group)
-    const directMemberArray = directMembers[index]
+    const entries = Array.from(family.entries())
+    const arrayIndex = entries.findIndex(([key, value]) => key === index)
+    const directMemberArray = directMembers[arrayIndex]
 
     //for each direct member, add its node and edge to the hierarchy if it's related to the target group directly or indirectly
     directMemberArray.forEach((directMember) => {

@@ -37,6 +37,10 @@ async function listGroups({ userEmail, projectId, serviceAccountEmail, serviceAc
   do {
     // Fetch groups
     groupsResponse = await directory.groups.list(requestObj)
+
+    //if there are no groups in the organization, return an empty array
+    if (typeof groupsResponse.data.groups === 'undefined') break
+
     // Append the fetched groups to the groups array
     groups.push(...groupsResponse.data.groups)
 
@@ -125,9 +129,8 @@ async function listGroupMembers({
     // Fetch members
     membersResponse = await directory.members.list(requestObj)
 
-    if (typeof membersResponse.data.members === 'undefined') {
-      return [{ response: 'no members found' }]
-    } // Return an array with error message if no members are found(temporary "error handling")
+    //if there are no members in the group, return an empty array
+    if (typeof membersResponse.data.members === 'undefined') break
 
     // Append the fetched groups to the members array
     members.push(...membersResponse.data.members)
