@@ -32,4 +32,8 @@ router.post('/bulk-export', groupsController.listGroupsMembersInExportFormat)
 //route to list all users in customer organization
 router.post('/list-all-users', groupsController.listAllUsers)
 
+
+// testing
+router.post('/bulk-export-promise', groupsController.listGroupsMembersInExportFormatPromise)
+
 module.exports = router

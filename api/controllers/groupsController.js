@@ -288,6 +288,26 @@ exports.listGroupsMembersInExportFormat = async (req, res) => {
   }
 }
 
+// testing
+exports.listGroupsMembersInExportFormatPromise = async (req, res) => {
+  const {userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groups} = req.body
+
+  try {
+    const members = await groupsService.listMembersInExportFormatPromise({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey,
+      groups
+    })
+
+    res.status(200).json(members)
+  } catch (error) {
+    console.error('Error creating member lists in CSV format:', error)
+    res.status(500).json({ message: 'Error creating member lists in CSV format' })
+  }
+}
+
 exports.listAllUsers = async (req, res) => {
   const {userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey} = req.body
 

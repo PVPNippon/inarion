@@ -347,7 +347,7 @@ async function listMembersInExportFormat({
 
 
   const results = []
-
+  
   for (const {groupEmail, includeDerivedMembership, includeAllColumns} of groups) {
     // All direct and indirect members of the group if includeDerivedMembership is true,
     // Otherwise all direct members of the group
@@ -421,6 +421,121 @@ async function listMembersInExportFormat({
   return results
 }
 
+// testing
+async function listMembersInExportFormatPromise({
+  userEmail,
+  projectId,
+  serviceAccountEmail,
+  serviceAccountPrivateKey,
+  groups,
+  client
+}) {
+  // Create a JWT client if 'client' is not specified
+  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+
+  // Redis can be used
+  // Need all groups in the customer's organization to get group names from group addresses
+  const groupNameMap = new Map()
+
+  const allGroupsInOrganization = await listGroups({
+    userEmail,
+    projectId,
+    serviceAccountEmail,
+    serviceAccountPrivateKey,
+    client: jwtClient
+  })
+
+  allGroupsInOrganization.forEach(group => {
+    groupNameMap.set(group.email, group.name)
+
+    group.aliases?.forEach(alias => groupNameMap.set(alias, group.name))
+
+    group.nonEditableAliases?.forEach(nonEditableAlias => groupNameMap.set(nonEditableAlias, group.name))
+  })
+  
+  // Redis can be used
+  // Need all users in the customer's organization to get user names from user addresses
+  const userNameMap = new Map()
+
+  const allUsersInOrganization = await listUsers({
+    userEmail,
+    projectId,
+    serviceAccountEmail,
+    serviceAccountPrivateKey,
+    client: jwtClient
+  })
+
+  allUsersInOrganization.forEach(user => user.emails.forEach(({address}) => userNameMap.set(address, user.name.fullName)))
+
+  const directMembersArray = await Promise.all(groups.map(({groupEmail}) => listGroupMembers({
+    userEmail,
+    projectId,
+    serviceAccountEmail,
+    serviceAccountPrivateKey,
+    groupEmail,
+    includeDerivedMembership: false,
+    client: jwtClient
+  })))
+
+  const allMembersArray = await Promise.all(groups.map(({groupEmail, includeDerivedMembership}) => includeDerivedMembership ?
+    listGroupMembers({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey,
+      groupEmail,
+      includeDerivedMembership,
+      client: jwtClient
+    }) : null
+  ))
+
+  const result = groups.map((group, index) =>  {
+    const members = group.includeDerivedMembership ?
+      allMembersArray[index].map(member => ({
+        email: member.email ?? '',
+        type: member.type
+      })) :
+      directMembersArray[index].map(member => ({
+        email: member.email ?? '',
+        role: member.role,
+        type: member.type
+      }))
+
+    members.forEach(member => {
+      switch (member.type) {
+        case 'GROUP':
+          member.name = groupNameMap.get(member.email) ?? 'Member'
+          break
+        case 'USER':
+          member.name = userNameMap.get(member.email) ?? 'Member'
+          break
+        case 'CUSTOMER':
+          member.name = 'All users in the organization'
+          member.type = 'GROUP'
+          break
+      }
+    })
+
+    if (group.includeDerivedMembership) {
+      const directMembersSet = new Set(directMembersArray[index].map(member => member.email))
+      members.forEach(member => member.relationType = directMembersSet.has(member.email) ? 'DIRECT' : 'INDIRECT')
+    }
+
+    if (group.includeAllColumns) {
+      members.forEach(member => member.group = group.groupEmail)
+    }
+
+    return {
+      group: group.groupEmail,
+      includeDerivedMembership: group.includeDerivedMembership ? true : false,
+      includeAllColumns: group.includeAllColumns ? true : false,
+      members
+    }
+  })
+
+  return result
+}
+
 async function listUsers({userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, client}) {
   // Create a JWT client if 'client' is not specified
   const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
@@ -458,4 +573,5 @@ module.exports = {
   getJoinGroupsLogs,
   listMembersInExportFormat,
   listUsers,
+  listMembersInExportFormatPromise
 }
