@@ -1,14 +1,21 @@
 const groupsService = require('../services/groupsService')
 
 /**
- * Checks if a group or user is already included in the hierarchy.
+ * Checks if the given group or user already exists in the given hierarchy as a node or edge.
  *
- * @param {object} hierarchy - The hierarchy object from the nestedGroupsService.
- * @param {string} email - The email address of the group or user to check.
- * @returns {boolean} True if the group or user is already in the hierarchy.
+ * @param {Object} hierarchy - The hierarchy object with nodes and edges.
+ * @param {string} groupOrUserEmail - The email address of the group or user.
+ * @param {'node'|'edge'} [typeOfElement='node'] - The type of element to check for.
+ * @param {string} [parentGroupEmail=''] - The parent group email, only used with edges.
+ *
+ * @returns {boolean} true if the group or user already exists in the hierarchy, false otherwise.
  */
-function alreadyExists(hierarchy, email) {
-  return hierarchy.nodes.some((node) => node.id === email)
+function alreadyExists(hierarchy, groupOrUserEmail, typeOfElement = 'node', parentGroupEmail = '') {
+  if (typeOfElement === 'node') {
+    return hierarchy.nodes.some((node) => node.id === groupOrUserEmail)
+  } else if (typeOfElement === 'edge') {
+    return hierarchy.edges.some((edge) => edge.from === parentGroupEmail && edge.to === groupOrUserEmail)
+  }
 }
 
 /**
@@ -390,11 +397,13 @@ async function getChildren({
       hierarchy.nodes.push({ id: group.email, label: group.email, shape: 'box', color: 'lightgreen' })
     }
 
-    hierarchy.edges.push({
-      from: groupObj.email,
-      to: group.email,
-      color: 'green',
-    })
+    if (!alreadyExists(hierarchy, group.email, 'edge', groupObj.email)) {
+      hierarchy.edges.push({
+        from: groupObj.email,
+        to: group.email,
+        color: 'green',
+      })
+    }
   })
 
   //if there are no indirect members, return the hierarchy
@@ -428,8 +437,7 @@ async function getChildren({
 
   //loop through each child group and its direct member array and create a node(if it doesn't already exist) and edge for each group and member
   //this is the hierarchy building "algorithm"
-  childGroups.forEach((childGroup) => {
-    const index = childGroups.indexOf(childGroup)
+  childGroups.forEach((childGroup, index) => {
     const directMemberArray = directMembersOfChildGroups[index]
 
     if (!alreadyExists(hierarchy, childGroup.email)) {
@@ -443,10 +451,12 @@ async function getChildren({
         hierarchy.nodes.push({ id: directMember.email, label: directMember.email, shape: 'box' })
       }
 
-      hierarchy.edges.push({
-        from: childGroup.email,
-        to: directMember.email,
-      })
+      if (!alreadyExists(hierarchy, directMember.email, 'edge', childGroup.email)) {
+        hierarchy.edges.push({
+          from: childGroup.email,
+          to: directMember.email,
+        })
+      }
     })
   })
 
@@ -491,7 +501,6 @@ async function getHierarchyObj({
     family,
   })
 
-  console.log(directMembers)
   //for each parent group, create JSON object containing membership details
   family.forEach((group, index) => {
     //create a node for the parent group
@@ -535,7 +544,7 @@ async function getHierarchyObj({
         }
 
         //push the edge to the hierarchy
-        hierarchy.edges.push(edgeObj)
+        if (!alreadyExists(hierarchy, theGroupOrUser, 'edge', group.group.email)) hierarchy.edges.push(edgeObj)
       }
       if (directMember.type === 'CUSTOMER') {
         if (!alreadyExists(hierarchy, theGroupOrUser)) {
@@ -546,12 +555,14 @@ async function getHierarchyObj({
             color: 'red',
           })
         }
-        //TODO: add logic to check if the edge already exists
-        hierarchy.edges.push({
-          from: group.group.email,
-          to: theGroupOrUser,
-          color: 'red',
-        })
+
+        if (!alreadyExists(hierarchy, theGroupOrUser, 'edge', group.group.email)) {
+          hierarchy.edges.push({
+            from: group.group.email,
+            to: theGroupOrUser,
+            color: 'red',
+          })
+        }
       }
     })
   })
