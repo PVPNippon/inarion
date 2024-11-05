@@ -531,11 +531,56 @@ async function listUsers({userEmail, projectId, serviceAccountEmail, serviceAcco
   return users // Return all fetched users
 }
 
+/**
+ * Updates group info using Groups Settings API.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Groups Settings API
+ * to update group info.
+ *
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @param {string} projectId - The project ID of the GCP project.
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} serviceAccountPrivateKey - The private key of the service account.
+ * @param {string} groupEmail - The email address of the group to be updated.
+ * @param {Object} resource - The group info to be updated. See https://developers.google.com/admin-sdk/groups-settings/v1/reference/groups#json for details.
+ * @param {Object} [client=null] - The JWT client to use to authenticate the API call.
+ * @returns {Promise<Object>} - A promise that resolves to the updated group info.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+async function updateGroup({
+  userEmail,
+  projectId,
+  serviceAccountEmail,
+  serviceAccountPrivateKey,
+  groupEmail,
+  resource,
+  client
+}) {
+  // Create a JWT client if 'client' is not specified
+  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+
+  // Create the Groups Settings API client
+  const groupsSettings = google.groupssettings({
+    version: 'v1',
+    auth: jwtClient,
+  })
+
+  const response = await groupsSettings.groups.update({
+    groupUniqueId: groupEmail,
+    resource
+  })
+
+  return response
+}
+
+
 module.exports = {
   listGroups,
   getGroupByEmail,
   listGroupMembers,
   getAllGroupsLogs,
   getJoinGroupsLogs,
-  listMembersInExportFormat
+  listMembersInExportFormat,
+  updateGroup
 }
