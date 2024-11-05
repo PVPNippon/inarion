@@ -327,7 +327,7 @@ exports.updateWhoCanLeaveGroup = async (req, res) => {
   }
 
   try {
-    const response = await groupsService.updateGroup({
+    await groupsService.updateGroup({
       userEmail,
       projectId,
       serviceAccountEmail,
@@ -336,7 +336,7 @@ exports.updateWhoCanLeaveGroup = async (req, res) => {
       resource: {whoCanLeaveGroup},
     })
 
-    res.status(200).json(response)
+    res.status(200).json({ message: `Set the 'whoCanLeaveGroup' of ${groupEmail} to ${whoCanLeaveGroup}` })
   } catch (error) {
     console.log('Error updating the specified group\'s \'whoCanLeaveGroup\' setting:', error)
     res.status(500).json({ message: 'Error updating the specified group\'s \'whoCanLeaveGroup\' setting' })
