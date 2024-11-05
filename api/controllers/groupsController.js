@@ -1,6 +1,5 @@
 const groupsService = require('../services/groupsService')
 const { getNestedTable, getHierarchy } = require('../services/nestedGroupsService')
-const {toCSV} = require('../utility/groupsUtilityFunctions.js')
 
 /**
  * Retrieves the list of all groups in the organization.

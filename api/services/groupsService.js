@@ -389,7 +389,7 @@ async function listMembersInExportFormat({
       groupEmail,
       includeDerivedMembership,
       client: jwtClient
-    }) :null
+    }) : null
   ))
 
   // Each element of this array is a list of members of each group specified in the 'groups' parameter,
