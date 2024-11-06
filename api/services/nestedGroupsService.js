@@ -16,6 +16,7 @@ function alreadyExists(hierarchy, groupOrUserEmail, typeOfElement = 'node', pare
   } else if (typeOfElement === 'edge') {
     return hierarchy.edges.some((edge) => edge.from === parentGroupEmail && edge.to === groupOrUserEmail)
   }
+  return false
 }
 
 /**
@@ -103,60 +104,47 @@ async function getFamilyWithAllMembers({
  * @returns {Promise<Object[][]>} - A promise that resolves to an array of arrays, each containing the direct members of a group.
  */
 async function getDirectMembersArray({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, family }) {
-  const promises = []
-  const directMemberArray = []
-
-  family.forEach(async (groupObj) => {
-    const directMembers = new Promise((resolve, reject) => {
-      resolve(
-        groupsService.listGroupMembers({
-          userEmail,
-          projectId,
-          serviceAccountEmail,
-          serviceAccountPrivateKey,
-          groupEmail: groupObj.group.email,
-          includeDerivedMembership: false,
-        })
-      )
+  //get direct member array for each group
+  const promises = [...family.keys()].map((groupEmail) =>
+    groupsService.listGroupMembers({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey,
+      groupEmail,
+      includeDerivedMembership: false,
     })
-    promises.push(directMembers)
-  })
+  )
 
-  await Promise.all(promises).then((values) => {
-    values.forEach((value) => {
-      directMemberArray.push(value)
-    })
-  })
-
-  return directMemberArray
+  return await Promise.all(promises)
 }
 
 /**
- * Given a family of groups, a list of direct members for each group, and the target group or user,
- * returns a string of transitive parents of the target group or user. A transitive parent is a group
- * that the target group or user is a member of, either directly or indirectly.
+ * Finds and returns a list of transitive parent groups for a given group or user.
  *
- * @param {Map} family - A map of group objects, where each key is a group's email and each value contains the group object and its members.
- * @param {Object[][]} directMembersArray - An array of arrays, each containing the direct members of a group.
- * @param {string} theGroupOrUser - The email address of the group or user to check transitive parents for.
- * @param {number} index - The index of the directMembersArray that corresponds to the group of theGroupOrUser.
- * @returns {string} A string of transitive parents of the target group or user.
+ * This function examines the direct members of potential parent groups to determine
+ * if there is a membership relationship with the specified
+ * group or user. If such a relationship exists, the parent group is considered
+ * transitive and added to the list of transitive parents.
+ *
+ * @param {Map} family - A map containing group objects and their members.
+ * @param {Object[]} directMembersArray - An array of objects representing direct members of groups.
+ * @param {string} theGroupOrUser - The email address of the group or user to check for transitive membership.
+ * @returns {string[]} - An array of emails of transitive parent groups.
  */
-function getTransitive(family, directMembersArray, theGroupOrUser, index) {
-  let transitiveParents = ''
+function getTransitive(family, directMembersArray, theGroupOrUser) {
+  const transitiveParents = []
 
   //find corresponding array in the directMembersArray that contains direct members of the top level parent
   //iterate through direct members of the top level parent
   //check if there is a membership relationship with the target group or user
   //if so, add to transitiveParents
 
-  directMembersArray[index].forEach((suspectedParent) => {
+  directMembersArray.forEach((suspectedParent) => {
     if (suspectedParent.type !== 'GROUP') return //skip if member type is not a group
 
     if (hasRelation(suspectedParent.email, theGroupOrUser, family)) {
-      transitiveParents.length === 0
-        ? (transitiveParents = suspectedParent.email)
-        : (transitiveParents += ',  ' + suspectedParent.email)
+      transitiveParents.push(suspectedParent.email)
     }
   })
 
@@ -164,26 +152,27 @@ function getTransitive(family, directMembersArray, theGroupOrUser, index) {
 }
 
 /**
- * Given a list of all activities, the email address of a member, and the email address of a group,
- * returns the time the member joined the group in the format "Month DD, YYYY, HH:mm AM/PM JST".
- * Returns "not found" if the joining logs for corresponding group and member are not found in the activities.
- * @param {Object[]} allActivities - A list of all activities.
- * @param {string} memberId - The email address of the member to find the join time for.
- * @param {string} groupId - The email address of the group to find the join time in.
- * @returns {string} - The time the member joined the group, or "not found" if the member is not found in the activities.
+ * Determines the joining time of a member to a group based on activity logs.
+ *
+ * This function processes a list of activities to find the specific activity
+ * where a member joined a group. The function distinguishes between two types
+ * of logs: those where the member is the actor and those where the member is
+ * the target of the action. It returns the joining time if the activity is
+ * found, formatted according to specified options.
+ *
+ * @param {Object[]} allActivities - The array of activity logs to search within.
+ * @param {string} memberId - The email address of the member whose joining time is to be determined.
+ * @param {string} groupId - The email address of the group to check for member joining activity.
+ * @returns {string} - The formatted joining time if found, otherwise 'not found'.
  */
 function getJoinedTime(allActivities, memberId, groupId) {
-  //set default value to 'not found'
   //since logs are only available for last 6 months, in many cases there won't be any joining logs
   //or logs can just be gone from google server due to malfunction on their side
-  let joinedTime = 'not found'
 
   //iterate through all activities
-  allActivities.forEach((activity) => {
-    //if activity is undefined or null, return default joinedTime
-    if (typeof activity === 'undefined' || activity === null) return joinedTime
-    //when first candidate(i.e. the latest timestamp) has been found, stop loopingTT
-    if (joinedTime !== 'not found') return joinedTime
+  for (const activity of allActivities) {
+    //if activity is undefined or null, move to the next activity
+    if (typeof activity === 'undefined' || activity === null) continue
 
     //retrieve member and group id from activity
     //all groups joined logs can be devided in 2 types: when added member is the actor, or  when they are target of the action
@@ -197,7 +186,7 @@ function getJoinedTime(allActivities, memberId, groupId) {
 
     //if there is only 1 parameter in the array, grab group email from it, and grab member email from activity actor
     //otherwise, grab group email from 2nd parameter, and grab member email from 1st parameter
-    if (typeof event[1] === 'undefined') {
+    if (event.length === 1) {
       group_Id = event[0].value
       member_Id = activity.actor.email
     } else {
@@ -207,10 +196,9 @@ function getJoinedTime(allActivities, memberId, groupId) {
 
     //check if member and group id matches with target group and member
     //if yes, return the joining time
-    //othewise, return default joinedTime
+    //othewise, move to the next activity
     if ((member_Id === memberId || member_Id === '*') && group_Id === groupId) {
-      const date = new Date(activity.id.time)
-      joinedTime = date.toLocaleString('en-US', {
+      return new Date(activity.id.time).toLocaleString('en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -220,12 +208,9 @@ function getJoinedTime(allActivities, memberId, groupId) {
         timeZoneName: 'short',
         timeZone: 'Asia/Tokyo',
       })
-
-      return joinedTime
     }
-  })
-
-  return joinedTime
+  }
+  return 'not found' // No logs are found
 }
 
 /**
@@ -277,7 +262,7 @@ async function getNestedTable({ userEmail, projectId, serviceAccountEmail, servi
     })
 
     //for each parent group, create JSON object containing membership details
-    directMembers.forEach((directMember, index) => {
+    directMembers.forEach((directMembersArray, index) => {
       const groupEmail = [...family][index][0]
 
       const obj = {
@@ -285,7 +270,7 @@ async function getNestedTable({ userEmail, projectId, serviceAccountEmail, servi
       }
 
       //sift through for each group's direct member array to find out if our target group is among direct members
-      const targetParentGroup = directMember.find(
+      const targetParentGroup = directMembersArray.find(
         (member) => member.email === theGroupOrUser || member.type === 'CUSTOMER'
       )
 
@@ -294,7 +279,8 @@ async function getNestedTable({ userEmail, projectId, serviceAccountEmail, servi
         obj.inherited = '' //"inherited via" column of the table, left empty for direct memberships
         obj.timestamp = getJoinedTime(allActivities, theGroupOrUser, groupEmail)
       } else {
-        const inheritedVia = getTransitive(family, directMembers, theGroupOrUser, index) || ''
+        let inheritedVia = getTransitive(family, directMembersArray, theGroupOrUser) || []
+        inheritedVia = inheritedVia.join(', ')
         obj.membership = 'Inherited' //the "membership type" column of the table
         obj.inherited = inheritedVia //"inherited via" column of the table
         obj.timestamp = '' //"timestamp" column of the table, left empty for inherited memberships (for now)
