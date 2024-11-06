@@ -6,10 +6,11 @@ import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import CsvDownloadButton from 'react-json-to-csv'
-// import { Checkbox } from '@/components/ui/checkbox'
+import { Checkbox } from '@/components/ui/checkbox'
 
-//temporary component for dev purposes(WIP)
-//we plan to implement 4 types of csv export
+//temporary component for dev purposes
+//it supports 4 types of csv export, but at present all groups' members are exported in one csv file
+//TODO : support exporting groups' members in multiple csv files
 function ExportGroups() {
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)
@@ -32,61 +33,67 @@ function ExportGroups() {
     }
   }, [ready])
 
+  /**
+   * Given a group object, returns an array of strings representing the column headers to be written in the csv file.
+   * If the group is to be exported with derived membership, the column headers will include 'Member Relation Type' instead of 'Member Role'.
+   * If the group is to be exported with all columns, the column headers will include 'Group Email'.
+   * @param {Object} group - The group object to be exported
+   * @returns {Array<string>} - The array of column headers
+   */
   function createHeaders(group) {
     let headerArray = []
-
-    switch (group.includeDerivedMembership) {
-      case group.includeDerivedMembership === false:
-        if (group.includeAllColumns === false) {
-          headerArray = ['Member Name', 'Member Email', 'Member Role', 'Member Type']
-        } else if (group.includeAllColumns === true) {
-          headerArray = ['Group Email', 'Member Email', 'Member Name', 'Member Role', 'Member Type']
-        }
-        break
-
-      case group.includeDerivedMembership === true:
-        if (group.includeAllColumns === false) {
-          headerArray = ['Member Name', 'Member Email', 'Member Relation Type', 'Member Type']
-        } else if (group.includeAllColumns === true) {
-          headerArray = ['Group Email', 'Member Email', 'Member Name', 'Member Relation Type', 'Member Type']
-        }
-        break
+    if (group.includeDerivedMembership === false) {
+      if (group.includeAllColumns === false) {
+        headerArray = ['Member Name', 'Member Email', 'Member Role', 'Member Type']
+      } else if (group.includeAllColumns === true) {
+        headerArray = ['Group Email', 'Member Email', 'Member Name', 'Member Role', 'Member Type']
+      }
+    } else if (group.includeDerivedMembership === true) {
+      if (group.includeAllColumns === false) {
+        headerArray = ['Member Name', 'Member Email', 'Member Relation Type', 'Member Type']
+      } else if (group.includeAllColumns === true) {
+        headerArray = ['Group Email', 'Member Email', 'Member Name', 'Member Relation Type', 'Member Type']
+      }
     }
     return headerArray
   }
 
+  /**
+   * Given a group object and a member object, returns an object with the properties as required for the csv file.
+   * If the group is to be exported with derived membership, the returned object will have a 'Member Relation Type' property instead of 'Member Role'.
+   * If the group is to be exported with all columns, the returned object will have a 'Group Email' property.
+   * @param {Object} group - The group object to be exported
+   * @param {Object} member - The member object to be exported
+   * @returns {Object} - The object with the required properties
+   */
   function createMemberObj(group, member) {
     const memberObj = {}
-
-    switch (group.includeDerivedMembership) {
-      case group.includeDerivedMembership === false:
-        if (group.includeAllColumns === false) {
-          memberObj.name = member.name
-          memberObj.email = member.email
-          memberObj.role = member.role
-          memberObj.type = member.type
-        } else if (group.includeAllColumns === true) {
-          memberObj.group = group.group
-          memberObj.email = member.email
-          memberObj.name = member.name
-          memberObj.role = member.role
-          memberObj.type = member.type
-        }
-        break
-      case group.includeDerivedMembership === true:
-        if (group.includeAllColumns === false) {
-          memberObj.name = member.name
-          memberObj.email = member.email
-          memberObj.relationType = member.relationType
-          memberObj.type = member.type
-        } else if (group.includeAllColumns === true) {
-          memberObj.group = group.group
-          memberObj.email = member.email
-          memberObj.name = member.name
-          memberObj.relationType = member.relationType
-          memberObj.type = member.type
-        }
-        break
+    if (group.includeDerivedMembership === false) {
+      if (group.includeAllColumns === false) {
+        memberObj.name = member.name
+        memberObj.email = member.email
+        memberObj.role = member.role
+        memberObj.type = member.type
+      } else if (group.includeAllColumns === true) {
+        memberObj.group = group.group
+        memberObj.email = member.email
+        memberObj.name = member.name
+        memberObj.role = member.role
+        memberObj.type = member.type
+      }
+    } else if (group.includeDerivedMembership === true) {
+      if (group.includeAllColumns === false) {
+        memberObj.name = member.name
+        memberObj.email = member.email
+        memberObj.relationType = member.relationType
+        memberObj.type = member.type
+      } else if (group.includeAllColumns === true) {
+        memberObj.group = group.group
+        memberObj.email = member.email
+        memberObj.name = member.name
+        memberObj.relationType = member.relationType
+        memberObj.type = member.type
+      }
     }
 
     return memberObj
@@ -118,14 +125,12 @@ function ExportGroups() {
           },
           { withCredentials: true }
         )
-        console.log(response.data)
         const tableData = response.data
         if (tableData) {
           const csvData = []
           tableData.forEach((group) => {
             group.members.forEach((member) => {
               let memberObj = createMemberObj(group, member)
-              console.log(memberObj)
               csvData.push(memberObj)
             })
           })
@@ -152,7 +157,6 @@ function ExportGroups() {
           placeholder="Enter groups' email addresses, comma separated"
           className="text-black"
         />
-
         <CsvDownloadButton
           className="hidden"
           id="csv"
@@ -163,15 +167,13 @@ function ExportGroups() {
         <Button onClick={() => setCount(count + 1)}>Export</Button>
       </div>
       <div className="flex">
-        <input type="checkbox" id="derivedMembership" onChange={() => setDerivedMembership(!derivedMembership)}></input>
-        {/* <Checkbox
+        <Checkbox
           className="bg-white"
           id="derivedMembership"
-          onChange={() => setDerivedMembership(!derivedMembership)}
-        ></Checkbox> */}
+          onCheckedChange={() => setDerivedMembership(!derivedMembership)}
+        ></Checkbox>
         <label htmlFor="derivedMembership">Include derived membership</label>
-        {/* <Checkbox className="bg-white" id="allColumns" onChange={() => setAllColumns(!allColumns)}></Checkbox> */}
-        <input type="checkbox" id="allColumns" onChange={() => setAllColumns(!allColumns)}></input>
+        <Checkbox className="bg-white" id="allColumns" onCheckedChange={() => setAllColumns(!allColumns)}></Checkbox>
         <label htmlFor="allColumns">Include all columns</label>
       </div>
       <div>{error && `Error: ${error.message}`}</div>
