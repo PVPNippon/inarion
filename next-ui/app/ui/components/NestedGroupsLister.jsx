@@ -31,6 +31,7 @@ function NestedGroupsLister() {
   useEffect(() => {
     const fetchMembership = async (req, res) => {
       try {
+        //if user clicks the button, but input is empty, return
         if (inputValue === '') {
           return
         }
@@ -45,7 +46,6 @@ function NestedGroupsLister() {
           },
           { withCredentials: true }
         )
-
         // if emtpy table is returned, set error 'No memberships found', otherwise set groupList
         if (response.status === 200) {
           response.data.length === 0
@@ -53,13 +53,7 @@ function NestedGroupsLister() {
             : setGroupList(response.data)
         }
       } catch (error) {
-        //if error is 404, set error 'Incorrect email address or you do not have access to this resource.',
-        //otherwise set error returned by the server
-        if (typeof error.response !== 'undefined' && error.response.status === 404) {
-          setError({ message: 'Incorrect email address or you do not have access to this resource.' })
-        } else {
-          setError(error)
-        }
+        setError(error)
       }
     }
     setError(null)

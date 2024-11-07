@@ -218,27 +218,20 @@ exports.getGroupJoinedActivity = async (req, res) => {
  */
 exports.getNestedMembership = async (req, res) => {
   const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
-
-  //fetch array with nested membership and timestamps
-  const nestedTable = await getNestedTable({
-    userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
-    queryEmail,
-  })
-
-  //if nestedTable is null, return 404
-  if (nestedTable === null) return res.status(404).json({ message: 'Group or user not found' })
-
-  //if nestedTable is empty, return 200 with empty array
-  if (nestedTable.length === 0) return res.status(200).json([])
-
-  //if nestedTable is not returned, return 500
-  if (!nestedTable) return res.status(500).json({ message: 'Error fetching nested membership' })
-
-  //otherwise, return nestedTable
-  res.status(200).json(nestedTable)
+  try {
+    const nestedTable = await getNestedTable({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey,
+      queryEmail,
+    })
+    //Return the data with group membership details
+    res.status(200).json(nestedTable)
+  } catch (error) {
+    console.error('Error fetching nested membership:', error)
+    res.status(500).json({ message: 'Error fetching nested membership' })
+  }
 }
 
 /**

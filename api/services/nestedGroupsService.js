@@ -21,26 +21,27 @@ function alreadyExists(hierarchy, groupOrUserEmail, typeOfElement = 'node', pare
 
 /**
  * Checks if the suspected parent has a direct or indirect membership relationship with the group or user.
- *
+ * (at present we only show the indirect membership if direct membership does not exists. In the future we may opt to display both, as a member can have both direct and indirect membership
+ *  in the same time at the same time).
  * @param {string} suspectedParent - The email address of the suspected parent group.
  * @param {string} theGroupOrUser - The email address of the group or user to check.
  * @param {Map} family - A map of group objects, each containing a group object and a list of all its members.
  * @returns {boolean} True if the suspected parent has a membership relationship with the group or user.
  */
 function hasRelation(suspectedParent, theGroupOrUser, family) {
-  //get suspected  transitive parent object from family map
+  //get suspected  transitive parent object from family Map
   const suspectedParentObj = family.get(suspectedParent)
 
   //if the suspected parent is not found, return false
   if (typeof suspectedParentObj === 'undefined') return false
 
-  //if the suspected parent has a membership relationship with the group or user, return true
+  //if the suspected parent has a membership relationship with the group or user, return true, otherwise false
   return suspectedParentObj.members.some((member) => member.email === theGroupOrUser)
 }
 
 /**
  * Given an array of group objects and an email address of a group or user,
- * returns a Map of group objects, each containing a group object and a list of all its members(direct and indirect).
+ * returns a Map of group objects, each containing a group object and a list of all its members(both direct and indirect).
  *
  * This function takes the user and service account credentials, along with the array of groups,
  * and returns a Map containing the group details and all its members(direct+indirect)
@@ -62,6 +63,7 @@ async function getFamilyWithAllMembers({
   groups,
   theGroupOrUser,
 }) {
+  //create a map of group objects, each containing a group object and a list of all its members
   const promises = groups.map((group) =>
     groupsService.listGroupMembers({
       userEmail,
@@ -73,9 +75,12 @@ async function getFamilyWithAllMembers({
     })
   )
 
-  const family = new Map()
+  const family = new Map() //create an empty map
+
+  //get all members for each group
   const membersArray = await Promise.all(promises)
 
+  //add group object and member array for each group to the map, using group email as a key
   membersArray.forEach((members, index) => {
     if (members.some((member) => member.email === theGroupOrUser)) {
       family.set(groups[index].email, {
@@ -85,8 +90,9 @@ async function getFamilyWithAllMembers({
     }
   })
 
-  return family //returns a Map containing the group details and all its members(direct+indirect)
+  return family //returns a Map containing the ancestor groups details and all its members(direct+indirect)
   //for now I keep all the data in, because we might need something else in the future, like group ID or member type etc.
+  //NB that the family contains only the groups which are direct or indirect ancestor of the target group or user
 }
 
 /**
@@ -127,6 +133,7 @@ async function getDirectMembersArray({ userEmail, projectId, serviceAccountEmail
  * group or user. If such a relationship exists, the parent group is considered
  * transitive and added to the list of transitive parents.
  *
+ * A transitive is an ancestor ONE LEVEL DOWN from the top level ancestor. There can be multiple same-level transitive parents.
  * @param {Map} family - A map containing group objects and their members.
  * @param {Object[]} directMembersArray - An array of objects representing direct members of groups.
  * @param {string} theGroupOrUser - The email address of the group or user to check for transitive membership.
@@ -165,9 +172,10 @@ function getTransitive(family, directMembersArray, theGroupOrUser) {
  * @param {string} groupId - The email address of the group to check for member joining activity.
  * @returns {string} - The formatted joining time if found, otherwise 'not found'.
  */
-function getJoinedTime(allActivities, memberId, groupId) {
+function getJoinedTime(allActivities, memberId, groupId, allGroups) {
   //since logs are only available for last 6 months, in many cases there won't be any joining logs
   //or logs can just be gone from google server due to malfunction on their side
+  //or the group email or member changed after the log was created
 
   //iterate through all activities
   for (const activity of allActivities) {
@@ -181,8 +189,8 @@ function getJoinedTime(allActivities, memberId, groupId) {
     const event = activity.events[0].parameters //get parameters array
 
     //declare variables
-    let member_Id
-    let group_Id
+    let member_Id //placeholder for member id retrieved from the logs
+    let group_Id //placeholder for group id retrieved from the logs
 
     //if there is only 1 parameter in the array, grab group email from it, and grab member email from activity actor
     //otherwise, grab group email from 2nd parameter, and grab member email from 1st parameter
@@ -197,7 +205,7 @@ function getJoinedTime(allActivities, memberId, groupId) {
     //check if member and group id matches with target group and member
     //if yes, return the joining time
     //othewise, move to the next activity
-    if ((member_Id === memberId || member_Id === '*') && group_Id === groupId) {
+    if ((member_Id === memberId || (member_Id === '*' && !isGroup(allGroups, memberId))) && group_Id === groupId) {
       return new Date(activity.id.time).toLocaleString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -213,6 +221,96 @@ function getJoinedTime(allActivities, memberId, groupId) {
   return 'not found' // No logs are found
 }
 
+function isGroup(allGroupsArray, theGroupOrUser) {
+  // //If the target group not in the list of all groups, we assume that it's a user(therefore, no need to build the downstream family hierarchy)
+  return allGroupsArray.some((group) => group.email === theGroupOrUser)
+
+  //if the target is not a group, return the hierarchy
+  // if (!isGroup) return hierarchy
+}
+
+/**
+ * Constructs a table of membership details for a specified group or user.
+ *
+ * This function retrieves the joining logs and membership information for groups
+ * within an organization. It identifies whether a group or user is a direct or
+ * inherited member of each group and constructs a detailed table with membership
+ * information, inheritance paths, and timestamps.
+ *
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @param {string} projectId - The project ID of the service account key.
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} serviceAccountPrivateKey - The private key of the service account.
+ * @param {Map} family - A map of group objects, each containing a group object and a list of all its members.
+ * @param {string} theGroupOrUser - The email address of the group or user to check.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of objects, each representing membership details for a group.
+ */
+async function getTable({
+  userEmail,
+  projectId,
+  serviceAccountEmail,
+  serviceAccountPrivateKey,
+  family,
+  theGroupOrUser,
+  allGroups,
+}) {
+  const table = []
+
+  //get an array with group joining logs for the last 6 months
+  //the reason why we need them is because google API does not provide a joined timestamp
+  //so we need to get it ourselves in a roundabout way
+  //but it won't be 100% accurate
+  const allActivities = await groupsService.getJoinGroupsLogs({
+    userEmail,
+    projectId,
+    serviceAccountEmail,
+    serviceAccountPrivateKey,
+  })
+
+  //for each group in the family, fetch all its direct members
+  //the reason why we need to fetch all direct members separately is because
+  //the API method which returns all members(direct and indirect) does not say which member is direct and which is indirect
+  //so we need to find it out by ourselves in a roundabout way
+  const directMembers = await getDirectMembersArray({
+    userEmail,
+    projectId,
+    serviceAccountEmail,
+    serviceAccountPrivateKey,
+    family,
+  })
+
+  //for each parent group, create JSON object containing membership details
+  directMembers.forEach((directMembersArray, index) => {
+    const groupEmail = [...family][index][0]
+
+    const obj = {
+      email: groupEmail, //the "group" column of the table
+    }
+
+    //sift through for each group's direct member array to find out if our target group/user is among direct members or the user is among "all organization users"
+    const targetParentGroup = directMembersArray.find(
+      (member) => member.email === theGroupOrUser || (member.type === 'CUSTOMER' && !isGroup(allGroups, theGroupOrUser))
+    )
+
+    //if it's a direct member or "all organization users", create a table row with empty "via" columnt and fetch a timestamp
+    //otherwise, create a row with "via" column and leave the timestamp empty
+    if (targetParentGroup) {
+      obj.membership = 'Direct' //the "membership type" column of the table
+      obj.inherited = '' //"inherited via" column of the table, left empty for direct memberships
+      obj.timestamp = getJoinedTime(allActivities, theGroupOrUser, groupEmail, allGroups)
+    } else {
+      let inheritedVia = getTransitive(family, directMembersArray, theGroupOrUser) || []
+      inheritedVia = inheritedVia.join(', ')
+      obj.membership = 'Inherited' //the "membership type" column of the table
+      obj.inherited = inheritedVia //"inherited via" column of the table
+      obj.timestamp = '' //"timestamp" column of the table, left empty for inherited memberships (for now)
+    }
+    table.push(obj)
+  })
+
+  return table
+}
+
 /**
  * Given an email address of a group or user, returns a table of membership details
  * for all direct/indirect parents of the target group/user.
@@ -224,80 +322,20 @@ function getJoinedTime(allActivities, memberId, groupId) {
  * @param {string} queryEmail - The email address of the group or user to query.
  * @returns {Promise<Object[]>} - A promise that resolves to an array of objects containing membership details for direct/indirect parents of the target group.
  */
+//TODO: refactor the code to reduce the number of API calls(postponed till the next iteration)
 async function getNestedTable({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail }) {
-  /**
-   * Given a family of groups, returns a table of membership details for all direct/indirect parents of the target group.
-   *
-   * The function takes the family of groups as an argument, fetches all its direct members,
-   * and then creates a JSON object containing membership details for each parent group.
-   * The membership details include the email of the parent group, the type of membership (direct or inherited),
-   * and the timestamp of when the target group joined the parent group.
-   * For inherited memberships, the timestamp is left empty for now.
-   * @param {Map} family - A map of group objects, where each key is a group's email and each value contains the group object and its members.
-   * @returns {Promise<Object[]>} - A promise that resolves to an array of objects containing membership details for direct/indirect parents of the target group.
-   */
-  async function getTable(family) {
-    const table = []
-
-    //get an array with group joining logs for the last 6 months
-    //the reason why we need them is because google API does not provide a joined timestamp
-    //so we need to get it ourselves in a roundabout way
-    const allActivities = await groupsService.getJoinGroupsLogs({
-      userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
-    })
-
-    //for each group in the family, fetch all its direct members
-    //the reason why we need to fetch all direct members separately is because
-    //the API method which returns all members(direct and indirect) does not say which member is direct and which is indirect
-    //so we need to find it out by ourselves in a roundabout way
-    const directMembers = await getDirectMembersArray({
-      userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
-      family,
-    })
-
-    //for each parent group, create JSON object containing membership details
-    directMembers.forEach((directMembersArray, index) => {
-      const groupEmail = [...family][index][0]
-
-      const obj = {
-        email: groupEmail, //the "group" column of the table
-      }
-
-      //sift through for each group's direct member array to find out if our target group is among direct members
-      const targetParentGroup = directMembersArray.find(
-        (member) => member.email === theGroupOrUser || member.type === 'CUSTOMER'
-      )
-
-      if (targetParentGroup) {
-        obj.membership = 'Direct' //the "membership type" column of the table
-        obj.inherited = '' //"inherited via" column of the table, left empty for direct memberships
-        obj.timestamp = getJoinedTime(allActivities, theGroupOrUser, groupEmail)
-      } else {
-        let inheritedVia = getTransitive(family, directMembersArray, theGroupOrUser) || []
-        inheritedVia = inheritedVia.join(', ')
-        obj.membership = 'Inherited' //the "membership type" column of the table
-        obj.inherited = inheritedVia //"inherited via" column of the table
-        obj.timestamp = '' //"timestamp" column of the table, left empty for inherited memberships (for now)
-      }
-      table.push(obj)
-    })
-
-    return table
-  }
-
   const theGroupOrUser = queryEmail
 
   //get a list of all groups in customer organization
-  let groups = await groupsService.listGroups({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey })
+  const allGroups = await groupsService.listGroups({
+    userEmail,
+    projectId,
+    serviceAccountEmail,
+    serviceAccountPrivateKey,
+  })
 
   //leave out groups with no members to reduce number of API calls
-  groups = groups.filter((group) => group.directMembersCount > 0)
+  const groups = allGroups.filter((group) => group.directMembersCount > 0)
 
   //get an array of parent group objects
   const family = await getFamilyWithAllMembers({
@@ -313,7 +351,15 @@ async function getNestedTable({ userEmail, projectId, serviceAccountEmail, servi
   if (family.size === 0) return []
 
   //get an array with membership details and timestamp for each parent/grandparent group of the target group/user
-  const table = await getTable(family)
+  const table = await getTable({
+    userEmail,
+    projectId,
+    serviceAccountEmail,
+    serviceAccountPrivateKey,
+    family,
+    theGroupOrUser,
+    allGroups,
+  })
 
   return table
 }
@@ -321,7 +367,7 @@ async function getNestedTable({ userEmail, projectId, serviceAccountEmail, servi
 /**
  * Constructs a hierarchical representation of a group's members, including users and sub-groups.
  *
- * This function processes direct and indirect members of a given group, updating the hierarchy with nodes
+ * This function processes direct and indirect members of the target given group, updating the upper hierarchy with nodes
  * and edges representing users and groups. It filters members by type, checks for existing nodes, and
  * recursively processes child groups to build a comprehensive hierarchy.
  *
@@ -336,7 +382,8 @@ async function getNestedTable({ userEmail, projectId, serviceAccountEmail, servi
  * @param {Object[]} allMembersOfTheGroup - An array of all members (direct and indirect) of the group.
  * @returns {Object} - The updated hierarchy with nodes and edges representing the group's structure.
  */
-async function getChildren({
+//TODO: refactor the code to reduce the number of API calls(postponed till the next iteration)
+async function getDescendantHierarchy({
   userEmail,
   projectId,
   serviceAccountEmail,
@@ -464,13 +511,15 @@ async function getChildren({
  * @param {string} theGroupOrUser - The email address of the group or user to check.
  * @returns {Promise<Object>} - A promise that resolves to the hierarchical object containing nodes and edges.
  */
-async function getHierarchyObj({
+//TODO: refactor the code to reduce the number of API calls(postponed till the next iteration)
+async function getAncestorHierarchy({
   userEmail,
   projectId,
   serviceAccountEmail,
   serviceAccountPrivateKey,
   family,
   theGroupOrUser,
+  allGroups,
 }) {
   //prepare the hierarchical object
   const hierarchy = {
@@ -530,9 +579,12 @@ async function getHierarchyObj({
         }
 
         //push the edge to the hierarchy
-        if (!alreadyExists(hierarchy, theGroupOrUser, 'edge', group.group.email)) hierarchy.edges.push(edgeObj)
+        //I remove the code to prevent edge duplicates, because otherwise edges when a member has both direct and indirect memberships were missing
+        hierarchy.edges.push(edgeObj)
       }
-      if (directMember.type === 'CUSTOMER') {
+
+      //if an ancestor group has a member called 'CUSTOMER'(i.e. all organizations members), then add it to the hierarchy
+      if (directMember.type === 'CUSTOMER' && !isGroup(allGroups, theGroupOrUser)) {
         if (!alreadyExists(hierarchy, theGroupOrUser)) {
           hierarchy.nodes.push({
             id: theGroupOrUser,
@@ -558,7 +610,7 @@ async function getHierarchyObj({
 
 /**
  * Given a target group or user, creates a hierarchical object
- * containing a nodes list and an edges list.
+ * containing a nodes list and an edges(=links between nodes) list.
  * The nodes list contains objects with id, label, shape, and color keys.
  * The edges list contains objects with from, to, and color keys.
  * The color key is used to highlight the path from the target group/user to the root group.
@@ -594,13 +646,14 @@ async function getHierarchy({ userEmail, projectId, serviceAccountEmail, service
   })
 
   //get a hierarchy object for the upward family of the target group/user
-  let hierarchy = await getHierarchyObj({
+  let hierarchy = await getAncestorHierarchy({
     userEmail,
     projectId,
     serviceAccountEmail,
     serviceAccountPrivateKey,
     family,
     theGroupOrUser,
+    allGroups,
   })
 
   //if the hierarchy is empty, add the target group/user to the hierarchy
@@ -622,11 +675,11 @@ async function getHierarchy({ userEmail, projectId, serviceAccountEmail, service
     }
   }
 
-  //If the target group not in the list of all groups, we assume that it's a user(therefore, no need to build the downstream family hierarchy)
-  const isGroup = allGroups.some((group) => group.email === theGroupOrUser)
+  // //If the target group not in the list of all groups, we assume that it's a user(therefore, no need to build the downstream family hierarchy)
+  // const isGroup = allGroups.some((group) => group.email === theGroupOrUser)
 
-  //if the target is not a group, return the hierarchy
-  if (!isGroup) return hierarchy
+  // //if the target is not a group, return the hierarchy
+  if (!isGroup(allGroups, theGroupOrUser)) return hierarchy
 
   //get the group object
   const groupObj = allGroups.find((group) => group.email === theGroupOrUser)
@@ -661,7 +714,7 @@ async function getHierarchy({ userEmail, projectId, serviceAccountEmail, service
   )
 
   //construct the downstream hierarchy
-  hierarchy = getChildren({
+  hierarchy = getDescendantHierarchy({
     userEmail,
     projectId,
     serviceAccountEmail,
