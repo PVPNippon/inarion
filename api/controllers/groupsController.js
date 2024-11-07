@@ -306,37 +306,37 @@ exports.listGroupsMembersInExportFormat = async (req, res) => {
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
  * to update the 'whoCanLeaveGroup' setting of the group
  *
- * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, `groupEmail` and `whoCanLeave` in the request body.
+ * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, `groupEmail` and `whoCanLeaveGroup` in the request body.
+ *                       `whoCanLeaveGroup` must be one of 'ALL_MEMBERS_CAN_LEAVE', 'ALL_MANAGERS_CAN_LEAVE' and 'NONE_CAN_LEAVE'.
  * @param {string} res - The response object used to return the response from the API, or an error message.
  * @returns {Promise<void>} - Responds with the response of the API call, or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.updateWhoCanLeaveGroup = async (req, res) => {
-  const {userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail, whoCanLeave} = req.body
+  const {userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail, whoCanLeaveGroup} = req.body
 
-  let whoCanLeaveGroup
-  switch (whoCanLeave) {
-    case 'managers':
-      whoCanLeaveGroup = 'ALL_MANAGERS_CAN_LEAVE'
-      break
-    case 'none':
-      whoCanLeaveGroup = 'NONE_CAN_LEAVE'
-      break
-    default:
-      whoCanLeaveGroup = 'ALL_MEMBERS_CAN_LEAVE'
+  if (whoCanLeaveGroup !== 'ALL_MEMBERS_CAN_LEAVE' && whoCanLeaveGroup !== 'ALL_MANAGERS_CAN_LEAVE' && whoCanLeaveGroup !== 'NONE_CAN_LEAVE') {
+    return res.status(400).json({
+      message: 'The value of \'whoCanLeaveGroup\' must be one of \'ALL_MEMBERS_CAN_LEAVE\', \'ALL_MANAGERS_CAN_LEAVE\' and \'NONE_CAN_LEAVE\''
+    })
   }
 
   try {
-    await groupsService.updateGroup({
+    const response = await groupsService.updateGroup({
       userEmail,
       projectId,
       serviceAccountEmail,
       serviceAccountPrivateKey,
       groupEmail,
-      resource: {whoCanLeaveGroup},
+      resource: { whoCanLeaveGroup },
     })
 
-    res.status(200).json({ message: `Set the 'whoCanLeaveGroup' of ${groupEmail} to ${whoCanLeaveGroup}` })
+    if (response.status === 200) {
+      res.status(200).json({ message: `Set the 'whoCanLeaveGroup' of ${groupEmail} to ${whoCanLeaveGroup}` })
+    } else {
+      res.status(500).json({ message: 'The request could not be handled for some reason' })
+      console.log(response)
+    }
   } catch (error) {
     console.log('Error updating the specified group\'s \'whoCanLeaveGroup\' setting:', error)
     res.status(500).json({ message: 'Error updating the specified group\'s \'whoCanLeaveGroup\' setting' })
