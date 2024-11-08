@@ -32,4 +32,7 @@ router.post('/bulk-export', groupsController.listGroupsMembersInExportFormat)
 //route to update the 'whoCanLeaveGroup' setting of the specified group
 router.put('/update-whocanleave', groupsController.updateWhoCanLeaveGroup)
 
+//route to delete multiple members from a group
+router.delete('/delete-members', groupsController.deleteMembers)
+
 module.exports = router

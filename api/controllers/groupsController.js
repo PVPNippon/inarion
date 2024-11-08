@@ -342,3 +342,77 @@ exports.updateWhoCanLeaveGroup = async (req, res) => {
     res.status(500).json({ message: 'Error updating the specified group\'s \'whoCanLeaveGroup\' setting' })
   }
 }
+
+
+
+
+
+
+/**
+ * Delete multiple members from a group.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to delete multiple members from a group.
+ *
+ * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, `groupEmail` and `memberEmails` in the request body.
+ *                       `memberEmails` is an array of the email addresses of the target members who are to be deleted from the target group specified by `groupEmail`.
+ * @param {string} res - The response object which has 3 properties, `deletedMembers`, `undeletedMembers` and `message`.
+ *                       `deletedMembers` is an array which has the emails of the members who were successfully deleted from the target group with status code (204).
+ *                       `undeletedMembers` is an array which has the emails of the members who were not deleted from the target group for some reason.
+ *                       The error codes and messages are also included in the array.
+ *                       `message` is a brief comment on the result of the deletion.
+ * @returns {Promise<void>} - Responds with the response of the API call, or an error message.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+exports.deleteMembers = async (req, res) => {
+  const {userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail, memberEmails} = req.body
+
+  // Returns Bad Request if the target group is not specified.
+  if (!groupEmail) {
+    return res.status(400).json({ message: 'groupEmail is not specified' })
+  }
+
+  // Returns Bad Request if members to be deleted are not specified.
+  if (!memberEmails || memberEmails.length === 0) {
+    return res.status(400).json({ message: 'members are not specified' })
+  }
+
+  // Eliminate duplicate members if any.
+  const uniqueMembers = [...new Set(memberEmails)]
+
+  try {
+    const response = await groupsService.deleteMembersWithRateLimit({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey,
+      groupEmail,
+      memberEmails: uniqueMembers
+    })
+
+    // All requested members were deleted from the group successfully.
+    if (response.undeletedMembers.length === 0) {
+      response.message = `Deleted All requested member(s) from ${groupEmail}`
+      res.status(200).json(response)
+    
+    // Some requested members were deleted from the group successfully, but some were not.
+    } else if (response.deletedMembers.length > 0) {
+      response.message = `${response.undeletedMembers.length} requested member(s) could not be deleted from ${groupEmail}`
+      res.status(207).json(response) // Ref for the status code: https://xexeq.jp/blogs/media/it-glossary1206
+    
+    // No requested members were deleted from the group.
+    } else {
+      response.message = `No members were deleted from ${groupEmail}`
+
+      // If one of the status codes are in 500, the status code of the response should be 500 (Internal Server Error).
+      // Otherwise it should be 400 (Bad Request).
+      const statusCode = response.undeletedMembers.some(({statusCode}) => statusCode >= 500 && statusCode < 600) ? 500 : 400
+      
+      res.status(statusCode).json(response)
+    }
+  } catch (error) {
+    console.log('Error deleting members:', error)
+    res.status(500).json({ message: `Error deleting members from ${groupEmail}` })
+  }
+}

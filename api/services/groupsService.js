@@ -574,6 +574,209 @@ async function updateGroup({
   return response
 }
 
+/**
+ * Delete a member from a group using Admin Directory API.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to delete a member from a group.
+ * 
+ * The target group has to belong to the customer's organization, while the target member (either a user or a group) does not.
+ * The role of the target member (OWNER, MANAGER or MEMBER) does not matter.
+ * The 'whoCanLeaveGroup' setting of the target group does not matter.
+ *
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @param {string} projectId - The project ID of the GCP project.
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} serviceAccountPrivateKey - The private key of the service account.
+ * @param {string} groupEmail - The email address of the group to which the member specified by `memberEmail` belongs.
+ * @param {string} memberEmail - The email address of the member who is to be deleted from the group specified by `groupEmail`.
+ * @param {Object} [client=null] - The JWT client to use to authenticate the API call.
+ * @returns {Promise<Object>} - A promise that resolves to an object which has info about the result of the member deletion.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+async function deleteMember({
+  userEmail,
+  projectId,
+  serviceAccountEmail,
+  serviceAccountPrivateKey,
+  groupEmail,
+  memberEmail,
+  client
+}) {
+  // Create a JWT client if 'client' is not specified
+  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+
+  // Create the Admin Directory API client
+  const directory = google.admin({
+    version: 'directory_v1',
+    auth: jwtClient,
+  })
+
+  // If successful, this object has a property 'status' with a value 204.
+  // If not, this code will throw an error.
+  // error.status can be:
+  //
+  // - 400, if memberEmail is not a Google account or group. error.message is 'Missing required field: memberKey'.
+  //
+  // - 403, if memberEmail is either a Google account or group, and (A) groupEmail does not exist in the customer's organization or (B) groupEmail is a user's in the customer's organization.
+  // error.message is 'Not Authorized to access this resource/api'.
+  //
+  // - 404, if groupEmail exists as a group in the customer's organization, and memberEmail is either a Google account or group, and memberEmail does not belong to groupEmail.
+  // In this case, error.message is 'Resource Not Found: memberKey'.
+  // Or if the domain of groupEmail is the customer's and does not exists, and memberEmail is either a Google account or group.
+  // In this case, error.message is 'Resource Not Found: groupKey'.
+  //
+  // - Other unknown value (maybe 500)
+  const response = await directory.members.delete({
+    groupKey: groupEmail,
+    memberKey: memberEmail
+  })
+  
+  return response
+}
+
+/**
+ * Delete multiple members from a group using Admin Directory API.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to delete multiple members from a group.
+ *
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @param {string} projectId - The project ID of the GCP project.
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} serviceAccountPrivateKey - The private key of the service account.
+ * @param {string} groupEmail - The email address of the group to which the members specified by `memberEmails` belong.
+ * @param {string[]} memberEmails - The email addresses of the members who are to be deleted from the group specified by `groupEmail`.
+ * @param {Object} [client=null] - The JWT client to use to authenticate the API call.
+ * @returns {Promise<Object>} - A promise that resolves to an object which has 2 arrays, an array of deleted members and an array of not deleted members.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+async function deleteMembers({
+  userEmail,
+  projectId,
+  serviceAccountEmail,
+  serviceAccountPrivateKey,
+  groupEmail,
+  memberEmails,
+  client
+}) {
+  // Create a JWT client if 'client' is not specified
+  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+
+  const deletedMembers = [] // Container for deleted members
+  const undeletedMembers = [] // Container for not deleted members
+
+  // Because calling deleteMember() and waiting for the deletion result multiple times takes too much time,
+  // we need to use either Promise.all() or Promise.allSettled().
+  // The problem of using either Promise.all() or Promise.allSettled() is there is possibility that some API calls may succeed and some API calls may fail.
+  // In other words, some members in the 'members' array may be deleted while some members may not.
+  // My choice is using Promise.allSettled() to record which members were successfully deleted and which members were not, and returning the record to the caller.
+  const responseArray = await Promise.allSettled(memberEmails.map(memberEmail => deleteMember({
+    groupEmail,
+    memberEmail,
+    client: jwtClient
+  })))
+  
+  for (let i = 0; i < memberEmails.length; i++) {
+    const memberEmail = memberEmails[i]
+
+    // If the deletion of a member succeeded, put the member email and statusCode (= 204) to the deletedMembers array.
+    if (responseArray[i].status === 'fulfilled') {
+      deletedMembers.push({
+        email: memberEmail,
+        statusCode: responseArray[i].value.status
+      })
+    
+    // If the deletion of a member failed, put the member email, statusCode and the error message to the undeletedMembers array.
+    } else {
+      undeletedMembers.push({
+        email: memberEmail,
+        statusCode: responseArray[i].reason.status,
+        errorMessage: responseArray[i].reason.message
+      })
+    }
+  }
+
+  return { deletedMembers, undeletedMembers }
+}
+
+/**
+ * Delete multiple members from a group using Admin Directory API.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to delete multiple members from a group.
+ * 
+ * This function is just a wrapper of deleteMembers().
+ * This function restricts concurrent Google API calls to a certain number.
+ *
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @param {string} projectId - The project ID of the GCP project.
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} serviceAccountPrivateKey - The private key of the service account.
+ * @param {string} groupEmail - The email address of the group to which the members specified by `memberEmails` belong.
+ * @param {string[]} memberEmails - The email addresses of the members who are to be deleted from the group specified by `groupEmail`.
+ * @param {Object} [client=null] - The JWT client to use to authenticate the API call.
+ * @returns {Promise<Object>} - A promise that resolves to an object which has 2 arrays, an array of deleted members and an array of not deleted members.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+async function deleteMembersWithRateLimit({
+  userEmail,
+  projectId,
+  serviceAccountEmail,
+  serviceAccountPrivateKey,
+  groupEmail,
+  memberEmails,
+  client
+}) {
+  // Create a JWT client if 'client' is not specified
+  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+
+  // Ref: https://developers.google.com/admin-sdk/directory/v1/limits
+  // According to the document, "The default value" of userRateLimitExceeded "set in the Google Cloud console is 2,400 queries per minute per user per Google Cloud project".
+  // So I guess 40 (= 2,400 / 60) concurrent API calls are safe.
+  const BULK_DELETE_THRESHOLD = 40
+
+  // Let's say BULK_DELETE_THRESHOLD = 40 and members.length = 100.
+  // In this case, we should repeat 40 concurrent API calls 2 (= Math.floor(members.length / BULK_DELETE_THRESHOLD)) times
+  // and 20 (= members.length % BULK_DELETE_THRESHOLD) concurrent API calls once.
+  const numOfBulkAPICalls = Math.floor(memberEmails.length / BULK_DELETE_THRESHOLD)
+  const numOfRemainingAPICalls = memberEmails.length % BULK_DELETE_THRESHOLD
+
+  const deletedMembers = []
+  const undeletedMembers = []
+
+  for (let i = 0; i < numOfBulkAPICalls; i++) {
+    const startIndex = i * BULK_DELETE_THRESHOLD
+    const endIndex = startIndex + BULK_DELETE_THRESHOLD
+
+    const response = await deleteMembers({
+      groupEmail,
+      memberEmails: memberEmails.slice(startIndex, endIndex),
+      client: jwtClient
+    })
+
+    deletedMembers.push(...response.deletedMembers)
+    undeletedMembers.push(...response.undeletedMembers)
+  }
+
+  if (numOfRemainingAPICalls > 0) {
+    const startIndex = memberEmails.length - numOfRemainingAPICalls
+
+    const response = await deleteMembers({
+      groupEmail,
+      memberEmails: memberEmails.slice(startIndex),
+      client: jwtClient
+    })
+
+    deletedMembers.push(...response.deletedMembers)
+    undeletedMembers.push(...response.undeletedMembers)
+  }
+
+  return { deletedMembers, undeletedMembers }
+}
 
 module.exports = {
   listGroups,
@@ -582,5 +785,6 @@ module.exports = {
   getAllGroupsLogs,
   getJoinGroupsLogs,
   listMembersInExportFormat,
-  updateGroup
+  updateGroup,
+  deleteMembersWithRateLimit,
 }
