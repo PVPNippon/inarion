@@ -4,19 +4,27 @@ const { getClient } = require('../utility/groupsUtilityFunctions')
 /**
  * Retrieves the list of all groups in the organization.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `client` from the request body.
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
  * to list all groups in the organization.
  *
- * @param {string} userEmail - The email address of the user to impersonate.
- * @param {string} projectId - The project ID of the service account key.
- * @param {string} serviceAccountEmail - The email address of the service account.
- * @param {string} serviceAccountPrivateKey - The private key of the service account.
- * @param {Object} [client=null] - The JWT client to use to authenticate the API call.
- * @returns {Promise<Object[]>} - A promise that resolves to an array of all groups in the organization.
+ * The function also takes an optional `client` parameter, which is a JWT client that can be used to authenticate the API call.
+ * If `client` is provided, it will be used instead of creating a new JWT client.
+ *
+ * The function also takes an optional `query` parameter, which is a filter that can be used to narrow down the results.
+ * For example, if `query` is set to `'email:example.com'`, only groups with the domain `example.com` will be returned.
+ *
+ * @param {Object} params - The parameters needed to fetch the groups.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {string} params.projectId - The project ID of the service account key.
+ * @param {string} params.serviceAccountEmail - The email address of the service account.
+ * @param {string} params.serviceAccountPrivateKey - The private key of the service account.
+ * @param {Object} [params.client=null] - The JWT client to use to authenticate the API call.
+ * @param {string} [params.query=''] - The filter to apply to the results.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of group objects.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function listGroups({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, client }) {
+async function listGroups({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, client, query }) {
   // Retrieve JWT client or create it if it doesn't exist
   const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
   const directory = google.admin({
@@ -31,6 +39,11 @@ async function listGroups({ userEmail, projectId, serviceAccountEmail, serviceAc
     customer: 'my_customer',
     maxResults: 200, //max allowed value
     orderBy: 'email',
+  }
+
+  // Add query(filter) if it exists
+  if (query) {
+    requestObj.query = query
   }
 
   // Fetch all groups

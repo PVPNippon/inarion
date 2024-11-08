@@ -20,6 +20,8 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
  * group email, the type of membership (direct or indirect), and the timestamp
  * of when the membership was created.
  */
+//a temporary component for dev purposes.
+//displays a list of groups that a given group or user is a member of
 function NestedGroupsLister() {
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)

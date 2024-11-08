@@ -218,32 +218,42 @@ function getJoinedTime(allActivities, memberId, groupId, allGroups) {
       })
     }
   }
-  return 'not found' // No logs are found
-}
 
-function isGroup(allGroupsArray, theGroupOrUser) {
-  // //If the target group not in the list of all groups, we assume that it's a user(therefore, no need to build the downstream family hierarchy)
-  return allGroupsArray.some((group) => group.email === theGroupOrUser)
-
-  //if the target is not a group, return the hierarchy
-  // if (!isGroup) return hierarchy
+  return 'not found' // Return default value if no logs are found
 }
 
 /**
- * Constructs a table of membership details for a specified group or user.
+ * Checks if a given group or user is a group by searching for it in a list of all groups.
  *
- * This function retrieves the joining logs and membership information for groups
- * within an organization. It identifies whether a group or user is a direct or
- * inherited member of each group and constructs a detailed table with membership
- * information, inheritance paths, and timestamps.
- *
- * @param {string} userEmail - The email address of the user to impersonate.
- * @param {string} projectId - The project ID of the service account key.
- * @param {string} serviceAccountEmail - The email address of the service account.
- * @param {string} serviceAccountPrivateKey - The private key of the service account.
- * @param {Map} family - A map of group objects, each containing a group object and a list of all its members.
+ * @param {Object[]} allGroupsArray - An array of objects, each representing a group.
  * @param {string} theGroupOrUser - The email address of the group or user to check.
- * @returns {Promise<Object[]>} - A promise that resolves to an array of objects, each representing membership details for a group.
+ * @returns {boolean} true if the target is a group, false otherwise.
+ */
+//We need this function because of the "all organization users" type of membership which comes in logs in "CUSTOMER".
+//Both nested groups table and groups hierarchy can be used for users and groups,
+//But some logic is only applied to users, so we need to know what type of member the target is, and you cannot identify if it is a group or a user by email address only
+function isGroup(allGroupsArray, theGroupOrUser) {
+  //check if the target is a group by searching its email address in the list of all customer's groups
+  return allGroupsArray.some((group) => group.email === theGroupOrUser)
+}
+
+/**
+ * Constructs a table of membership details for each parent group of the target group/user.
+ *
+ * This function retrieves and processes group joining logs and direct membership information
+ * to determine the membership status of the target group/user within the family of groups.
+ * It outputs an array of objects, each representing a row in the membership details table,
+ * containing columns for group email, membership type (Direct or Inherited), inherited via,
+ * and timestamp of when the membership was established.
+ *
+ * @param {string} userEmail - The email address of the user performing the action.
+ * @param {string} projectId - The GCP project ID.
+ * @param {string} serviceAccountEmail - The service account email address.
+ * @param {string} serviceAccountPrivateKey - The service account private key.
+ * @param {Map} family - A map of group objects, where each key is a group's email and each value contains the group object and its members.
+ * @param {string} theGroupOrUser - The email address of the group or user to query.
+ * @param {Object[]} allGroups - An array of all group objects within the organization.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of objects containing membership details.
  */
 async function getTable({
   userEmail,
@@ -279,7 +289,7 @@ async function getTable({
     family,
   })
 
-  //for each parent group, create JSON object containing membership details
+  //for each ancestor group, create JSON object containing membership details
   directMembers.forEach((directMembersArray, index) => {
     const groupEmail = [...family][index][0]
 
@@ -394,7 +404,7 @@ async function getDescendantHierarchy({
   indirectMembersOfTheGroup,
   allMembersOfTheGroup,
 }) {
-  //filter user and group members separately
+  //filter users, "all organizastion users" and group members separately
   const users = directMembersOfTheGroup.filter((member) => member.type === 'USER')
   const allUsers = directMembersOfTheGroup.filter((member) => member.type === 'CUSTOMER')
   const groups = directMembersOfTheGroup.filter((member) => member.type === 'GROUP')
@@ -468,7 +478,7 @@ async function getDescendantHierarchy({
     family: childGroupFamily,
   })
 
-  //loop through each child group and its direct member array and create a node(if it doesn't already exist) and edge for each group and member
+  //loop through each descendant group and its direct member array and create a node(if it doesn't already exist) and edge for each group and member
   //this is the hierarchy building "algorithm"
   childGroups.forEach((childGroup, index) => {
     const directMemberArray = directMembersOfChildGroups[index]
@@ -497,19 +507,21 @@ async function getDescendantHierarchy({
 }
 
 /**
- * Given a family of groups, returns a hierarchical object containing nodes and edges.
+ * Constructs a hierarchical representation of ancestor groups for the specified target group or user.
  *
- * The function takes the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, `family`, and `theGroupOrUser` as arguments.
- * It prepares a hierarchical object with nodes and edges by fetching all direct members of each group in the family,
- * creating a JSON object containing membership details for each parent group and its direct members,
- * and adding nodes and edges to the hierarchy if the direct member is related to the target group directly or indirectly.
+ * This function processes a family of groups along with their direct members,
+ * and builds a hierarchy containing nodes and edges. Nodes represent groups or users,
+ * while edges represent membership relationships. The hierarchy is augmented with color
+ * to highlight paths directly related to the target group or user.
+ *
  * @param {string} userEmail - The email address of the user to impersonate.
  * @param {string} projectId - The GCP project ID.
- * @param {string} serviceAccountEmail - The email address of the service account.
- * @param {string} serviceAccountPrivateKey - The private key of the service account.
+ * @param {string} serviceAccountEmail - The service account email address.
+ * @param {string} serviceAccountPrivateKey - The service account private key.
  * @param {Map} family - A map of group objects, where each key is a group's email and each value contains the group object and its members.
- * @param {string} theGroupOrUser - The email address of the group or user to check.
- * @returns {Promise<Object>} - A promise that resolves to the hierarchical object containing nodes and edges.
+ * @param {string} theGroupOrUser - The email address of the group or user to query.
+ * @param {Object[]} allGroups - An array of all group objects within the organization.
+ * @returns {Object} - A hierarchical object containing a nodes list and an edges list.
  */
 //TODO: refactor the code to reduce the number of API calls(postponed till the next iteration)
 async function getAncestorHierarchy({
@@ -536,14 +548,14 @@ async function getAncestorHierarchy({
     family,
   })
 
-  //for each parent group, create JSON object containing membership details
+  //for each ancestor group, create JSON object containing membership details
   family.forEach((group, index) => {
     //create a node for the parent group
     if (!alreadyExists(hierarchy, group.group.email)) {
       hierarchy.nodes.push({ id: group.group.email, label: group.group.email, shape: 'box' })
     }
 
-    //retrieve an array with direct members of the parent group
+    //retrieve an array with direct members of the ancestor group
     const entries = Array.from(family.entries())
     const arrayIndex = entries.findIndex(([key, value]) => key === index)
     const directMemberArray = directMembers[arrayIndex]
@@ -579,11 +591,11 @@ async function getAncestorHierarchy({
         }
 
         //push the edge to the hierarchy
-        //I remove the code to prevent edge duplicates, because otherwise edges when a member has both direct and indirect memberships were missing
+        //I have removed the code to prevent edge duplicates, because otherwise some edges in cases when a member has both direct and indirect memberships were missing
         hierarchy.edges.push(edgeObj)
       }
 
-      //if an ancestor group has a member called 'CUSTOMER'(i.e. all organizations members), then add it to the hierarchy
+      //if an ancestor group has a member called 'CUSTOMER'(i.e. all organizations members), then add it to the hierarchy(only applied when the target is a user)
       if (directMember.type === 'CUSTOMER' && !isGroup(allGroups, theGroupOrUser)) {
         if (!alreadyExists(hierarchy, theGroupOrUser)) {
           hierarchy.nodes.push({
@@ -658,9 +670,6 @@ async function getHierarchy({ userEmail, projectId, serviceAccountEmail, service
 
   //if the hierarchy is empty, add the target group/user to the hierarchy
   //this is done for error handling to differentiate from server errors
-  //i.e. if there is only one node then the search was successful, but nothing found(no memberships or email address is incorrect)
-  //if there are no nodes, then the search was not completed at all
-  //at this point I don't differentiate between "no memberships found" and "email address is incorrect"
   if (typeof hierarchy.nodes === 'undefined' || hierarchy.nodes.length === 0) {
     hierarchy = {
       nodes: [
@@ -675,10 +684,7 @@ async function getHierarchy({ userEmail, projectId, serviceAccountEmail, service
     }
   }
 
-  // //If the target group not in the list of all groups, we assume that it's a user(therefore, no need to build the downstream family hierarchy)
-  // const isGroup = allGroups.some((group) => group.email === theGroupOrUser)
-
-  // //if the target is not a group, return the hierarchy
+  //if the target is not a group, return the hierarchy
   if (!isGroup(allGroups, theGroupOrUser)) return hierarchy
 
   //get the group object

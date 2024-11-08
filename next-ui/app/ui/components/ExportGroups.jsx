@@ -11,6 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 //temporary component for dev purposes
 //it supports 4 types of csv export, but at present all groups' members are exported in one csv file
 //TODO : support exporting groups' members in multiple csv files
+//NOTE: this is only a frontend, the backend exists in another branch which is not on dev yet
 function ExportGroups() {
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)
@@ -105,15 +106,17 @@ function ExportGroups() {
         return
       }
       try {
-        let groups = inputValue.split(',')
+        let groups = inputValue.split(',') // split the input string into an array of groups
         groups = groups.map((group) => group.trim())
 
+        //create an array of objects, each containing a group object and desired csv type options
         const groupsArray = groups.map((group) => ({
           groupEmail: group,
           includeDerivedMembership: derivedMembership,
           includeAllColumns: allColumns,
         }))
 
+        //post the groups array to the backend
         const response = await axios.post(
           'http://localhost:4000/api/groups/bulk-export',
           {
@@ -125,7 +128,9 @@ function ExportGroups() {
           },
           { withCredentials: true }
         )
+
         const tableData = response.data
+        //create an array of objects, each containing a row to be written in the csv
         if (tableData) {
           const csvData = []
           tableData.forEach((group) => {
@@ -134,7 +139,7 @@ function ExportGroups() {
               csvData.push(memberObj)
             })
           })
-          setHeaders(createHeaders(tableData[0]))
+          setHeaders(createHeaders(tableData[0])) //as we set the same type of csv for all groups, we can set the headers once
           setData(csvData)
           setReady(true)
         }
