@@ -343,11 +343,6 @@ exports.updateWhoCanLeaveGroup = async (req, res) => {
   }
 }
 
-
-
-
-
-
 /**
  * Delete multiple members from a group.
  *
@@ -361,7 +356,7 @@ exports.updateWhoCanLeaveGroup = async (req, res) => {
  *                       `deletedMembers` is an array which has the emails of the members who were successfully deleted from the target group with status code (204).
  *                       `undeletedMembers` is an array which has the emails of the members who were not deleted from the target group for some reason.
  *                       The error codes and messages are also included in the array.
- *                       `message` is a brief comment on the result of the deletion.
+ *                       `message` is a brief comment on the result of the operation.
  * @returns {Promise<void>} - Responds with the response of the API call, or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
@@ -391,18 +386,15 @@ exports.deleteMembers = async (req, res) => {
       memberEmails: uniqueMembers
     })
 
-    // All requested members were deleted from the group successfully.
-    if (response.undeletedMembers.length === 0) {
+    if (response.undeletedMembers.length === 0) { // All requested members were deleted from the group successfully.
       response.message = `Deleted All requested member(s) from ${groupEmail}`
       res.status(200).json(response)
     
-    // Some requested members were deleted from the group successfully, but some were not.
-    } else if (response.deletedMembers.length > 0) {
+    } else if (response.deletedMembers.length > 0) { // Some requested members were deleted from the group successfully, but some were not.
       response.message = `${response.undeletedMembers.length} requested member(s) could not be deleted from ${groupEmail}`
       res.status(207).json(response) // Ref for the status code: https://xexeq.jp/blogs/media/it-glossary1206
     
-    // No requested members were deleted from the group.
-    } else {
+    } else { // No requested members were deleted from the group.
       response.message = `No members were deleted from ${groupEmail}`
 
       // If one of the status codes are in 500, the status code of the response should be 500 (Internal Server Error).
