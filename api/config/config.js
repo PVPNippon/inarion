@@ -25,6 +25,7 @@ module.exports = {
     'https://www.googleapis.com/auth/drive.activity',
     'https://www.googleapis.com/auth/drive.activity.readonly',
     'https://www.googleapis.com/auth/drive.metadata.readonly',
-
+    'https://www.googleapis.com/auth/admin.directory.group',
+    'https://www.googleapis.com/auth/admin.reports.audit.readonly',
   ],
 }
