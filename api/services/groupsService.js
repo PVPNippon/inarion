@@ -671,7 +671,7 @@ async function deleteMembers({
   // Because calling deleteMember() and waiting for the deletion result multiple times takes too much time,
   // we need to use either Promise.all() or Promise.allSettled().
   // The problem of using either Promise.all() or Promise.allSettled() is there is possibility that some API calls may succeed and some API calls may fail.
-  // In other words, some members in the 'members' array may be deleted while some members may not.
+  // In other words, some members in the 'memberEmails' array may be deleted while some members may not.
   // My choice is using Promise.allSettled() to record which members were successfully deleted and which members were not, and returning the record to the caller.
   const responseArray = await Promise.allSettled(memberEmails.map(memberEmail => deleteMember({
     groupEmail,
@@ -679,25 +679,23 @@ async function deleteMembers({
     client: jwtClient
   })))
   
-  for (let i = 0; i < memberEmails.length; i++) {
-    const memberEmail = memberEmails[i]
-
+  memberEmails.forEach((memberEmail, index) => {
     // If the deletion of a member succeeded, put the member email and statusCode (= 204) to the deletedMembers array.
-    if (responseArray[i].status === 'fulfilled') {
+    if (responseArray[index].status === 'fulfilled') {
       deletedMembers.push({
         email: memberEmail,
-        statusCode: responseArray[i].value.status
+        statusCode: responseArray[index].value.status
       })
     
     // If the deletion of a member failed, put the member email, statusCode and the error message to the undeletedMembers array.
     } else {
       undeletedMembers.push({
         email: memberEmail,
-        statusCode: responseArray[i].reason.status,
-        errorMessage: responseArray[i].reason.message
+        statusCode: responseArray[index].reason.status,
+        errorMessage: responseArray[index].reason.message
       })
     }
-  }
+  })
 
   return { deletedMembers, undeletedMembers }
 }

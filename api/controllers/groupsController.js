@@ -370,7 +370,7 @@ exports.deleteMembers = async (req, res) => {
 
   // Returns Bad Request if members to be deleted are not specified.
   if (!memberEmails || memberEmails.length === 0) {
-    return res.status(400).json({ message: 'members are not specified' })
+    return res.status(400).json({ message: 'memberEmails are not specified' })
   }
 
   // Eliminate duplicate members if any.
