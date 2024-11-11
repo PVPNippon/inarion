@@ -35,4 +35,7 @@ router.put('/update-whocanleave', groupsController.updateWhoCanLeaveGroup)
 //route to delete multiple members from a group
 router.delete('/delete-members', groupsController.deleteMembers)
 
+//route to delete a member from multiple groups
+router.delete('/delete-member-from-groups', groupsController.deleteMemberFromGroups)
+
 module.exports = router

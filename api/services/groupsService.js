@@ -778,6 +778,109 @@ async function deleteMembersWithRateLimit({
   return { deletedMembers, undeletedMembers }
 }
 
+/**
+ * Delete a member from multiple groups using Admin Directory API.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to delete a member from multiple groups.
+ *
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @param {string} projectId - The project ID of the GCP project.
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} serviceAccountPrivateKey - The private key of the service account.
+ * @param {string[]} groupEmails - The email addresses of the groups to which the member specified by `memberEmail` belongs.
+ * @param {string} memberEmail - The email address of the member who is to be deleted from the groups specified by `groupEmails`.
+ * @param {Object} [client=null] - The JWT client to use to authenticate the API call.
+ * @returns {Promise<Object>} - A promise that resolves to an object which has 2 arrays, an array of deleted members and an array of not deleted members.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+async function deleteMemberFromGroups({
+  userEmail,
+  projectId,
+  serviceAccountEmail,
+  serviceAccountPrivateKey,
+  groupEmails,
+  memberEmail,
+  client
+}) {
+  // Create a JWT client if 'client' is not specified
+  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+
+  const succeededGroups = [] // Container for groups which the member was successfully deleted from
+  const failedGroups = [] // Container for groups which the member failed to be deleted from
+
+  const responseArray = await Promise.allSettled(groupEmails.map(groupEmail => deleteMember({
+    groupEmail,
+    memberEmail,
+    client: jwtClient
+  })))
+
+  groupEmails.forEach((groupEmail, index) => {
+
+    // If the deletion succeeded, put the group email and statusCode (= 204) to the succeededGroups array.
+    if (responseArray[index].status === 'fulfilled') {
+      succeededGroups.push({
+        email: groupEmail,
+        statusCode: responseArray[index].value.status
+      })
+    
+    // If the deletion failed, put the group email, statusCode and the error message to the failedGroups array.
+    } else {
+      failedGroups.push({
+        email: groupEmail,
+        statusCode: responseArray[index].reason.status,
+        errorMessage: responseArray[index].reason.message
+      })
+    }
+  })
+
+  return { succeededGroups, failedGroups }
+}
+
+async function deleteMemberFromGroupsWithRateLimit({
+  userEmail,
+  projectId,
+  serviceAccountEmail,
+  serviceAccountPrivateKey,
+  groupEmails,
+  memberEmail,
+  client
+}) {
+  // Create a JWT client if 'client' is not specified
+  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+
+  const succeededGroups = [] // Container for groups which the member was successfully deleted from
+  const failedGroups = [] // Container for groups which the member failed to be deleted from
+
+  const responseArray = await Promise.allSettled(groupEmails.map(groupEmail => deleteMember({
+    groupEmail,
+    memberEmail,
+    client: jwtClient
+  })))
+
+  groupEmails.forEach((groupEmail, index) => {
+
+    // If the deletion succeeded, put the group email and statusCode (= 204) to the succeededGroups array.
+    if (responseArray[index].status === 'fulfilled') {
+      succeededGroups.push({
+        email: groupEmail,
+        statusCode: responseArray[index].value.status
+      })
+    
+    // If the deletion failed, put the group email, statusCode and the error message to the failedGroups array.
+    } else {
+      failedGroups.push({
+        email: groupEmail,
+        statusCode: responseArray[index].reason.status,
+        errorMessage: responseArray[index].reason.message
+      })
+    }
+  })
+
+  return { succeededGroups, failedGroups }
+}
+
 module.exports = {
   listGroups,
   getGroupByEmail,
