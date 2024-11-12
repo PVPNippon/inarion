@@ -16,6 +16,7 @@ services:
 
     depends_on:
       - frontend
+      - redis
 
   frontend:
     build: ./frontend
@@ -37,6 +38,15 @@ services:
     #   - HOST=0.0.0.0
     stdin_open: true
     networks:
+      - test
+
+  redis:
+    image: redis:latest
+    container_name: redis_c
+    ports:
+      - '6379:6379'
+    networks:
+      - mynetwork
       - test
 
 networks:

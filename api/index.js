@@ -2,6 +2,7 @@
 const express = require('express')
 const session = require('express-session')
 const config = require('./config/config')
+const cacheRoutes = require('./routes/cacheRoutes')
 const authRoutes = require('./routes/authRoutes')
 const projectRoutes = require('./routes/projectRoutes')
 const tokenRoutes = require('./routes/tokenRoutes')
@@ -57,10 +58,23 @@ app.use('/user', userRoutes)
 app.use('/api/drive', driveRoutes)
 app.use('/users', domainUsersRoutes)
 app.use('/api/groups', groupsRoutes)
+app.use('/cache', cacheRoutes)
 
 app.get('/', (req, res) => {
   res.send('<h1>Home Page</h1>')
 })
+
+/// Sync database in development and start server
+/// Forces to drop any existingf databases and recreate them everytime we sync
+
+// sequelize.sync({ force: true });
+// console.log('Models synchronized successfully');
+// sequelize.sync().then(() => {
+//   const port = config.PORT;
+//   app.listen(port, () => console.log(`Listening on port ${port}`));
+// }).catch(err => {
+//   console.error('Unable to connect to the database:', err);
+// });
 
 const port = config.PORT
 app.listen(port, () => console.log(`Listening on port ${port}`))

@@ -2,7 +2,11 @@
 require('dotenv').config()
 
 module.exports = {
-  PERSONAL_DRIVE_NAME: process.env.PERSONAL_DRIVE_NAME,
+  TTL: process.env.TTL,
+  PERSONAL_DRIVE: process.env.PERSONAL_DRIVE,
+  PERSONAL_DRIVE_LIST: process.env.PERSONAL_DRIVE_LIST,
+  SHARED_DRIVE: process.env.SHARED_DRIVE_LIST,
+  SHARED_DRIVE_LIST: process.env.SHARED_DRIVE_LIST,
   DOMAIN_TEST: process.env.DOMAIN_TEST,
   SUPER_ADMIN_EMAIL: process.env.SUPER_ADMIN_EMAIL,
   CLIENT_SERVICE_ACCOUNT_EMAIL: process.env.CLIENT_SERVICE_ACCOUNT_EMAIL,
@@ -14,6 +18,8 @@ module.exports = {
   POSTGRES_USER: process.env.POSTGRES_USER,
   POSTGRES_PASSWORD: process.env.POSTGRES_PASSWORD,
   POSTGRES_DB: process.env.POSTGRES_DB,
+  REDIS_HOST: process.env.REDIS_HOST,
+  REDIS_PORT: process.env.REDIS_PORT,
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   REDIRECT_URI: 'http://localhost:4000/project/initiate-project',
