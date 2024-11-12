@@ -307,7 +307,7 @@ async function getJoinGroupsLogs({
 /**
  * Retrieves the list of lists of members of specified groups in exportable format.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, `groups` and `client` from the request body.
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the argument object.
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
  * to create a list of lists of members of the specified groups in exportable format.
  *
@@ -315,7 +315,7 @@ async function getJoinGroupsLogs({
  * @param {string} projectId - The project ID of the service account key.
  * @param {string} serviceAccountEmail - The email address of the service account.
  * @param {string} serviceAccountPrivateKey - The private key of the service account.
- * @param {Object[]} groups - An array of groups.
+ * @param {Object[]} groups - An array of groups to be exported.
  *                            Each element should be in the following format:
  *                            {
  *                              "groupEmail": <string: The email address of a group (REQUIRED)>,
@@ -356,23 +356,33 @@ async function listMembersInExportFormat({
   // (key, value) = (group email address, group name)
   const groupNameMap = new Map()
 
-  const allGroupsInOrganization = await listGroups({ client: jwtClient })
-  allGroupsInOrganization.forEach(group => {
-    // Add (key, value) = (primary email address, group name) to the map
-    groupNameMap.set(group.email, group.name)
-    // For each alias of the group, add (key, value) = (alias, group name) to the map
-    group.aliases?.forEach(alias => groupNameMap.set(alias, group.name))
-    // For each non-editable alias (e.g. test domain aliases), add (key, value) = (alias, group name) to the map
-    group.nonEditableAliases?.forEach(nonEditableAlias => groupNameMap.set(nonEditableAlias, group.name))
-  })
-  
   // Map of all users in the customer's organization to get user names from user addresses
   // (key, value) = (user email address, user name)
   const userNameMap = new Map()
 
-  // Add (key, value) = (user email (either primary or alias), user name) to the map
-  const allUsersInOrganization = await listUsers({ client: jwtClient })
-  allUsersInOrganization.forEach(user => user.emails.forEach(({address}) => userNameMap.set(address, user.name.fullName)))
+  const [allGroupsInOrganization, allUsersInOrganization] = await Promise.all([
+    listGroups({ client: jwtClient }),
+    listUsers({ client: jwtClient })
+  ])
+
+  // Building groupNameMap
+  allGroupsInOrganization.forEach(group => {
+    // Add (key, value) = (group's primary email address, group name) to the map
+    groupNameMap.set(group.email, group.name)
+
+    // Add (key, value) = (group's alias, group name) to the map
+    group.aliases?.forEach(alias => groupNameMap.set(alias, group.name))
+
+    // Add (key, value) = (group's non-editable alias (e.g. test domain aliases), group name) to the map
+    group.nonEditableAliases?.forEach(nonEditableAlias => groupNameMap.set(nonEditableAlias, group.name))
+  })
+
+  // Building userNameMap
+  // Add (key, value) = (user's email address (either primary or alias), user name) to the map
+  allUsersInOrganization.forEach(user => {
+    user.emails.forEach(({address}) => userNameMap.set(address, user.name.fullName))
+  })
+
 
   // Each element of this array is a list of all direct members of each group specified in the 'groups' parameter
   const directMembersArray = await Promise.all(groups.map(({groupEmail}) => listGroupMembers({
@@ -392,8 +402,8 @@ async function listMembersInExportFormat({
     }) : null
   ))
 
-  // Each element of this array is a list of members of each group specified in the 'groups' parameter,
-  // and each entry of the list, which represents a member, is in one of the 4 possible formats below:
+  // Return an array each element of which is a list of members of each group specified in the 'groups' parameter,
+  // and each entry of the list, which represents a member, is an object in one of the following 4 possible formats:
   //
   // (1-a) Both 'includeDerivedMembership' and 'includeAllColumns' are true:
   // {
@@ -454,9 +464,11 @@ async function listMembersInExportFormat({
         case 'GROUP':
           member.name = groupNameMap.get(member.email) ?? 'Member' // Let us call external groups just 'Member'
           break
+        
         case 'USER':
           member.name = userNameMap.get(member.email) ?? 'Member' // Let us call external users just 'Member'
           break
+        
         case 'CUSTOMER': // Means 'All members in the organization' (https://developers.google.com/admin-sdk/directory/reference/rest/v1/members#Member, https://support.google.com/a/answer/9689259)
           member.name = 'All users in the organization'
           member.email = '' // 'All members in the organization' does not have the 'email' property
@@ -502,7 +514,13 @@ async function listMembersInExportFormat({
  * @returns {Promise<Object[]>} - A promise that resolves to an array of all users in the organization.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function listUsers({userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, client}) {
+async function listUsers({
+  userEmail,
+  projectId,
+  serviceAccountEmail,
+  serviceAccountPrivateKey,
+  client
+}) {
   // Create a JWT client if 'client' is not specified
   const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
 
