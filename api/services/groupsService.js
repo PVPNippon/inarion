@@ -790,7 +790,7 @@ async function deleteMembersWithRateLimit({
  * @param {string[]} groupEmails - The email addresses of the groups to which the member specified by `memberEmail` belongs.
  * @param {string} memberEmail - The email address of the member who is to be deleted from the groups specified by `groupEmails`.
  * @param {Object} [client=null] - The JWT client to use to authenticate the API call.
- * @returns {Promise<Object>} - A promise that resolves to an object which has 2 arrays, an array of deleted members and an array of not deleted members.
+ * @returns {Promise<Object>} - A promise that resolves to an object which has 2 arrays, an array of groups for which the operation succeeded and an array of groups for which the operation failed.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 async function deleteMemberFromGroups({
@@ -815,7 +815,6 @@ async function deleteMemberFromGroups({
   })))
 
   groupEmails.forEach((groupEmail, index) => {
-
     // If the deletion succeeded, put the group email and statusCode (= 204) to the succeededGroups array.
     if (responseArray[index].status === 'fulfilled') {
       succeededGroups.push({
@@ -836,6 +835,26 @@ async function deleteMemberFromGroups({
   return { succeededGroups, failedGroups }
 }
 
+/**
+ * Delete a member from multiple groups using Admin Directory API.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to delete a member from multiple groups.
+ * 
+ * This function is just a wrapper of deleteMemberFromGroups().
+ * This function restricts concurrent Google API calls to a certain number.
+ *
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @param {string} projectId - The project ID of the GCP project.
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} serviceAccountPrivateKey - The private key of the service account.
+ * @param {string[]} groupEmails - The email addresses of the groups to which the member specified by `memberEmail` belongs.
+ * @param {string} memberEmail - The email address of the member who is to be deleted from the groups specified by `groupEmails`.
+ * @param {Object} [client=null] - The JWT client to use to authenticate the API call.
+ * @returns {Promise<Object>} - A promise that resolves to an object which has 2 arrays, an array of groups for which the operation succeeded and an array of groups for which the operation failed.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
 async function deleteMemberFromGroupsWithRateLimit({
   userEmail,
   projectId,
@@ -848,33 +867,46 @@ async function deleteMemberFromGroupsWithRateLimit({
   // Create a JWT client if 'client' is not specified
   const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
 
+  // Ref: https://developers.google.com/admin-sdk/directory/v1/limits
+  // According to the document, "The default value" of userRateLimitExceeded "set in the Google Cloud console is 2,400 queries per minute per user per Google Cloud project".
+  // So I guess 40 (= 2,400 / 60) concurrent API calls are safe.
+  const BULK_DELETE_THRESHOLD = 40
+
+  // Let's say BULK_DELETE_THRESHOLD = 40 and groupEmails.length = 100.
+  // In this case, we should repeat 40 concurrent API calls 2 (= Math.floor(groupEmails.length / BULK_DELETE_THRESHOLD)) times
+  // and 20 (= groupEmails.length % BULK_DELETE_THRESHOLD) concurrent API calls once.
+  const numOfBulkAPICalls = Math.floor(groupEmails.length / BULK_DELETE_THRESHOLD)
+  const numOfRemainingAPICalls = groupEmails.length % BULK_DELETE_THRESHOLD
+
   const succeededGroups = [] // Container for groups which the member was successfully deleted from
   const failedGroups = [] // Container for groups which the member failed to be deleted from
 
-  const responseArray = await Promise.allSettled(groupEmails.map(groupEmail => deleteMember({
-    groupEmail,
-    memberEmail,
-    client: jwtClient
-  })))
+  for (let i = 0; i < numOfBulkAPICalls; i++) {
+    const startIndex = i * BULK_DELETE_THRESHOLD
+    const endIndex = startIndex + BULK_DELETE_THRESHOLD
 
-  groupEmails.forEach((groupEmail, index) => {
+    const response = await deleteMemberFromGroups({
+      groupEmails: groupEmails.slice(startIndex, endIndex),
+      memberEmail,
+      client: jwtClient
+    })
 
-    // If the deletion succeeded, put the group email and statusCode (= 204) to the succeededGroups array.
-    if (responseArray[index].status === 'fulfilled') {
-      succeededGroups.push({
-        email: groupEmail,
-        statusCode: responseArray[index].value.status
-      })
-    
-    // If the deletion failed, put the group email, statusCode and the error message to the failedGroups array.
-    } else {
-      failedGroups.push({
-        email: groupEmail,
-        statusCode: responseArray[index].reason.status,
-        errorMessage: responseArray[index].reason.message
-      })
-    }
-  })
+    succeededGroups.push(...response.succeededGroups)
+    failedGroups.push(...response.failedGroups)
+  }
+
+  if (numOfRemainingAPICalls > 0) {
+    const startIndex = groupEmails.length - numOfRemainingAPICalls
+
+    const response = await deleteMemberFromGroups({
+      groupEmails: groupEmails.slice(startIndex),
+      memberEmail,
+      client: jwtClient
+    })
+
+    succeededGroups.push(...response.succeededGroups)
+    failedGroups.push(...response.failedGroups)
+  }
 
   return { succeededGroups, failedGroups }
 }
@@ -888,4 +920,5 @@ module.exports = {
   listMembersInExportFormat,
   updateGroup,
   deleteMembersWithRateLimit,
+  deleteMemberFromGroupsWithRateLimit
 }

@@ -418,11 +418,11 @@ exports.deleteMembers = async (req, res) => {
  *
  * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, `groupEmails` and `memberEmail` in the request body.
  *                       `memberEmail` is the email address of the target member who is to be deleted from the target groups specified by `groupEmails`.
- * @param {string} res - The response object which has 3 properties, `deletedMembers`, `undeletedMembers` and `message`.
- *                       `deletedMembers` is an array which has the emails of the members who were successfully deleted from the target group with status code (204).
- *                       `undeletedMembers` is an array which has the emails of the members who were not deleted from the target group for some reason.
+ * @param {string} res - The response object which has 3 properties, `succeededGroups`, `failedGroups` and `message`.
+ *                       `succeededGroups` is an array of the email addresses of the groups from which the target member was successfully deleted with status code (204).
+ *                       `failedGroups` is an array of the email addresses of the groups from which the target member failed to be deleted for some reason.
  *                       The error codes and messages are also included in the array.
- *                       `message` is a brief comment on the result of the operation.
+ *                       `message` is a brief comment on the result of the entire operation.
  * @returns {Promise<void>} - Responds with the response of the API call, or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
@@ -443,7 +443,7 @@ exports.deleteMemberFromGroups = async (req, res) => {
   const uniqueGroups = [...new Set(groupEmails)]
 
   try {
-    const response = await groupsService.deleteMembersWithRateLimit({
+    const response = await groupsService.deleteMemberFromGroupsWithRateLimit({
       userEmail,
       projectId,
       serviceAccountEmail,
@@ -452,25 +452,25 @@ exports.deleteMemberFromGroups = async (req, res) => {
       memberEmail
     })
 
-    if (response.undeletedMembers.length === 0) { // All requested members were deleted from the group successfully.
-      response.message = `Deleted All requested member(s) from ${groupEmail}`
+    if (response.failedGroups.length === 0) { // The member was successfully deleted from all requested groups.
+      response.message = `Deleted ${memberEmail} from all requested group(s)`
       res.status(200).json(response)
     
-    } else if (response.deletedMembers.length > 0) { // Some requested members were deleted from the group successfully, but some were not.
-      response.message = `${response.undeletedMembers.length} requested member(s) could not be deleted from ${groupEmail}`
+    } else if (response.succeededGroups.length > 0) { // The member was deleted from some requested groups, but not from all requested groups.
+      response.message = `${memberEmail} could not be deleted from ${response.failedGroups.length} requested group(s)`
       res.status(207).json(response) // Ref for the status code: https://xexeq.jp/blogs/media/it-glossary1206
     
-    } else { // No requested members were deleted from the group.
-      response.message = `No members were deleted from ${groupEmail}`
+    } else { // The member was not deleted from all requested groups.
+      response.message = `${memberEmail} was not deleted from all requested group(s)`
 
       // If one of the status codes are in 500, the status code of the response should be 500 (Internal Server Error).
       // Otherwise it should be 400 (Bad Request).
-      const statusCode = response.undeletedMembers.some(({statusCode}) => statusCode >= 500 && statusCode < 600) ? 500 : 400
+      const statusCode = response.failedGroups.some(({statusCode}) => statusCode >= 500 && statusCode < 600) ? 500 : 400
       
       res.status(statusCode).json(response)
     }
   } catch (error) {
-    console.log('Error deleting members:', error)
-    res.status(500).json({ message: `Error deleting members from ${groupEmail}` })
+    console.log('Error deleting member:', error)
+    res.status(500).json({ message: `Error deleting ${memberEmail} from the requested group(s)` })
   }
 }
