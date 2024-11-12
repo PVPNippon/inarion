@@ -271,17 +271,17 @@ exports.getGroupHierarchy = async (req, res) => {
 /**
  * Retrieves the list of lists of members of specified groups in exportable format.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, `groups` and `client` from the request body.
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the request body.
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
- * to create a list of lists of members of the specified groups in exportable format.
+ * to create a list of lists of members of the groups specified by `groups` in exportable format.
  *
  * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey` and `groups` in the request body.
- * @param {string} res - The response object used to return the list of lists of members of the specified groups in exportable format, or an error message.
+ * @param {Object} res - The response object used to return the list of lists of members of the specified groups in exportable format, or an error message.
  * @returns {Promise<void>} - Responds with the list of lists of members of the specified groups in exportable format, or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.listGroupsMembersInExportFormat = async (req, res) => {
-  const {userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groups} = req.body
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groups } = req.body
 
   try {
     const members = await groupsService.listMembersInExportFormat({
