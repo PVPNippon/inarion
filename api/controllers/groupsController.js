@@ -315,12 +315,12 @@ exports.listGroupsMembersInExportFormat = async (req, res) => {
  *
  * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, `groupEmail` and `whoCanLeaveGroup` in the request body.
  *                       `whoCanLeaveGroup` must be one of 'ALL_MEMBERS_CAN_LEAVE', 'ALL_MANAGERS_CAN_LEAVE' and 'NONE_CAN_LEAVE'.
- * @param {string} res - The response object used to return the response from the API, or an error message.
+ * @param {Object} res - The response object used to return the response from the API, or an error message.
  * @returns {Promise<void>} - Responds with the response of the API call, or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.updateWhoCanLeaveGroup = async (req, res) => {
-  const {userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail, whoCanLeaveGroup} = req.body
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail, whoCanLeaveGroup } = req.body
 
   if (whoCanLeaveGroup !== 'ALL_MEMBERS_CAN_LEAVE' && whoCanLeaveGroup !== 'ALL_MANAGERS_CAN_LEAVE' && whoCanLeaveGroup !== 'NONE_CAN_LEAVE') {
     return res.status(400).json({
@@ -359,16 +359,16 @@ exports.updateWhoCanLeaveGroup = async (req, res) => {
  *
  * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, `groupEmail` and `memberEmails` in the request body.
  *                       `memberEmails` is an array of the email addresses of the target members who are to be deleted from the target group specified by `groupEmail`.
- * @param {string} res - The response object which has 3 properties, `deletedMembers`, `undeletedMembers` and `message`.
+ * @param {Object} res - The response object which has 3 properties, `deletedMembers`, `undeletedMembers` and `message`.
  *                       `deletedMembers` is an array which has the emails of the members who were successfully deleted from the target group with status code (204).
  *                       `undeletedMembers` is an array which has the emails of the members who were not deleted from the target group for some reason.
  *                       The error codes and messages are also included in the array.
- *                       `message` is a brief comment on the result of the operation.
+ *                       `message` is a brief comment on the result of the entire operation.
  * @returns {Promise<void>} - Responds with the response of the API call, or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.deleteMembers = async (req, res) => {
-  const {userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail, memberEmails} = req.body
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail, memberEmails } = req.body
 
   // Returns Bad Request if the target group is not specified.
   if (!groupEmail) {
@@ -425,7 +425,7 @@ exports.deleteMembers = async (req, res) => {
  *
  * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, `groupEmails` and `memberEmail` in the request body.
  *                       `memberEmail` is the email address of the target member who is to be deleted from the target groups specified by `groupEmails`.
- * @param {string} res - The response object which has 3 properties, `succeededGroups`, `failedGroups` and `message`.
+ * @param {Object} res - The response object which has 3 properties, `succeededGroups`, `failedGroups` and `message`.
  *                       `succeededGroups` is an array of the email addresses of the groups from which the target member was successfully deleted with status code (204).
  *                       `failedGroups` is an array of the email addresses of the groups from which the target member failed to be deleted for some reason.
  *                       The error codes and messages are also included in the array.
@@ -434,7 +434,7 @@ exports.deleteMembers = async (req, res) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.deleteMemberFromGroups = async (req, res) => {
-  const {userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmails, memberEmail} = req.body
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmails, memberEmail } = req.body
 
   // Returns Bad Request if the target groups are not specified.
   if (!groupEmails || groupEmails.length === 0) {
