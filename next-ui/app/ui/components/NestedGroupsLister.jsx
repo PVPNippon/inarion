@@ -20,6 +20,8 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
  * group email, the type of membership (direct or indirect), and the timestamp
  * of when the membership was created.
  */
+//a temporary component for dev purposes.
+//displays a list of groups that a given group or user is a member of
 function NestedGroupsLister() {
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)
@@ -31,11 +33,12 @@ function NestedGroupsLister() {
   useEffect(() => {
     const fetchMembership = async (req, res) => {
       try {
+        //if user clicks the button, but input is empty, return
         if (inputValue === '') {
           return
         }
         const response = await axios.post(
-          'http://localhost:4000/groups/get-nested-membership',
+          'http://localhost:4000/api/groups/get-nested-membership',
           {
             userEmail: email,
             projectId: projectData.projectData.projectId,
@@ -45,7 +48,6 @@ function NestedGroupsLister() {
           },
           { withCredentials: true }
         )
-
         // if emtpy table is returned, set error 'No memberships found', otherwise set groupList
         if (response.status === 200) {
           response.data.length === 0
@@ -53,13 +55,7 @@ function NestedGroupsLister() {
             : setGroupList(response.data)
         }
       } catch (error) {
-        //if error is 404, set error 'Incorrect email address or you do not have access to this resource.',
-        //otherwise set error returned by the server
-        if (typeof error.response !== 'undefined' && error.response.status === 404) {
-          setError({ message: 'Incorrect email address or you do not have access to this resource.' })
-        } else {
-          setError(error)
-        }
+        setError(error)
       }
     }
     setError(null)

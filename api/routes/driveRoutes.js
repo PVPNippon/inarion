@@ -1,21 +1,19 @@
-const express = require('express');
-const router = express.Router();
-const driveController = require('../controllers/driveController');
+const express = require('express')
+const router = express.Router()
+const driveController = require('../controllers/driveController')
+
+// Existing routes
 
 // Route to list Google Drive files
-// router.get('/list', driveController.listFiles);
-// router.post('/list-files', driveController.listDriveFiles);
-router.post('/file/:fileId', driveController.getFileDetails);
+router.post('/file/:fileId', driveController.getFileDetails)
 
+// Route to fetch all shared drives
+// router.post('/shared-drives', driveController.getSharedDrives)
 
-// // Route to get settings for a specific file
-// router.get('/file-settings/:fileId', driveController.getFileSettingsById);
-
-// Route to fetch all shared drives name 
-router.post('/shared-drives', driveController.getSharedDrives);
 // Route to fetch all files in personal drives
-router.post('/personal-drives', driveController.getPersonalDriveFiles);
-router.post('/shared-drives-storage', driveController.getAllSharedDrivesWithStorage);
-router.post('/drive-activity', driveController.getDriveActivity);
+// router.post('/personal-drives', driveController.getPersonalDriveFiles)
+router.post('/all-drives', driveController.getAllDrives)
+// Route to check sharing information for a file or shared drive
+router.get('/permissions/:id', driveController.getSharingInfo)
 
-module.exports = router;
+module.exports = router

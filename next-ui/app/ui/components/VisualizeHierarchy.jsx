@@ -7,6 +7,25 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import Graph from 'react-graph-vis'
 
+/**
+ * Component that visualizes the hierarchical structure of a group or user's memberships.
+ *
+ * The component renders an input field for entering a group or user email address, a button
+ * to trigger the API call, and a graph to display the hierarchical data. The graph uses
+ * a hierarchical layout to represent nodes and edges.
+ *
+ * The component leverages the `LoggedInUserContext` and `ProjectDataContext` contexts
+ * to access the user's email and project information.
+ *
+ * The component fetches the group hierarchy from the backend API when the user clicks
+ * the "Go" button. It uses the `useState` hook to manage input values, group hierarchy
+ * data, click count, and errors. The `useEffect` hook is utilized to make the API call
+ * when the click count changes.
+ *
+ * If no memberships are found, or if there is an error, an appropriate error message is displayed.
+ */
+//temporary component for dev purposes
+//used to test the groups hierarchy visualiser backend code
 function VisualizeHierarchy() {
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)
@@ -46,20 +65,23 @@ function VisualizeHierarchy() {
     height: '1000px',
   }
 
-  const events = {
-    select: function (event) {
-      var { nodes, edges } = event
-    },
-  }
-
   useEffect(() => {
+    /**
+     * Fetches the hierarchy of groups for the given email address.
+     *
+     * @param {Object} req - The request object.
+     * @param {Object} res - The response object.
+     *
+     * @returns {Promise<void>} - Resolves when the group hierarchy is successfully fetched.
+     * @throws {Error} - Throws an error if there is an issue with the API call or if the hierarchy cannot be fetched.
+     */
     const fetchHierarchy = async (req, res) => {
       try {
         if (inputValue === '') {
           return
         }
         const response = await axios.post(
-          'http://localhost:4000/groups/get-hierarchy',
+          'http://localhost:4000/api/groups/get-hierarchy',
           {
             userEmail: email,
             projectId: projectData.projectData.projectId,
@@ -103,7 +125,7 @@ function VisualizeHierarchy() {
           name="email"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
-          placeholder="Enter a group email address"
+          placeholder="Enter a group or user email address"
         />
         <Button onClick={() => setClickCount(clickCount + 1)} type="submit">
           Go
@@ -111,7 +133,7 @@ function VisualizeHierarchy() {
       </div>
       <p>{error && error.message}</p>
       <div>{groupList && JSON.stringify(groupList)}</div>
-      <Graph graph={groupList} options={options} events={events} getNetwork={(network) => {}} />
+      <Graph graph={groupList} options={options} />
     </div>
   )
 }

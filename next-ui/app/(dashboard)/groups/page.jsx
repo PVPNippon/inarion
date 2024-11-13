@@ -7,6 +7,7 @@ import ListDirectMembers from '../../ui/components/ListDirectMembers'
 import ListAllMembers from '../../ui/components/ListAllMembers'
 import ListGroupsActivities from '../../ui/components/ListGroupActivities'
 import ListGroupJoinedActivities from '../../ui/components/ListGroupJoinedActivities'
+import ExportGroups from '../../ui/components/ExportGroups'
 
 /**
  * A component that displays a Google Groups page.
@@ -30,6 +31,7 @@ function GroupsDashboard() {
           <GetGroup></GetGroup>
           <ListDirectMembers></ListDirectMembers>
           <ListAllMembers></ListAllMembers>
+          <ExportGroups></ExportGroups>
         </main>
       </ProjectDataProvider>
     </LoggedInUserProvider>

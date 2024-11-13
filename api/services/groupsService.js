@@ -1,5 +1,46 @@
 const { google } = require('googleapis')
-const { getClient } = require('../utility/groupsUtilityFunctions')
+
+/**
+ * Decodes the base64-encoded privateKeyData and parses it as JSON.
+ *
+ * @param {string} privateKeyData - The base64-encoded private key data.
+ * @returns {Object} - The decoded and parsed JSON object containing the credentials.
+ */
+function decodePrivateKeyData(privateKeyData) {
+  const decodedData = Buffer.from(privateKeyData, 'base64').toString('utf8')
+  return JSON.parse(decodedData)
+}
+
+/**
+ * Creates a new JWT client, specifying the user to impersonate, and authorizes it.
+ *
+ * The client is authorized with the scopes required to read the user's groups and
+ * the user's audit logs.
+ *
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} privateKey - The private key of the service account.
+ * @param {string} userEmail - The email address of the user to impersonate.
+ * @returns {Promise<Object>} - A promise that resolves to the authorized client.
+ */
+async function getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail) {
+  const keyData = decodePrivateKeyData(serviceAccountPrivateKey) // Decode the private key
+  const privateKey = keyData.private_key // Extract the private key
+  // Create a new JWT client, specifying the user to impersonate
+  const jwtClient = new google.auth.JWT({
+    email: serviceAccountEmail,
+    key: privateKey,
+    scopes: [
+      'https://www.googleapis.com/auth/admin.directory.group',
+      'https://www.googleapis.com/auth/admin.reports.audit.readonly',
+      'https://www.googleapis.com/auth/admin.directory.user.readonly',
+    ],
+    subject: userEmail, // Impersonating this user
+  })
+
+  // Authorize the client
+  await jwtClient.authorize()
+  return jwtClient
+}
 
 /**
  * Retrieves the list of all groups in the organization.
@@ -8,64 +49,74 @@ const { getClient } = require('../utility/groupsUtilityFunctions')
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
  * to list all groups in the organization.
  *
- * @param {string} userEmail - The email address of the user to impersonate.
- * @param {string} projectId - The project ID of the GCP project.
- * @param {string} serviceAccountEmail - The email address of the service account.
- * @param {string} serviceAccountPrivateKey - The private key of the service account.
- * @returns {Promise<Array<Object>>} - A promise that resolves to an array of group objects.
+ * The function also takes an optional `client` parameter, which is a JWT client that can be used to authenticate the API call.
+ * If `client` is provided, it will be used instead of creating a new JWT client.
+ *
+ * The function also takes an optional `query` parameter, which is a filter that can be used to narrow down the results.
+ * For example, if `query` is set to `'email:example.com'`, only groups with the domain `example.com` will be returned.
+ *
+ * @param {Object} params - The parameters needed to fetch the groups.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {string} params.projectId - The project ID of the service account key.
+ * @param {string} params.serviceAccountEmail - The email address of the service account.
+ * @param {string} params.serviceAccountPrivateKey - The private key of the service account.
+ * @param {Object} [params.client=null] - The JWT client to use to authenticate the API call.
+ * @param {string} [params.query=''] - The filter to apply to the results.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of group objects.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function listGroups({
-  userEmail,
-  projectId,
-  serviceAccountEmail,
-  serviceAccountPrivateKey,
-  client
-}) {
-  // Create a JWT client if 'client' is not specified
-  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
-
-  // Create the Admin Directory API client
+async function listGroups({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, client, query }) {
+  // Retrieve JWT client or create it if it doesn't exist
+  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
   const directory = google.admin({
     version: 'directory_v1',
     auth: jwtClient,
   })
+  const groups = [] // Container for all groups retrieved
+  let groupsResponse // Response from the API
 
-  // Request parameters
+  //create request object
   const requestObj = {
     customer: 'my_customer',
     maxResults: 200, //max allowed value
     orderBy: 'email',
   }
 
-  const groups = [] // Container for all groups retrieved
-  let groupsResponse // Response from the API
+  // Add query(filter) if it exists
+  if (query) {
+    requestObj.query = query
+  }
 
   // Fetch all groups
   do {
+    // Fetch groups
     groupsResponse = await directory.groups.list(requestObj)
 
-    // If there are no groups in the organization, groupsResponse.data does not have the 'groups' property (tested and confirmed)
-    // In that case, break this loop and return an empty array
+    //if there are no groups in the organization, return an empty array
     if (typeof groupsResponse.data.groups === 'undefined') break
 
+    // Append the fetched groups to the groups array
     groups.push(...groupsResponse.data.groups)
-  } while (requestObj.pageToken = groupsResponse.data.nextPageToken) // Continue fetching groups while there are more pages
+
+    //repeat until there are no more pages(i.e. no nextPageToken returned by google)
+  } while ((requestObj.pageToken = groupsResponse.data.nextPageToken)) // Continue fetching groups while there are more pages
 
   return groups // Return all fetched groups
 }
 
 /**
- * Retrieves the details of a specific group.
+ * Retrieves the details of a specific group in the organization.
  *
- * This function takes a group's email address and returns its details, such as its name, email address, and description.
+ * This function takes the email address of a user to impersonate, a project ID, a service account email address, a service account private key,
+ * and the email address of the group to retrieve its details.
  *
  * @param {string} userEmail - The email address of the user to impersonate.
  * @param {string} projectId - The project ID of the service account key.
  * @param {string} serviceAccountEmail - The email address of the service account.
  * @param {string} serviceAccountPrivateKey - The private key of the service account.
- * @param {string} groupEmail - The email address of the group.
- * @returns {Promise<Object>} - A promise that resolves to the group details.
+ * @param {string} groupEmail - The email address of the group to retrieve its details.
+ * @param {Object} [client=null] - The JWT client to use to authenticate the API call.
+ * @returns {Promise<Object>} - A promise that resolves to an object containing the group's details.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 async function getGroupByEmail({
@@ -74,34 +125,30 @@ async function getGroupByEmail({
   serviceAccountEmail,
   serviceAccountPrivateKey,
   groupEmail,
-  client
+  client,
 }) {
-  // Create a JWT client if 'client' is not specified
-  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
-
-  // Create the Admin Directory API client
-  const directory = google.admin({
-    version: 'directory_v1',
-    auth: jwtClient,
-  })
-
-  const group = await directory.groups.get({ groupKey: groupEmail }) // Get the group details
-
-  return group.data // Return the group details
+  // Retrieve JWT client or create it if it doesn't exist
+  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
+  const admin = google.admin({ version: 'directory_v1', auth: jwtClient }) // Create the Admin Directory API client
+  const response = await admin.groups.get({
+    groupKey: groupEmail,
+  }) // Get the group details
+  return response.data // Return the group details
 }
 
 /**
- * Retrieves the list of members of a group.
+ * Retrieves the list of members of a specific group in the organization.
  *
- * This function takes a group's email address, and optionally whether to include derived membership,
- * and returns its members.
+ * This function takes a user's email, project ID, service account credentials, and the email address of the group,
+ * to fetch the list of its members. It can include both direct and indirect members based on the `includeDerivedMembership` flag.
  *
  * @param {string} userEmail - The email address of the user to impersonate.
  * @param {string} projectId - The project ID of the service account key.
  * @param {string} serviceAccountEmail - The email address of the service account.
  * @param {string} serviceAccountPrivateKey - The private key of the service account.
- * @param {string} groupEmail - The email address of the group.
- * @param {boolean} [includeDerivedMembership=false] - Whether to include derived membership in the response.
+ * @param {string} groupEmail - The email address of the group to retrieve its members.
+ * @param {boolean} includeDerivedMembership - Flag to include indirect members if true.
+ * @param {Object} [client=null] - The JWT client to use to authenticate the API call.
  * @returns {Promise<Object[]>} - A promise that resolves to an array of group members.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
@@ -112,64 +159,63 @@ async function listGroupMembers({
   serviceAccountPrivateKey,
   groupEmail,
   includeDerivedMembership,
-  client
+  client,
 }) {
-  // Create a JWT client if 'client' is not specified
-  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+  // Retrieve JWT client or create it if it doesn't exist
+  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
 
-  // Create the Admin Directory API client
   const directory = google.admin({
     version: 'directory_v1',
     auth: jwtClient,
   })
 
-  // Request parameters
-  const requestObj = {
-    groupKey: groupEmail,
-    maxResults: 200, //max allowed value
-    includeDerivedMembership,
-  }
-  
   const members = [] // Container for members retrieved
   let membersResponse // Response from the API
 
-  // Fetch members
+  //create request object
+  const requestObj = {
+    groupKey: groupEmail,
+    maxResults: 200, //max allowed value
+    includeDerivedMembership: includeDerivedMembership,
+  }
+
   do {
+    // Fetch members
     membersResponse = await directory.members.list(requestObj)
 
-    // If there are no members in the group, memberResponse.data does not have the 'members' property (tested and confirmed)
-    // In that case, break this loop and return an empty array
+    //if there are no members in the group, return an empty array
     if (typeof membersResponse.data.members === 'undefined') break
 
+    // Append the fetched groups to the members array
     members.push(...membersResponse.data.members)
-  } while (requestObj.pageToken = membersResponse.data.nextPageToken) // Continue fetching members while there are more pages
+  } while ((requestObj.pageToken = membersResponse.data.nextPageToken)) // Continue fetching members while there are more pages
 
   return members // Return all fetched members
 }
 
 /**
- * Retrieves all activity logs related to a specific application or type of logs in the organization.
- * Uses the provided user email, project ID, service account email, and private key to authenticate.
+ * Retrieves the list of activity logs related to groups in the organization.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to list all activity logs related to groups in the organization.
  *
  * @param {string} userEmail - The email address of the user to impersonate.
- * @param {string} projectId - The project ID of the GCP project.
+ * @param {string} projectId - The project ID of the service account key.
  * @param {string} serviceAccountEmail - The email address of the service account.
  * @param {string} serviceAccountPrivateKey - The private key of the service account.
- * @param {string} [appName='groups_enterprise'] - The application name for filtering the logs('groups_enterprise','groups', 'admin').
- * @param {string} [typeOfLogs=''] - The type of logs to retrieve.
- * @param {Object} [client=null] - The JWT client to use for the API calls.
+ * @param {string} [appName='groups_enterprise'] - The type of Google service to get activity logs from.
+ * @param {string} [typeOfLog=''] - The type of activity logs to get.
+ * @param {Object} [client=null] - The JWT client to use to authenticate the API call.
  * @returns {Promise<Object[]>} - A promise that resolves to an array of activity logs.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function getAllGroupsLogs({
-  userEmail,
-  projectId,
-  serviceAccountEmail,
-  serviceAccountPrivateKey,
+async function getAllGroupsLogs(
+  { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey },
   appName = 'groups_enterprise',
   typeOfLogs,
   client
-}) {
+) {
   //'groups_enterprise' don't have 'join_via_mail' type of logs, but "groups" have
   //=> if appName is 'groups_enterprise' and typeOfLogs is 'join_via_mail', return nothing
   //https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups-enterprise
@@ -183,76 +229,74 @@ async function getAllGroupsLogs({
     return
   }
 
-  // Create a JWT client if 'client' is not specified
-  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+  const activityLogs = [] // Container for activity logs retrieved
+  let activityResponse // Response from the API
 
-  // Create the Admin Reports API client
-  const reports = google.admin({
+  // Retrieve JWT client or create it if it doesn't exist
+  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
+  const directory = google.admin({
     version: 'reports_v1',
     auth: jwtClient,
   })
 
-  // Request parameters
+  // Create the request object
   const requestObj = {
     customerId: 'my_customer',
     userKey: 'all',
     applicationName: appName,
-    maxResults: 1000, // max allowed value
-    eventName: typeOfLogs,
+    maxResults: 1000, //max allowed value
   }
 
-  //the same type of logs are called 'add_member' in 'enterprise_groups' and 'add_user' in 'groups'
-  //by the way, in both cases member or user means both users or groups, so 'add_user' is kinda misleading
-  //=> we swap 'add_member' to 'add_user' if type of app is "groups"
-  if (appName === 'groups' && typeOfLogs === 'add_member') {
-    requestObj.eventName = 'add_user'
-  }
-
-  //'add_member' is called 'ADD_GROUP_MEMBER' in 'admin'
-  //and it's ...drumroll.. drumroll... CASE SENSITIVE
-  if (appName === 'admin' && typeOfLogs === 'add_member') {
-    requestObj.eventName = 'ADD_GROUP_MEMBER'
-  }
-
-  const activityLogs = [] // Container for activity logs retrieved
-  let activityResponse // Response from the API
-
-  // Fetch activity logs
+  //Fetch activity logs
   do {
-    activityResponse = await reports.activities.list(requestObj)
-    if (activityResponse.data.items) {
+    // Add the type of logs if it is provided
+    if (typeOfLogs) {
+      requestObj.eventName = typeOfLogs
+    }
+
+    //the same type of logs are called 'add_member' in 'enterprise_groups' and 'add_user' in 'groups'
+    //by the way, in both cases member or user means both users or groups, so 'add_user' is kinda misleading
+    //=> we swap 'add_member' to 'add_user' if type of app is "groups"
+    if (appName === 'groups' && typeOfLogs === 'add_member') {
+      requestObj.eventName = 'add_user'
+    }
+
+    //'add_member' is called 'ADD_GROUP_MEMBER' in 'admin'
+    //and it's ...drumroll.. drumroll... CASE SENSITIVE
+    if (appName === 'admin' && typeOfLogs === 'add_member') {
+      requestObj.eventName = 'ADD_GROUP_MEMBER'
+    }
+
+    activityResponse = await directory.activities.list(requestObj) // Call the API
+
+    // Append the fetched groups to the activity logs array
+    if (typeof activityResponse.data.items !== 'undefined') {
       activityLogs.push(...activityResponse.data.items)
     }
-  } while (requestObj.pageToken = activityResponse.data.nextPageToken) // Continue fetching activity logs while there are more pages
+  } while ((requestObj.pageToken = activityResponse.data.nextPageToken)) // Continue fetching activity logs while there are more pages
 
   return activityLogs // Return all fetched activity logs
 }
 
 /**
- * Retrieves the list of all activities in the organization related to joining groups.
+ * Retrieves the list of all activities related to joining groups in the organization.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `client` from the request body.
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
  * to list all activities related to joining groups in the organization.
  *
  * @param {string} userEmail - The email address of the user to impersonate.
- * @param {string} projectId - The project ID of the GCP project.
+ * @param {string} projectId - The project ID of the service account key.
  * @param {string} serviceAccountEmail - The email address of the service account.
  * @param {string} serviceAccountPrivateKey - The private key of the service account.
- * @returns {Promise<Object[]>} - A promise that resolves to an array of group joined activity logs.
+ * @param {Object} [client=null] - The JWT client to use to authenticate the API call.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of all activities related to joining groups in the organization.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function getJoinGroupsLogs({
-  userEmail,
-  projectId,
-  serviceAccountEmail,
-  serviceAccountPrivateKey,
-  client
-}) {
-  // Create a JWT client if 'client' is not specified
-  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+async function getJoinGroupsLogs({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, client }) {
+  // Retrieve JWT client or create it if it doesn't exist
+  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
 
-  //Fetch activity logs
   const promises = []
   let allActivities = []
 
@@ -271,15 +315,17 @@ async function getJoinGroupsLogs({
     activityNames.forEach(async (activityName) => {
       const x = new Promise(async (resolve, reject) => {
         resolve(
-          getAllGroupsLogs({
-            userEmail,
-            projectId,
-            serviceAccountEmail,
-            serviceAccountPrivateKey,
+          getAllGroupsLogs(
+            {
+              userEmail,
+              projectId,
+              serviceAccountEmail,
+              serviceAccountPrivateKey,
+            },
             appName,
             activityName,
             jwtClient
-          })
+          )
         )
       })
       promises.push(x)

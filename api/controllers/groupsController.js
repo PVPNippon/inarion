@@ -21,7 +21,7 @@ exports.listAllGroups = async (req, res) => {
       userEmail,
       projectId,
       serviceAccountEmail,
-      serviceAccountPrivateKey
+      serviceAccountPrivateKey,
     })
 
     // Return the list of all organization's groups
@@ -51,7 +51,7 @@ exports.getGroup = async (req, res) => {
       projectId,
       serviceAccountEmail,
       serviceAccountPrivateKey,
-      groupEmail
+      groupEmail,
     })
 
     // Return the group's details
@@ -91,7 +91,7 @@ exports.listDirectMembers = async (req, res) => {
       serviceAccountEmail,
       serviceAccountPrivateKey,
       groupEmail,
-      includeDerivedMembership: false
+      includeDerivedMembership: false, //set derived membership to false
     }) // Get the list of direct members
 
     // Return the list of direct members of the group
@@ -127,7 +127,7 @@ exports.listAllMembers = async (req, res) => {
       serviceAccountEmail,
       serviceAccountPrivateKey,
       groupEmail,
-      includeDerivedMembership: true
+      includeDerivedMembership: true, //set derived membership to true
     }) // Get the list of direct members
 
     // Return the list of direct members of the group
@@ -164,7 +164,7 @@ exports.getGroupActivity = async (req, res) => {
       userEmail,
       projectId,
       serviceAccountEmail,
-      serviceAccountPrivateKey
+      serviceAccountPrivateKey,
     })
     // Return the list of group activity in customer organization
     res.status(200).json(response)
@@ -195,7 +195,7 @@ exports.getGroupJoinedActivity = async (req, res) => {
       userEmail,
       projectId,
       serviceAccountEmail,
-      serviceAccountPrivateKey
+      serviceAccountPrivateKey,
     })
     res.status(200).json(allActivities)
   } catch (error) {
@@ -218,46 +218,52 @@ exports.getGroupJoinedActivity = async (req, res) => {
  */
 exports.getNestedMembership = async (req, res) => {
   const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
-
-  //fetch array with nested membership and timestamps
-  const nestedTable = await getNestedTable(
-    userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
-    queryEmail
-  )
-
-  //if nestedTable is null, return 404
-  if (nestedTable === null) return res.status(404).json({ message: 'Group or user not found' })
-
-  //if nestedTable is empty, return 200 with empty array
-  if (nestedTable.length === 0) return res.status(200).json([])
-
-  //return nestedTable
-  if (!nestedTable) res.status(500).json({ message: 'Error fetching nested membership' })
-
-  //return nestedTable
-  res.status(200).json(nestedTable)
+  try {
+    const nestedTable = await getNestedTable({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey,
+      queryEmail,
+    })
+    //Return the data with group membership details
+    res.status(200).json(nestedTable)
+  } catch (error) {
+    console.error('Error fetching nested membership:', error)
+    res.status(500).json({ message: 'Error fetching nested membership' })
+  }
 }
 
+/**
+ * Retrieves a hierarchical representation of groups for a given email address.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `queryEmail` from the request body.
+ * It uses these values to fetch a hierarchy of groups that the specified email address belongs to, including nodes and edges.
+ *
+ * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `queryEmail` in the request body.
+ * @param {Object} res - The response object used to return the group hierarchy or an error message.
+ * @returns {Promise<void>} - Responds with the group hierarchy or an error message.
+ * @throws {Error} - Throws an error if there is an issue with the API call or if the hierarchy cannot be fetched.
+ */
 exports.getGroupHierarchy = async (req, res) => {
   const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
 
   //fetch array with nested membership and timestamps
-  const groupHierarchy = await getHierarchy(
+  const groupHierarchy = await getHierarchy({
     userEmail,
     projectId,
     serviceAccountEmail,
     serviceAccountPrivateKey,
-    queryEmail
-  )
+    queryEmail,
+  })
 
+  //if no group hierarchy, return 500
   if (!groupHierarchy) {
     res.status(500).json({ message: 'Error fetching hierarchy' })
     return
   }
 
+  //if hierarchy has only one node and no edges, return 200 with a message
   if (groupHierarchy.nodes.length === 1 && groupHierarchy.edges.length === 0) {
     res.status(200).json({
       message: 'No parent groups or members found. Please check if the email address is correct and try again.',
@@ -265,6 +271,7 @@ exports.getGroupHierarchy = async (req, res) => {
     return
   }
 
+  //otherwise, return groupHierarchy
   res.status(200).json(groupHierarchy)
 }
 
