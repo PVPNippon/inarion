@@ -274,3 +274,210 @@ exports.getGroupHierarchy = async (req, res) => {
   //otherwise, return groupHierarchy
   res.status(200).json(groupHierarchy)
 }
+
+/**
+ * Retrieves the list of lists of members of specified groups in exportable format.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to create a list of lists of members of the groups specified by `groups` in exportable format.
+ *
+ * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey` and `groups` in the request body.
+ * @param {Object} res - The response object used to return the list of lists of members of the specified groups in exportable format, or an error message.
+ * @returns {Promise<void>} - Responds with the list of lists of members of the specified groups in exportable format, or an error message.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+exports.listGroupsMembersInExportFormat = async (req, res) => {
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groups } = req.body
+
+  try {
+    const members = await groupsService.listMembersInExportFormat({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey,
+      groups
+    })
+
+    res.status(200).json(members)
+  } catch (error) {
+    console.error('Error creating member lists in CSV format:', error)
+    res.status(500).json({ message: 'Error creating member lists in CSV format' })
+  }
+}
+
+/**
+ * Updates group's 'whoCanLeaveGroup' setting.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to update the 'whoCanLeaveGroup' setting of the group
+ *
+ * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, `groupEmail` and `whoCanLeaveGroup` in the request body.
+ *                       `whoCanLeaveGroup` must be one of 'ALL_MEMBERS_CAN_LEAVE', 'ALL_MANAGERS_CAN_LEAVE' and 'NONE_CAN_LEAVE'.
+ * @param {Object} res - The response object used to return the response from the API, or an error message.
+ * @returns {Promise<void>} - Responds with the response of the API call, or an error message.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+exports.updateWhoCanLeaveGroup = async (req, res) => {
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail, whoCanLeaveGroup } = req.body
+
+  if (whoCanLeaveGroup !== 'ALL_MEMBERS_CAN_LEAVE' && whoCanLeaveGroup !== 'ALL_MANAGERS_CAN_LEAVE' && whoCanLeaveGroup !== 'NONE_CAN_LEAVE') {
+    return res.status(400).json({
+      message: 'The value of \'whoCanLeaveGroup\' must be one of \'ALL_MEMBERS_CAN_LEAVE\', \'ALL_MANAGERS_CAN_LEAVE\' and \'NONE_CAN_LEAVE\''
+    })
+  }
+
+  try {
+    const response = await groupsService.updateGroup({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey,
+      groupEmail,
+      resource: { whoCanLeaveGroup },
+    })
+
+    if (response.status === 200) {
+      res.status(200).json({ message: `Set the 'whoCanLeaveGroup' of ${groupEmail} to ${whoCanLeaveGroup}` })
+    } else {
+      res.status(500).json({ message: 'The request could not be handled for some reason' })
+      console.log(response)
+    }
+  } catch (error) {
+    console.log('Error updating the specified group\'s \'whoCanLeaveGroup\' setting:', error)
+    res.status(500).json({ message: 'Error updating the specified group\'s \'whoCanLeaveGroup\' setting' })
+  }
+}
+
+/**
+ * Delete multiple members from a group.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to delete multiple members from a group.
+ *
+ * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, `groupEmail` and `memberEmails` in the request body.
+ *                       `memberEmails` is an array of the email addresses of the target members who are to be deleted from the target group specified by `groupEmail`.
+ * @param {Object} res - The response object which has 3 properties, `deletedMembers`, `undeletedMembers` and `message`.
+ *                       `deletedMembers` is an array which has the emails of the members who were successfully deleted from the target group with status code (204).
+ *                       `undeletedMembers` is an array which has the emails of the members who were not deleted from the target group for some reason.
+ *                       The error codes and messages are also included in the array.
+ *                       `message` is a brief comment on the result of the entire operation.
+ * @returns {Promise<void>} - Responds with the response of the API call, or an error message.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+exports.deleteMembers = async (req, res) => {
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail, memberEmails } = req.body
+
+  // Returns Bad Request if the target group is not specified.
+  if (!groupEmail) {
+    return res.status(400).json({ message: 'groupEmail is not specified' })
+  }
+
+  // Returns Bad Request if members to be deleted are not specified.
+  if (!memberEmails || memberEmails.length === 0) {
+    return res.status(400).json({ message: 'memberEmails are not specified' })
+  }
+
+  // Eliminate duplicate members if any.
+  const uniqueMembers = [...new Set(memberEmails)]
+
+  try {
+    const response = await groupsService.deleteMembersWithRateLimit({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey,
+      groupEmail,
+      memberEmails: uniqueMembers
+    })
+
+    if (response.undeletedMembers.length === 0) { // All requested members were deleted from the group successfully.
+      response.message = `Deleted All requested member(s) from ${groupEmail}`
+      res.status(200).json(response)
+    
+    } else if (response.deletedMembers.length > 0) { // Some requested members were deleted from the group successfully, but some were not.
+      response.message = `${response.undeletedMembers.length} requested member(s) could not be deleted from ${groupEmail}`
+      res.status(207).json(response) // Ref for the status code: https://xexeq.jp/blogs/media/it-glossary1206
+    
+    } else { // No requested members were deleted from the group.
+      response.message = `No members were deleted from ${groupEmail}`
+
+      // If one of the status codes are in 500, the status code of the response should be 500 (Internal Server Error).
+      // Otherwise it should be 400 (Bad Request).
+      const statusCode = response.undeletedMembers.some(({statusCode}) => statusCode >= 500 && statusCode < 600) ? 500 : 400
+      
+      res.status(statusCode).json(response)
+    }
+  } catch (error) {
+    console.log('Error deleting members:', error)
+    res.status(500).json({ message: `Error deleting members from ${groupEmail}` })
+  }
+}
+
+/**
+ * Delete a member from multiple groups.
+ *
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to delete a member from multiple groups.
+ *
+ * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, `groupEmails` and `memberEmail` in the request body.
+ *                       `memberEmail` is the email address of the target member who is to be deleted from the target groups specified by `groupEmails`.
+ * @param {Object} res - The response object which has 3 properties, `succeededGroups`, `failedGroups` and `message`.
+ *                       `succeededGroups` is an array of the email addresses of the groups from which the target member was successfully deleted with status code (204).
+ *                       `failedGroups` is an array of the email addresses of the groups from which the target member failed to be deleted for some reason.
+ *                       The error codes and messages are also included in the array.
+ *                       `message` is a brief comment on the result of the entire operation.
+ * @returns {Promise<void>} - Responds with the response of the API call, or an error message.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+exports.deleteMemberFromGroups = async (req, res) => {
+  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmails, memberEmail } = req.body
+
+  // Returns Bad Request if the target groups are not specified.
+  if (!groupEmails || groupEmails.length === 0) {
+    return res.status(400).json({ message: 'groupEmails are not specified' })
+  }
+
+  // Returns Bad Request if a member to be deleted is not specified.
+  if (!memberEmail) {
+    return res.status(400).json({ message: 'memberEmail is not specified' })
+  }
+
+  // Eliminate duplicate groups if any.
+  const uniqueGroups = [...new Set(groupEmails)]
+
+  try {
+    const response = await groupsService.deleteMemberFromGroupsWithRateLimit({
+      userEmail,
+      projectId,
+      serviceAccountEmail,
+      serviceAccountPrivateKey,
+      groupEmails: uniqueGroups,
+      memberEmail
+    })
+
+    if (response.failedGroups.length === 0) { // The member was successfully deleted from all requested groups.
+      response.message = `Deleted ${memberEmail} from all requested group(s)`
+      res.status(200).json(response)
+    
+    } else if (response.succeededGroups.length > 0) { // The member was deleted from some requested groups, but not from all requested groups.
+      response.message = `${memberEmail} could not be deleted from ${response.failedGroups.length} requested group(s)`
+      res.status(207).json(response) // Ref for the status code: https://xexeq.jp/blogs/media/it-glossary1206
+    
+    } else { // The member was not deleted from all requested groups.
+      response.message = `${memberEmail} was not deleted from all requested group(s)`
+
+      // If one of the status codes are in 500, the status code of the response should be 500 (Internal Server Error).
+      // Otherwise it should be 400 (Bad Request).
+      const statusCode = response.failedGroups.some(({statusCode}) => statusCode >= 500 && statusCode < 600) ? 500 : 400
+      
+      res.status(statusCode).json(response)
+    }
+  } catch (error) {
+    console.log('Error deleting member:', error)
+    res.status(500).json({ message: `Error deleting ${memberEmail} from the requested group(s)` })
+  }
+}

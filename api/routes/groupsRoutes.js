@@ -26,4 +26,16 @@ router.post('/get-nested-membership', groupsController.getNestedMembership)
 //route to get group hierarchy relative to a group(or potentially in the future a user)
 router.post('/get-hierarchy', groupsController.getGroupHierarchy)
 
+//route to list members of groups in CSV format
+router.post('/bulk-export', groupsController.listGroupsMembersInExportFormat)
+
+//route to update the 'whoCanLeaveGroup' setting of the specified group
+router.put('/update-whocanleave', groupsController.updateWhoCanLeaveGroup)
+
+//route to delete multiple members from a group
+router.delete('/delete-members', groupsController.deleteMembers)
+
+//route to delete a member from multiple groups
+router.delete('/delete-member-from-groups', groupsController.deleteMemberFromGroups)
+
 module.exports = router
