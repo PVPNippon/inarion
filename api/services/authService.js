@@ -16,14 +16,18 @@ const ServiceAccountKeys = require('../models/ServiceAccountKeys')
  * @returns {Promise<Object>} - A promise that resolves to the decoded and validated credentials object.
  * @throws Will throw an error if the service account key is not found, the credentials are invalid, or the JSON parsing fails.
  */
-async function getCredentials(serviceAccountEmail, serviceAccountPrivateKey) {
+async function getCredentials(userEmail, serviceAccountEmail, serviceAccountPrivateKey) {
+  //I'm using userEmail instead of serviceAccountEmail here,
+  //because we are planning to stop passine serviceAccountEmail from front-end too
+  //probably, it will be better to create the key with domain only, not the full email address
+  const redisKey = userEmail + '_SA_private_key'
   //prepare service account key placeholder
   let serviceAccountKeyInDB
 
   // Fetch the service account key from the database using the provided email
   if (!serviceAccountPrivateKey) {
     //First try fetching the service account key from redis
-    serviceAccountKeyInDB = (await cacheService.getValueFromRedis('pvp-test-domain2.com_SA_private_key')) || null
+    serviceAccountKeyInDB = (await cacheService.getValueFromRedis(redisKey)) || null
 
     // If the service account key is not found in Redis, fetch it from the database
     if (!serviceAccountKeyInDB || !serviceAccountKeyInDB.privateKeyData) {
@@ -35,7 +39,7 @@ async function getCredentials(serviceAccountEmail, serviceAccountPrivateKey) {
       }
 
       // Store the service account key in Redis
-      await cacheService.storeDataInRedis('pvp-test-domain2.com_SA_private_key', {
+      await cacheService.storeDataInRedis(redisKey, {
         privateKeyData: serviceAccountKeyInDB.privateKeyData,
       })
     }
@@ -122,7 +126,7 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
     default:
       service = google.admin({ version: 'directory_v1', auth: authClient })
   }
-
+  console.log(service)
   return service
 }
 

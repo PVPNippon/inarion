@@ -63,15 +63,11 @@ async function getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmai
  */
 async function listGroups({ userEmail, serviceAccountEmail, serviceAccountPrivateKey, client, query }) {
   // Retrieve JWT client or create it if it doesn't exist
-  const credentials = await getCredentials(serviceAccountEmail)
+  const credentials = await getCredentials(userEmail, serviceAccountEmail)
 
   const jwtClient = await initializeGoogleAuth(credentials)
-  const authClient = await jwtClient.getClient()
-  authClient.subject = userEmail
-  const directory = google.admin({
-    version: 'directory_v1',
-    auth: authClient,
-  })
+
+  const directory = await impersonateClient(userEmail, jwtClient, 'admin')
 
   const groups = [] // Container for all groups retrieved
   let groupsResponse // Response from the API
@@ -136,7 +132,7 @@ async function getGroupByEmail({
 }) {
   // Retrieve JWT client or create it if it's not specified
   const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
-
+  console.log(jwtClient)
   // Create the Admin Directory API client
   const admin = google.admin({
     version: 'directory_v1',
