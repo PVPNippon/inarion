@@ -1,5 +1,5 @@
 const { google } = require('googleapis')
-
+const { getCredentials, initializeGoogleAuth, impersonateClient } = require('./authService')
 /**
  * Decodes the base64-encoded privateKeyData and parses it as JSON.
  *
@@ -46,48 +46,42 @@ async function getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmai
 /**
  * Retrieves the list of all groups in the organization.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the argument object `params`.
+ * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `query` from the argument object `params`.
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
  * to list all groups in the organization.
+ * If a `query` parameter is provided, it will be used as a filter. See the Google Admin Directory API documentation for more information.
  *
- * The function also takes an optional `client` parameter, which is a JWT client that can be used to authenticate the API call.
- * If `client` is provided, it will be used instead of creating a new JWT client.
- *
- * The function also takes an optional `query` parameter, which is a filter that can be used to narrow down the results.
- * For example, if `query` is set to `'email:example.com'`, only groups with the domain `example.com` will be returned.
- *
- * @param {Object} params - The parameters needed to fetch the groups.
+ * @param {Object} params - The parameters needed to fetch the list of groups.
  * @param {string} params.userEmail - The email address of the user to impersonate.
- * @param {string} params.projectId - The project ID of the service account key.
- * @param {string} params.serviceAccountEmail - The email address of the service account.
- * @param {string} params.serviceAccountPrivateKey - The private key of the service account.
- * @param {Object} [params.client=null] - The JWT client to use to authenticate the API call.
- * @param {string} [params.query=''] - The filter to apply to the results.
- * @returns {Promise<Object[]>} - A promise that resolves to an array of group objects.
+ * @param {string} params.projectId - The GCP project ID of the service account key.//will be removed in the future
+ * @param {string} params.serviceAccountEmail - The email address of the service account.//will be removed in the future
+ * @param {string} params.serviceAccountPrivateKey - The private key of the service account.//will be removed in the future
+ * @param {string} [params.query] - The filter to apply to the groups list.
+ * @param {Object} [params.client=null] - The JWT client to use to authenticate the API call.//will be removed in the future
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of groups.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function listGroups({
-  userEmail,
-  projectId,
-  serviceAccountEmail,
-  serviceAccountPrivateKey,
-  client,
-  query
-}) {
-  // Retrieve JWT client or create it if it's not specified
-  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
+async function listGroups({ userEmail, serviceAccountEmail, serviceAccountPrivateKey, client, query }) {
+  // Retrieve JWT client or create it if it doesn't exist
+  const credentials = await getCredentials(serviceAccountEmail)
 
-  // Create the Admin Directory API client
+  const jwtClient = await initializeGoogleAuth(credentials)
+  const authClient = await jwtClient.getClient()
+  authClient.subject = userEmail
   const directory = google.admin({
     version: 'directory_v1',
-    auth: jwtClient,
+    auth: authClient,
   })
 
-  // Create the request object
+  const groups = [] // Container for all groups retrieved
+  let groupsResponse // Response from the API
+
+  // //create request object
   const requestObj = {
     customer: 'my_customer',
     maxResults: 200, //max allowed value
     orderBy: 'email',
+    domain: 'pvp-test-domain2.com',
   }
 
   // Add query(filter) if it exists
@@ -95,21 +89,19 @@ async function listGroups({
     requestObj.query = query
   }
 
-  const groups = [] // Container for all groups retrieved
-  let groupsResponse // Response from the API
-
   // Fetch all groups
   do {
     // Fetch groups
     groupsResponse = await directory.groups.list(requestObj)
 
-    // If there are no groups in the organization, return an empty array
+    //if there are no groups in the organization, return an empty array
     if (typeof groupsResponse.data.groups === 'undefined') break
 
     // Append the fetched groups to the groups array
     groups.push(...groupsResponse.data.groups)
 
-  } while ((requestObj.pageToken = groupsResponse.data.nextPageToken)) // Continue fetching users while there are more pages
+    //repeat until there are no more pages(i.e. no nextPageToken returned by google)
+  } while ((requestObj.pageToken = groupsResponse.data.nextPageToken)) // Continue fetching groups while there are more pages
 
   return groups // Return all fetched groups
 }
@@ -120,10 +112,10 @@ async function listGroups({
  * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the argument object `params`.
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
  * to retrieve the details of a group specified by `groupEmail`.
- * 
+ *
  * The function also takes an optional `client` parameter, which is a JWT client that can be used to authenticate the API call.
  * If `client` is provided, it will be used instead of creating a new JWT client.
- * 
+ *
  * @param {Object} params - The parameters needed to fetch the details of the group.
  * @param {string} params.userEmail - The email address of the user to impersonate.
  * @param {string} params.projectId - The project ID of the service account key.
@@ -166,10 +158,10 @@ async function getGroupByEmail({
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
  * to fetch the list of members of a group specified by `groupEmail` in the request body.
  * It can include both direct and indirect members based on the `includeDerivedMembership` flag.
- * 
+ *
  * The function also takes an optional `client` parameter, which is a JWT client that can be used to authenticate the API call.
  * If `client` is provided, it will be used instead of creating a new JWT client.
- * 
+ *
  * @param {Object} params - The parameters needed to fetch the list of members of the group.
  * @param {string} params.userEmail - The email address of the user to impersonate.
  * @param {string} params.projectId - The project ID of the service account key.
@@ -218,7 +210,6 @@ async function listGroupMembers({
 
     // Append the fetched groups to the members array
     members.push(...membersResponse.data.members)
-
   } while ((requestObj.pageToken = membersResponse.data.nextPageToken)) // Continue fetching users while there are more pages
 
   return members // Return all fetched members
@@ -305,7 +296,6 @@ async function getAllGroupsLogs(
     if (typeof activityResponse.data.items !== 'undefined') {
       activityLogs.push(...activityResponse.data.items)
     }
-
   } while ((requestObj.pageToken = activityResponse.data.nextPageToken)) // Continue fetching activity logs while there are more pages
 
   return activityLogs // Return all fetched activity logs
@@ -327,13 +317,7 @@ async function getAllGroupsLogs(
  * @returns {Promise<Object[]>} - A promise that resolves to an array of all activities related to joining groups in the organization.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function getJoinGroupsLogs({
-  userEmail,
-  projectId,
-  serviceAccountEmail,
-  serviceAccountPrivateKey,
-  client
-}) {
+async function getJoinGroupsLogs({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, client }) {
   // Retrieve JWT client or create it if it's not specified
   const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
 
@@ -434,7 +418,7 @@ async function listMembersInExportFormat({
   serviceAccountEmail,
   serviceAccountPrivateKey,
   groups,
-  client
+  client,
 }) {
   // Retrieve JWT client or create it if it's not specified
   const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
@@ -449,45 +433,52 @@ async function listMembersInExportFormat({
 
   const [allGroupsInOrganization, allUsersInOrganization] = await Promise.all([
     listGroups({ client: jwtClient }),
-    listUsers({ client: jwtClient })
+    listUsers({ client: jwtClient }),
   ])
 
   // Building groupNameMap
-  allGroupsInOrganization.forEach(group => {
+  allGroupsInOrganization.forEach((group) => {
     // Add (key, value) = (group's primary email address, group name) to the map
     groupNameMap.set(group.email, group.name)
 
     // Add (key, value) = (group's alias, group name) to the map
-    group.aliases?.forEach(alias => groupNameMap.set(alias, group.name))
+    group.aliases?.forEach((alias) => groupNameMap.set(alias, group.name))
 
     // Add (key, value) = (group's non-editable alias (e.g. test domain aliases), group name) to the map
-    group.nonEditableAliases?.forEach(nonEditableAlias => groupNameMap.set(nonEditableAlias, group.name))
+    group.nonEditableAliases?.forEach((nonEditableAlias) => groupNameMap.set(nonEditableAlias, group.name))
   })
 
   // Building userNameMap
   // Add (key, value) = (user's email address (either primary or alias), user name) to the map
-  allUsersInOrganization.forEach(user => {
-    user.emails.forEach(({address}) => userNameMap.set(address, user.name.fullName))
+  allUsersInOrganization.forEach((user) => {
+    user.emails.forEach(({ address }) => userNameMap.set(address, user.name.fullName))
   })
 
-
   // Each element of this array is a list of all direct members of each group specified in the 'groups' parameter
-  const directMembersArray = await Promise.all(groups.map(({groupEmail}) => listGroupMembers({
-    groupEmail,
-    includeDerivedMembership: false,
-    client: jwtClient
-  })))
+  const directMembersArray = await Promise.all(
+    groups.map(({ groupEmail }) =>
+      listGroupMembers({
+        groupEmail,
+        includeDerivedMembership: false,
+        client: jwtClient,
+      })
+    )
+  )
 
   // Each element of this array is either:
   // (A) a list of all direct and indirect members of a group, if 'includeDerivedMembership' for the group is true
   // (B) null, if 'includeDerivedMembership' for the group is false
-  const allMembersArray = await Promise.all(groups.map(({groupEmail, includeDerivedMembership}) => includeDerivedMembership ?
-    listGroupMembers({
-      groupEmail,
-      includeDerivedMembership,
-      client: jwtClient
-    }) : null
-  ))
+  const allMembersArray = await Promise.all(
+    groups.map(({ groupEmail, includeDerivedMembership }) =>
+      includeDerivedMembership
+        ? listGroupMembers({
+            groupEmail,
+            includeDerivedMembership,
+            client: jwtClient,
+          })
+        : null
+    )
+  )
 
   // Return an array each element of which is a list of members of each group specified in the 'groups' parameter,
   // and each entry of the list, which represents a member, is an object in one of the following 4 possible formats:
@@ -496,66 +487,65 @@ async function listMembersInExportFormat({
   // {
   //    group: <group's email>
   //    email: <member's email>
-	//    name: <member's name>
-	//    relationType: <'DIRECT' or 'INDIRECT'>
-	//    type: <'USER' or 'GROUP'>
+  //    name: <member's name>
+  //    relationType: <'DIRECT' or 'INDIRECT'>
+  //    type: <'USER' or 'GROUP'>
   // }
   //
   // (1-b) 'includeDerivedMembership' is true, and 'includeAllColumns' is false:
   // {
   //    email: <member's email>
-	//    name: <member's name>
-	//    relationType: <'DIRECT' or 'INDIRECT'>
-	//    type: <'USER' or 'GROUP'>
+  //    name: <member's name>
+  //    relationType: <'DIRECT' or 'INDIRECT'>
+  //    type: <'USER' or 'GROUP'>
   // }
   //
   // (2-a) 'includeDerivedMembership' is false, and 'includeAllColumns' is true:
   // {
   //    group: <group's email>
   //    email: <member's email>
-	//    name: <member's name>
-	//    role: <'MEMBER', 'MANAGER' or 'OWNER'>
-	//    type: <'USER' or 'GROUP'>
+  //    name: <member's name>
+  //    role: <'MEMBER', 'MANAGER' or 'OWNER'>
+  //    type: <'USER' or 'GROUP'>
   // }
   //
   // (2-b) Both 'includeDerivedMembership' and 'includeAllColumns' are false:
   // {
   //    email: <member's email>
-	//    name: <member's name>
-	//    role: <'MEMBER', 'MANAGER' or 'OWNER'>
-	//    type: <'USER' or 'GROUP'>
+  //    name: <member's name>
+  //    role: <'MEMBER', 'MANAGER' or 'OWNER'>
+  //    type: <'USER' or 'GROUP'>
   // }
   //
-  return groups.map((group, index) =>  {
-
-    const members = group.includeDerivedMembership ?
-      // If 'includeDerivedMembership' of the group is true, the list contains both direct and indirect members
-      // Each entry of the list has both 'email' and 'type' properties
-      // See (1-a) and (1-b) above
-      allMembersArray[index].map(member => ({
-        email: member.email,
-        type: member.type
-      })) :
-      // If 'includeDerivedMembership' of the group is false, the list contains only direct members
-      // Each entry of the list has 'email', 'role' and 'type' properties
-      // See (2-a) and (2-b) above
-      directMembersArray[index].map(member => ({
-        email: member.email,
-        role: member.role,
-        type: member.type
-      }))
+  return groups.map((group, index) => {
+    const members = group.includeDerivedMembership
+      ? // If 'includeDerivedMembership' of the group is true, the list contains both direct and indirect members
+        // Each entry of the list has both 'email' and 'type' properties
+        // See (1-a) and (1-b) above
+        allMembersArray[index].map((member) => ({
+          email: member.email,
+          type: member.type,
+        }))
+      : // If 'includeDerivedMembership' of the group is false, the list contains only direct members
+        // Each entry of the list has 'email', 'role' and 'type' properties
+        // See (2-a) and (2-b) above
+        directMembersArray[index].map((member) => ({
+          email: member.email,
+          role: member.role,
+          type: member.type,
+        }))
 
     // Each entry of the list contains 'name' property
-    members.forEach(member => {
+    members.forEach((member) => {
       switch (member.type) {
         case 'GROUP':
           member.name = groupNameMap.get(member.email) ?? 'Member' // Let us call external groups just 'Member'
           break
-        
+
         case 'USER':
           member.name = userNameMap.get(member.email) ?? 'Member' // Let us call external users just 'Member'
           break
-        
+
         case 'CUSTOMER': // Means 'All members in the organization' (https://developers.google.com/admin-sdk/directory/reference/rest/v1/members#Member, https://support.google.com/a/answer/9689259)
           member.name = 'All users in the organization'
           member.email = '' // 'All members in the organization' does not have the 'email' property
@@ -567,21 +557,21 @@ async function listMembersInExportFormat({
     // If 'includeDerivedMembership' of the group is true, each entry of list has the 'relationType' property
     // See (1-a) and (1-b) above
     if (group.includeDerivedMembership) {
-      const directMembersSet = new Set(directMembersArray[index].map(member => member.email)) // Set of all direct members of the group
-      members.forEach(member => member.relationType = directMembersSet.has(member.email) ? 'DIRECT' : 'INDIRECT')
+      const directMembersSet = new Set(directMembersArray[index].map((member) => member.email)) // Set of all direct members of the group
+      members.forEach((member) => (member.relationType = directMembersSet.has(member.email) ? 'DIRECT' : 'INDIRECT'))
     }
 
     // If 'includeAllColumns' of the group is true, each entry of the list has the 'group' property
     // See (1-a) and (2-a) above
     if (group.includeAllColumns) {
-      members.forEach(member => member.group = group.groupEmail)
+      members.forEach((member) => (member.group = group.groupEmail))
     }
 
     return {
       group: group.groupEmail,
       includeDerivedMembership: group.includeDerivedMembership ? true : false,
       includeAllColumns: group.includeAllColumns ? true : false,
-      members
+      members,
     }
   })
 }
@@ -602,13 +592,7 @@ async function listMembersInExportFormat({
  * @returns {Promise<Object[]>} - A promise that resolves to an array of users.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function listUsers({
-  userEmail,
-  projectId,
-  serviceAccountEmail,
-  serviceAccountPrivateKey,
-  client
-}) {
+async function listUsers({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, client }) {
   // Retrieve JWT client or create it if it's not specified
   const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
 
@@ -662,10 +646,10 @@ async function updateGroup({
   serviceAccountPrivateKey,
   groupEmail,
   resource,
-  client
+  client,
 }) {
   // Retrieve JWT client or create it if it's not specified
-  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
 
   // Create the Groups Settings API client
   const groupsSettings = google.groupssettings({
@@ -675,7 +659,7 @@ async function updateGroup({
 
   const response = await groupsSettings.groups.update({
     groupUniqueId: groupEmail,
-    resource
+    resource,
   })
 
   return response
@@ -687,7 +671,7 @@ async function updateGroup({
  * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the argument object `params`.
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
  * to delete a member from a group.
- * 
+ *
  * The target group has to belong to the customer's organization, while the target member (either a user or a group) does not.
  * The role of the target member (OWNER, MANAGER or MEMBER) does not matter.
  * The 'whoCanLeaveGroup' setting of the target group does not matter.
@@ -710,10 +694,10 @@ async function deleteMember({
   serviceAccountPrivateKey,
   groupEmail,
   memberEmail,
-  client
+  client,
 }) {
   // Retrieve JWT client or create it if it's not specified
-  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
 
   // Create the Admin Directory API client
   const directory = google.admin({
@@ -744,9 +728,9 @@ async function deleteMember({
   // - Other unknown value (maybe 500)
   const response = await directory.members.delete({
     groupKey: groupEmail,
-    memberKey: memberEmail
+    memberKey: memberEmail,
   })
-  
+
   return response
 }
 
@@ -775,10 +759,10 @@ async function deleteMembers({
   serviceAccountPrivateKey,
   groupEmail,
   memberEmails,
-  client
+  client,
 }) {
   // Retrieve JWT client or create it if it's not specified
-  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
 
   const deletedMembers = [] // Container for deleted members
   const undeletedMembers = [] // Container for not deleted members
@@ -788,26 +772,30 @@ async function deleteMembers({
   // The problem of using either Promise.all() or Promise.allSettled() is there is possibility that some API calls may succeed and some API calls may fail.
   // In other words, some members in the 'memberEmails' array may be deleted while some members may not.
   // My choice is using Promise.allSettled() to record which members were successfully deleted and which members were not, and returning the record to the caller.
-  const responseArray = await Promise.allSettled(memberEmails.map(memberEmail => deleteMember({
-    groupEmail,
-    memberEmail,
-    client: jwtClient
-  })))
-  
+  const responseArray = await Promise.allSettled(
+    memberEmails.map((memberEmail) =>
+      deleteMember({
+        groupEmail,
+        memberEmail,
+        client: jwtClient,
+      })
+    )
+  )
+
   memberEmails.forEach((memberEmail, index) => {
     // If the deletion of a member succeeded, put the member email and statusCode (= 204) to the deletedMembers array.
     if (responseArray[index].status === 'fulfilled') {
       deletedMembers.push({
         email: memberEmail,
-        statusCode: responseArray[index].value.status
+        statusCode: responseArray[index].value.status,
       })
-    
-    // If the deletion of a member failed, put the member email, statusCode and the error message to the undeletedMembers array.
+
+      // If the deletion of a member failed, put the member email, statusCode and the error message to the undeletedMembers array.
     } else {
       undeletedMembers.push({
         email: memberEmail,
         statusCode: responseArray[index].reason.status,
-        errorMessage: responseArray[index].reason.message
+        errorMessage: responseArray[index].reason.message,
       })
     }
   })
@@ -821,7 +809,7 @@ async function deleteMembers({
  * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the argument object `params`.
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
  * to delete multiple members from a group.
- * 
+ *
  * This function is just a wrapper of deleteMembers().
  * This function restricts concurrent Google API calls to a certain number.
  *
@@ -843,10 +831,10 @@ async function deleteMembersWithRateLimit({
   serviceAccountPrivateKey,
   groupEmail,
   memberEmails,
-  client
+  client,
 }) {
   // Retrieve JWT client or create it if it's not specified
-  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
 
   // Ref: https://developers.google.com/admin-sdk/directory/v1/limits
   // According to the document, "The default value" of userRateLimitExceeded "set in the Google Cloud console is 2,400 queries per minute per user per Google Cloud project".
@@ -869,7 +857,7 @@ async function deleteMembersWithRateLimit({
     const response = await deleteMembers({
       groupEmail,
       memberEmails: memberEmails.slice(startIndex, endIndex),
-      client: jwtClient
+      client: jwtClient,
     })
 
     deletedMembers.push(...response.deletedMembers)
@@ -882,7 +870,7 @@ async function deleteMembersWithRateLimit({
     const response = await deleteMembers({
       groupEmail,
       memberEmails: memberEmails.slice(startIndex),
-      client: jwtClient
+      client: jwtClient,
     })
 
     deletedMembers.push(...response.deletedMembers)
@@ -917,34 +905,38 @@ async function deleteMemberFromGroups({
   serviceAccountPrivateKey,
   groupEmails,
   memberEmail,
-  client
+  client,
 }) {
   // Retrieve JWT client or create it if it's not specified
-  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
 
   const succeededGroups = [] // Container for groups which the member was successfully deleted from
   const failedGroups = [] // Container for groups which the member failed to be deleted from
 
-  const responseArray = await Promise.allSettled(groupEmails.map(groupEmail => deleteMember({
-    groupEmail,
-    memberEmail,
-    client: jwtClient
-  })))
+  const responseArray = await Promise.allSettled(
+    groupEmails.map((groupEmail) =>
+      deleteMember({
+        groupEmail,
+        memberEmail,
+        client: jwtClient,
+      })
+    )
+  )
 
   groupEmails.forEach((groupEmail, index) => {
     // If the deletion succeeded, put the group email and statusCode (= 204) to the succeededGroups array.
     if (responseArray[index].status === 'fulfilled') {
       succeededGroups.push({
         email: groupEmail,
-        statusCode: responseArray[index].value.status
+        statusCode: responseArray[index].value.status,
       })
-    
-    // If the deletion failed, put the group email, statusCode and the error message to the failedGroups array.
+
+      // If the deletion failed, put the group email, statusCode and the error message to the failedGroups array.
     } else {
       failedGroups.push({
         email: groupEmail,
         statusCode: responseArray[index].reason.status,
-        errorMessage: responseArray[index].reason.message
+        errorMessage: responseArray[index].reason.message,
       })
     }
   })
@@ -958,7 +950,7 @@ async function deleteMemberFromGroups({
  * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the argument object `params`.
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
  * to delete a member from multiple groups.
- * 
+ *
  * This function is just a wrapper of deleteMemberFromGroups().
  * This function restricts concurrent Google API calls to a certain number.
  *
@@ -980,10 +972,10 @@ async function deleteMemberFromGroupsWithRateLimit({
   serviceAccountPrivateKey,
   groupEmails,
   memberEmail,
-  client
+  client,
 }) {
   // Retrieve JWT client or create it if it's not specified
-  const jwtClient = client ?? await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail)
+  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
 
   // Ref: https://developers.google.com/admin-sdk/directory/v1/limits
   // According to the document, "The default value" of userRateLimitExceeded "set in the Google Cloud console is 2,400 queries per minute per user per Google Cloud project".
@@ -1006,7 +998,7 @@ async function deleteMemberFromGroupsWithRateLimit({
     const response = await deleteMemberFromGroups({
       groupEmails: groupEmails.slice(startIndex, endIndex),
       memberEmail,
-      client: jwtClient
+      client: jwtClient,
     })
 
     succeededGroups.push(...response.succeededGroups)
@@ -1019,7 +1011,7 @@ async function deleteMemberFromGroupsWithRateLimit({
     const response = await deleteMemberFromGroups({
       groupEmails: groupEmails.slice(startIndex),
       memberEmail,
-      client: jwtClient
+      client: jwtClient,
     })
 
     succeededGroups.push(...response.succeededGroups)
@@ -1038,5 +1030,5 @@ module.exports = {
   listMembersInExportFormat,
   updateGroup,
   deleteMembersWithRateLimit,
-  deleteMemberFromGroupsWithRateLimit
+  deleteMemberFromGroupsWithRateLimit,
 }

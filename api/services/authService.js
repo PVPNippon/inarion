@@ -1,33 +1,50 @@
 const { google } = require('googleapis')
+const cacheService = require('../controllers/cacheController')
 const ServiceAccountKeys = require('../models/ServiceAccountKeys')
 
 /**
- * Retrieves and decodes service account credentials from the database/redis.(it will)
+ * Retrieves and decodes service account credentials from the database.
  *
  * This function fetches the service account credentials using the provided email, decodes the base64-encoded privateKeyData,
  * and parses it to extract the credentials in JSON format.
  *
+ * If the service account key is not found in the redis, it is fetched from DB and stored in redis.
+ * If the service account key is still not found, an error is thrown.
+ *
  * @param {string} serviceAccountEmail - The email address associated with the service account.
+ * @param {string} [serviceAccountPrivateKey] - The private key of the service account. If not provided, it is fetched from the database.
  * @returns {Promise<Object>} - A promise that resolves to the decoded and validated credentials object.
  * @throws Will throw an error if the service account key is not found, the credentials are invalid, or the JSON parsing fails.
  */
 async function getCredentials(serviceAccountEmail, serviceAccountPrivateKey) {
-  //TODO stop passing serviceAccountEmail and serviceAccountPrivateKey from Frontend
-  //Insted, store serviceAccountEmail and serviceAccountPrivateKey in redis (on login?)
-  //if not found in redis, fetch from DB and store in redis
-  let serviceAccountKeyInDB = ''
+  //prepare service account key placeholder
+  let serviceAccountKeyInDB
+
+  // Fetch the service account key from the database using the provided email
   if (!serviceAccountPrivateKey) {
-    // Fetch the service account key from the database using the provided email.
-    //TODO this should be rewritten to get serviceAccountPrivateKey from redis:
-    serviceAccountKeyInDB = await ServiceAccountKeys.findOne({ where: { serviceAccountEmail: serviceAccountEmail } })
-    // If the service account key is not found, throw an error to indicate the issue.
-    if (!serviceAccountKeyInDB) {
-      throw new Error(`Service account key not found for ${serviceAccountEmail}`)
+    //First try fetching the service account key from redis
+    serviceAccountKeyInDB = (await cacheService.getValueFromRedis('pvp-test-domain2.com_SA_private_key')) || null
+
+    // If the service account key is not found in Redis, fetch it from the database
+    if (!serviceAccountKeyInDB || !serviceAccountKeyInDB.privateKeyData) {
+      serviceAccountKeyInDB = await ServiceAccountKeys.findOne({ where: { serviceAccountEmail: serviceAccountEmail } })
+
+      // If the service account key is still not found, throw an error
+      if (!serviceAccountKeyInDB) {
+        throw new Error(`Service account key not found for ${serviceAccountEmail}`)
+      }
+
+      // Store the service account key in Redis
+      await cacheService.storeDataInRedis('pvp-test-domain2.com_SA_private_key', {
+        privateKeyData: serviceAccountKeyInDB.privateKeyData,
+      })
     }
-    serviceAccountPrivateKey = serviceAccountKeyInDB
+
+    // Update the serviceAccountPrivateKey with the fetched service account key
+    serviceAccountPrivateKey = serviceAccountKeyInDB.privateKeyData
   }
 
-  // Decode the base64-encoded privateKeyData to get the actual JSON credentials.
+  //Decode the base64-encoded privateKeyData to get the actual JSON credentials.
   const decodedCredentials = Buffer.from(serviceAccountPrivateKey, 'base64').toString('utf8')
 
   let credentials
@@ -96,14 +113,17 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
   authClient.subject = impersonatedUser // Impersonate the specified user
   // Return the Google Drive client instance configured with the impersonated user.
 
+  let service
   switch (typeOfInstance) {
     case 'drive':
-      return google.drive({ version: 'v3', auth: authClient })
+      service = google.drive({ version: 'v3', auth: authClient })
     case 'reports':
-      return google.admin({ version: 'reports_v1', auth: authClient })
+      service = google.admin({ version: 'reports_v1', auth: authClient })
     default:
-      return google.admin({ version: 'directory_v1', auth: authClient })
+      service = google.admin({ version: 'directory_v1', auth: authClient })
   }
+
+  return service
 }
 
 async function getClientInstance(impersonatedUser, typeOfInstance) {
