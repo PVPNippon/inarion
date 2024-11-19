@@ -4,7 +4,7 @@ const ServiceAccountKeys = require('../models/ServiceAccountKeys')
 const Users = require('../models/User')
 const Projects = require('../models/Project')
 const ServiceAccounts = require('../models/ServiceAccount')
-
+const instanceStore = require('..').instanceStore
 /**
  * Retrieves and decodes service account credentials from redis or the database.
  *
@@ -126,21 +126,24 @@ async function initializeGoogleAuth(credentials) {
 }
 
 /**
- * Impersonates a user to access Google Drive resources on their behalf.
+ * Impersonates a user to access Google Drive, Google Admin Reports, or Google Admin Directory resources on their behalf.
  *
- * This function configures the Google Auth client to impersonate a specified user, allowing access to the user's Google Drive resources.
+ * This function sets up the Google Auth client to impersonate a specified user, allowing access to the user's resources.
  *
  * @param {string} impersonatedUser - The email address of the user to impersonate.
  * @param {Object} auth - The initialized GoogleAuth client.
- * @returns {Promise<Object>} - A promise that resolves to the Google Drive client instance configured for the impersonated user.
+ * @param {string} typeOfInstance - The type of Google API client instance to create.
+ *                                  Possible values are 'drive', 'reports', or 'directory'.
+ * @returns {Promise<Object>} - A promise that resolves to the Google API client instance configured for the impersonated user.
  */
 async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
+  let service
+
   // Retrieve the client from the auth instance.
-  let authClient = await auth.getClient()
+  const authClient = await auth.getClient()
   // Set the subject (user to impersonate) for the auth client.
   authClient.subject = impersonatedUser // Impersonate the specified user
 
-  let service
   switch (typeOfInstance) {
     case 'drive':
       service = google.drive({ version: 'v3', auth: authClient })
@@ -154,6 +157,7 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
     default:
       service = google.admin({ version: 'directory_v1', auth: authClient })
   }
+
   return service
 }
 
@@ -171,11 +175,30 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
  *                              configured for the impersonated user.
  */
 async function getImpersonatedClientInstance(impersonatedUser, serviceAccountEmail, typeOfInstance) {
+  let service
+  // Create a unique key for the instance store based on the impersonated user and type of instance
+  const instanceStoreKey = `${impersonatedUser}-${typeOfInstance}-impersonatedClient`
+
+  // Check if the instance already exists in the store
+  service = instanceStore.get(instanceStoreKey)
+
+  // If the instance already exists in the store, return it
+  if (service) return service
+
+  // If the instance doesn't exist in the store, create it
+  // Get the service account credentials
   const credentials = await getCredentials(impersonatedUser, serviceAccountEmail)
 
+  // Initialize the Google Auth client
   const jwtClient = await initializeGoogleAuth(credentials)
 
-  const service = await impersonateClient(impersonatedUser, jwtClient, typeOfInstance)
+  // Impersonate the specified user
+  service = await impersonateClient(impersonatedUser, jwtClient, typeOfInstance)
+
+  // Store the instance in the store
+  instanceStore.set(instanceStoreKey, service)
+
+  // Return the impersonated client
   return service
 }
 

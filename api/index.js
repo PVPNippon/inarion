@@ -1,3 +1,6 @@
+//global in-memory storage
+const instanceStore = new Map()
+exports.instanceStore = instanceStore
 // server file
 const express = require('express')
 const session = require('express-session')
