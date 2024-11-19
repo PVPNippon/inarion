@@ -1,37 +1,64 @@
 const { google } = require('googleapis')
 const cacheService = require('../controllers/cacheController')
 const ServiceAccountKeys = require('../models/ServiceAccountKeys')
+const Users = require('../models/User')
+const Projects = require('../models/Project')
+const ServiceAccounts = require('../models/ServiceAccount')
 
 /**
- * Retrieves and decodes service account credentials from the database.
+ * Retrieves and decodes service account credentials from redis or the database.
  *
- * This function fetches the service account credentials using the provided email, decodes the base64-encoded privateKeyData,
- * and parses it to extract the credentials in JSON format.
+ * This function fetches the service account email and key using the provided email, decodes the base64-encoded privateKeyData,
+ * and parses it to extract the credentials in JSON format. If the service account email and key are not provided, it tries to
+ * fetch them from Redis and if not found, fetches it from the database and stores in Redis.
  *
- * If the service account key is not found in the redis, it is fetched from DB and stored in redis.
- * If the service account key is still not found, an error is thrown.
- *
+ * @param {string} userEmail - The email address associated with the user.
  * @param {string} serviceAccountEmail - The email address associated with the service account.
- * @param {string} [serviceAccountPrivateKey] - The private key of the service account. If not provided, it is fetched from the database.
+ * @param {string} serviceAccountPrivateKey - The private key associated with the service account.
  * @returns {Promise<Object>} - A promise that resolves to the decoded and validated credentials object.
  * @throws Will throw an error if the service account key is not found, the credentials are invalid, or the JSON parsing fails.
  */
 async function getCredentials(userEmail, serviceAccountEmail, serviceAccountPrivateKey) {
-  //I'm using userEmail instead of serviceAccountEmail here,
-  //because we are planning to stop passine serviceAccountEmail from front-end too
-  //probably, it will be better to create the key with domain only, not the full email address
-  const redisKey = userEmail + '_SA_private_key'
-  //prepare service account key placeholder
-  let serviceAccountKeyInDB
+  const userDomain = userEmail.split('@')[1] // Get the domain of the user
+  const userLdap = userEmail.split('@')[0] // Get the LDAP of the user(not in use for now)
+  const serviceAccountEmailRedisKey = userDomain + '_SA_email' // Create a Redis key for the service account email
+  const serviceAccountPrivateKeyRedisKey = userDomain + '_SA_private_key' // Create a Redis key for the service account private key
+
+  let serviceAccountEmailInDB // Variable to store the service account email
+  let serviceAccountKeyInDB // Variable to store the service account key retrieved from db or redis
+
+  //if service account email is not provided, try fetching it from redis
+  //if not found in redis, fetch it from db and store in redis
+  //TODO: technically, we don't need to store the service account email if service account key is found is redis
+  //need to move checking SA email after fetching SA key in redis for cases it's not found
+  if (!serviceAccountEmail) {
+    serviceAccountEmailInDB = (await cacheService.getValueFromRedis(serviceAccountEmailRedisKey)) || null
+
+    if (!serviceAccountEmailInDB) {
+      //TODO: it should be possible do this in one query (using "include"(?))
+      const user = (await Users.findOne({ where: { email: userEmail } })).id
+      const projectId = (await Projects.findOne({ where: { userId: user } })).projectId
+      serviceAccountEmailInDB = (await ServiceAccounts.findOne({ where: { projectId: projectId } })).serviceAccountEmail
+
+      if (!serviceAccountEmailInDB) {
+        throw new Error(`Service account not found for ${userDomain}`)
+      }
+
+      await cacheService.storeDataInRedis(serviceAccountEmailRedisKey, serviceAccountEmailInDB)
+    }
+    serviceAccountEmail = serviceAccountEmailInDB
+  }
 
   // Fetch the service account key from the database using the provided email
   if (!serviceAccountPrivateKey) {
     //First try fetching the service account key from redis
-    serviceAccountKeyInDB = (await cacheService.getValueFromRedis(redisKey)) || null
+    serviceAccountKeyInDB = (await cacheService.getValueFromRedis(serviceAccountPrivateKeyRedisKey)) || null
 
     // If the service account key is not found in Redis, fetch it from the database
     if (!serviceAccountKeyInDB || !serviceAccountKeyInDB.privateKeyData) {
-      serviceAccountKeyInDB = await ServiceAccountKeys.findOne({ where: { serviceAccountEmail: serviceAccountEmail } })
+      serviceAccountKeyInDB = await ServiceAccountKeys.findOne({
+        where: { serviceAccountEmail: serviceAccountEmail },
+      })
 
       // If the service account key is still not found, throw an error
       if (!serviceAccountKeyInDB) {
@@ -39,7 +66,7 @@ async function getCredentials(userEmail, serviceAccountEmail, serviceAccountPriv
       }
 
       // Store the service account key in Redis
-      await cacheService.storeDataInRedis(redisKey, {
+      await cacheService.storeDataInRedis(serviceAccountPrivateKeyRedisKey, {
         privateKeyData: serviceAccountKeyInDB.privateKeyData,
       })
     }
@@ -130,6 +157,19 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
   return service
 }
 
+/**
+ * Retrieves a Google API client instance impersonating a specified user.
+ *
+ * This function fetches the service account credentials, initializes the Google Auth client,
+ * and then impersonates the specified user to access their Google Drive resources.
+ *
+ * @param {string} impersonatedUser - The email address of the user to impersonate.
+ * @param {string} serviceAccountEmail - The email address of the service account.
+ * @param {string} typeOfInstance - The type of Google API client instance to create.
+ *                                  Possible values are 'drive', 'reports', or 'directory'.
+ * @returns {Promise<Object>} - A promise that resolves to the Google API client instance
+ *                              configured for the impersonated user.
+ */
 async function getImpersonatedClientInstance(impersonatedUser, serviceAccountEmail, typeOfInstance) {
   const credentials = await getCredentials(impersonatedUser, serviceAccountEmail)
 
