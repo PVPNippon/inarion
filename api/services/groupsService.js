@@ -1,5 +1,10 @@
 const { google } = require('googleapis')
-const { getCredentials, initializeGoogleAuth, impersonateClient } = require('./authService')
+const {
+  getCredentials,
+  initializeGoogleAuth,
+  impersonateClient,
+  getImpersonatedClientInstance,
+} = require('./authService')
 /**
  * Decodes the base64-encoded privateKeyData and parses it as JSON.
  *
@@ -62,17 +67,12 @@ async function getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmai
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 async function listGroups({ userEmail, serviceAccountEmail, serviceAccountPrivateKey, client, query }) {
-  // Retrieve JWT client or create it if it doesn't exist
-  const credentials = await getCredentials(userEmail, serviceAccountEmail)
-
-  const jwtClient = await initializeGoogleAuth(credentials)
-
-  const directory = await impersonateClient(userEmail, jwtClient, 'admin')
+  const directory = await getImpersonatedClientInstance(userEmail, serviceAccountEmail, 'directory')
 
   const groups = [] // Container for all groups retrieved
   let groupsResponse // Response from the API
 
-  // //create request object
+  // create request object
   const requestObj = {
     customer: 'my_customer',
     maxResults: 200, //max allowed value
@@ -132,7 +132,7 @@ async function getGroupByEmail({
 }) {
   // Retrieve JWT client or create it if it's not specified
   const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
-  console.log(jwtClient)
+
   // Create the Admin Directory API client
   const admin = google.admin({
     version: 'directory_v1',

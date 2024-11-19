@@ -79,12 +79,11 @@ async function getCredentials(userEmail, serviceAccountEmail, serviceAccountPriv
  * @returns {Promise<Object>} - A promise that resolves to the initialized GoogleAuth client.
  */
 async function initializeGoogleAuth(credentials) {
-  //TODO: first check if the client is stored in redis. If yes, use it.
-  //If not, create the client and store in redis.
+  // Initialize the GoogleAuth client using the provided credentials
   const auth = new google.auth.GoogleAuth({
     // Provide the credentials to the GoogleAuth client.
     credentials: credentials,
-    // Specify the required scopes for Google Drive API access.
+    // Specify the required scopes API access.
     scopes: [
       'https://www.googleapis.com/auth/drive',
       'https://www.googleapis.com/auth/drive.metadata.readonly',
@@ -109,37 +108,40 @@ async function initializeGoogleAuth(credentials) {
  * @returns {Promise<Object>} - A promise that resolves to the Google Drive client instance configured for the impersonated user.
  */
 async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
-  //TODO: first check if the impersonated client is stored in redis.
-  //If yes, use it. If not, impersonate and store to redis.
   // Retrieve the client from the auth instance.
-  const authClient = await auth.getClient()
+  let authClient = await auth.getClient()
   // Set the subject (user to impersonate) for the auth client.
   authClient.subject = impersonatedUser // Impersonate the specified user
-  // Return the Google Drive client instance configured with the impersonated user.
 
   let service
   switch (typeOfInstance) {
     case 'drive':
       service = google.drive({ version: 'v3', auth: authClient })
+      break
     case 'reports':
       service = google.admin({ version: 'reports_v1', auth: authClient })
+      break
+    case 'directory':
+      service = google.admin({ version: 'directory_v1', auth: authClient })
+      break
     default:
       service = google.admin({ version: 'directory_v1', auth: authClient })
   }
-  console.log(service)
   return service
 }
 
-async function getClientInstance(impersonatedUser, typeOfInstance) {
-  //TODO:first go to redis and check in there is an impersonated client for the user and the typeOfInstance in redis. If yes, return it.
-  //If not: check if the uninpersonated client is in redis. If yes, call impersonateClient and return it.
-  //If not: call getCredentials and initializeGoogleAuth functions, retrieve unimpersonated client and store in redis.
-  //Impersonate the client and store in redis as well.
-  //Return the impersonated client.
+async function getImpersonatedClientInstance(impersonatedUser, serviceAccountEmail, typeOfInstance) {
+  const credentials = await getCredentials(impersonatedUser, serviceAccountEmail)
+
+  const jwtClient = await initializeGoogleAuth(credentials)
+
+  const service = await impersonateClient(impersonatedUser, jwtClient, typeOfInstance)
+  return service
 }
 
 module.exports = {
   getCredentials,
   initializeGoogleAuth,
   impersonateClient,
+  getImpersonatedClientInstance,
 }
