@@ -67,7 +67,7 @@ async function getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmai
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 async function listGroups({ userEmail, serviceAccountEmail, serviceAccountPrivateKey, client, query }) {
-  const directory = await getImpersonatedClientInstance(userEmail, null, 'directory')
+  const directory = await getImpersonatedClientInstance(userEmail, 'directory')
 
   const groups = [] // Container for all groups retrieved
   let groupsResponse // Response from the API

@@ -18,62 +18,46 @@ const instanceStore = require('..').instanceStore
  * @returns {Promise<Object>} - A promise that resolves to the decoded and validated credentials object.
  * @throws Will throw an error if the service account key is not found, the credentials are invalid, or the JSON parsing fails.
  */
-async function getCredentials(userEmail, serviceAccountEmail, serviceAccountPrivateKey) {
+async function getCredentials(userEmail) {
   const userDomain = userEmail.split('@')[1] // Get the domain of the user
-  const userLdap = userEmail.split('@')[0] // Get the LDAP of the user(not in use for now)
-  const serviceAccountEmailRedisKey = userDomain + '_SA_email' // Create a Redis key for the service account email
-  const serviceAccountPrivateKeyRedisKey = userDomain + '_SA_private_key' // Create a Redis key for the service account private key
 
-  let serviceAccountEmailInDB // Variable to store the service account email
+  const serviceAccountCredentialsKey = userDomain + '_SA_credentials' // Create a Redis key for the service account credentials
+
   let serviceAccountKeyInDB // Variable to store the service account key retrieved from db or redis
+  let serviceAccountPrivateKey
 
-  //if service account email is not provided, try fetching it from redis
-  //if not found in redis, fetch it from db and store in redis
-  //TODO: technically, we don't need to store the service account email if service account key is found is redis
-  //need to move checking SA email after fetching SA key in redis for cases it's not found
-  if (!serviceAccountEmail) {
-    serviceAccountEmailInDB = (await cacheService.getValueFromRedis(serviceAccountEmailRedisKey)) || null
+  //First try fetching the service account key from redis
+  serviceAccountKeyInDB = (await cacheService.getValueFromRedis(serviceAccountCredentialsKey)) || null
 
-    if (!serviceAccountEmailInDB) {
-      //TODO: it should be possible do this in one query (using "include"(?))
-      const user = (await Users.findOne({ where: { email: userEmail } })).id
-      const projectId = (await Projects.findOne({ where: { userId: user } })).projectId
-      serviceAccountEmailInDB = (await ServiceAccounts.findOne({ where: { projectId: projectId } })).serviceAccountEmail
+  // If the service account key is not found in Redis, fetch it from the database
+  if (!serviceAccountKeyInDB || !serviceAccountKeyInDB.privateKeyData) {
+    //TODO: combine 3 queries into 1
+    const user = (await Users.findOne({ where: { email: userEmail } })).id
+    const projectId = (await Projects.findOne({ where: { userId: user } })).projectId
+    const serviceAccountEmail = (await ServiceAccounts.findOne({ where: { projectId: projectId } })).serviceAccountEmail
 
-      if (!serviceAccountEmailInDB) {
-        throw new Error(`Service account not found for ${userDomain}`)
-      }
-
-      await cacheService.storeDataInRedis(serviceAccountEmailRedisKey, serviceAccountEmailInDB)
-    }
-    serviceAccountEmail = serviceAccountEmailInDB
-  }
-
-  // Fetch the service account key from the database using the provided email
-  if (!serviceAccountPrivateKey) {
-    //First try fetching the service account key from redis
-    serviceAccountKeyInDB = (await cacheService.getValueFromRedis(serviceAccountPrivateKeyRedisKey)) || null
-
-    // If the service account key is not found in Redis, fetch it from the database
-    if (!serviceAccountKeyInDB || !serviceAccountKeyInDB.privateKeyData) {
-      serviceAccountKeyInDB = await ServiceAccountKeys.findOne({
-        where: { serviceAccountEmail: serviceAccountEmail },
-      })
-
-      // If the service account key is still not found, throw an error
-      if (!serviceAccountKeyInDB) {
-        throw new Error(`Service account key not found for ${serviceAccountEmail}`)
-      }
-
-      // Store the service account key in Redis
-      await cacheService.storeDataInRedis(serviceAccountPrivateKeyRedisKey, {
-        privateKeyData: serviceAccountKeyInDB.privateKeyData,
-      })
+    if (!serviceAccountEmail) {
+      throw new Error(`Service account not found for ${userDomain}`)
     }
 
-    // Update the serviceAccountPrivateKey with the fetched service account key
-    serviceAccountPrivateKey = serviceAccountKeyInDB.privateKeyData
+    serviceAccountKeyInDB = await ServiceAccountKeys.findOne({
+      where: { serviceAccountEmail: serviceAccountEmail },
+    })
+
+    // If the service account key is still not found, throw an error
+    if (!serviceAccountKeyInDB) {
+      throw new Error(`Service account key not found for ${serviceAccountEmail}`)
+    }
+
+    // Store the service account key in Redis
+    await cacheService.storeDataInRedis(serviceAccountCredentialsKey, {
+      serviceAccountEmail: serviceAccountKeyInDB.serviceAccountEmail,
+      privateKeyData: serviceAccountKeyInDB.privateKeyData,
+    })
   }
+
+  // Update the serviceAccountPrivateKey with the fetched service account key
+  serviceAccountPrivateKey = serviceAccountKeyInDB.privateKeyData
 
   //Decode the base64-encoded privateKeyData to get the actual JSON credentials.
   const decodedCredentials = Buffer.from(serviceAccountPrivateKey, 'base64').toString('utf8')
@@ -174,7 +158,7 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
  * @returns {Promise<Object>} - A promise that resolves to the Google API client instance
  *                              configured for the impersonated user.
  */
-async function getImpersonatedClientInstance(impersonatedUser, serviceAccountEmail, typeOfInstance) {
+async function getImpersonatedClientInstance(impersonatedUser, typeOfInstance) {
   let service
   // Create a unique key for the instance store based on the impersonated user and type of instance
   const instanceStoreKey = `${impersonatedUser}-${typeOfInstance}-impersonatedClient`
@@ -187,7 +171,7 @@ async function getImpersonatedClientInstance(impersonatedUser, serviceAccountEma
 
   // If the instance doesn't exist in the store, create it
   // Get the service account credentials
-  const credentials = await getCredentials(impersonatedUser, serviceAccountEmail)
+  const credentials = await getCredentials(impersonatedUser)
 
   // Initialize the Google Auth client
   const jwtClient = await initializeGoogleAuth(credentials)
