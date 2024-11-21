@@ -120,26 +120,32 @@ async function initializeGoogleAuth(credentials) {
  *                                  Possible values are 'drive', 'reports', or 'directory'.
  * @returns {Promise<Object>} - A promise that resolves to the Google API client instance configured for the impersonated user.
  */
-async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
+async function impersonateClient(impersonatedUser, auth, typeOfInstance, instanceStoreKey) {
   let service
 
   // Retrieve the client from the auth instance.
-  const authClient = await auth.getClient()
+  const jwtClient = await auth.getClient()
   // Set the subject (user to impersonate) for the auth client.
-  authClient.subject = impersonatedUser // Impersonate the specified user
+  jwtClient.subject = impersonatedUser // Impersonate the specified user
+
+  await jwtClient.on('tokens', (tokens) => {
+    if (tokens.access_token) {
+      instanceStore.set(`${instanceStoreKey}-expiry`, { expiryDate: tokens.expiry_date })
+    }
+  })
 
   switch (typeOfInstance) {
     case 'drive':
-      service = google.drive({ version: 'v3', auth: authClient })
+      service = google.drive({ version: 'v3', auth: jwtClient })
       break
     case 'reports':
-      service = google.admin({ version: 'reports_v1', auth: authClient })
+      service = google.admin({ version: 'reports_v1', auth: jwtClient })
       break
     case 'directory':
-      service = google.admin({ version: 'directory_v1', auth: authClient })
+      service = google.admin({ version: 'directory_v1', auth: jwtClient })
       break
     default:
-      service = google.admin({ version: 'directory_v1', auth: authClient })
+      service = google.admin({ version: 'directory_v1', auth: jwtClient })
   }
 
   return service
@@ -164,23 +170,33 @@ async function getImpersonatedClientInstance(impersonatedUser, typeOfInstance) {
   const instanceStoreKey = `${impersonatedUser}-${typeOfInstance}-impersonatedClient`
 
   // Check if the instance already exists in the store
-  service = instanceStore.get(instanceStoreKey)
+
+  service = await instanceStore.get(instanceStoreKey)
+  const timeNow = new Date().getTime()
+  console.log('SERVICE HERE', service)
 
   // If the instance already exists in the store, return it
-  if (service) return service
+  if (service && service.expiryDate - timeNow > 300000) return service.service
 
   // If the instance doesn't exist in the store, create it
   // Get the service account credentials
   const credentials = await getCredentials(impersonatedUser)
 
   // Initialize the Google Auth client
-  const jwtClient = await initializeGoogleAuth(credentials)
+  const authClient = await initializeGoogleAuth(credentials)
 
   // Impersonate the specified user
-  service = await impersonateClient(impersonatedUser, jwtClient, typeOfInstance)
+  service = await impersonateClient(impersonatedUser, authClient, typeOfInstance, instanceStoreKey)
 
-  // Store the instance in the store
-  instanceStore.set(instanceStoreKey, service)
+  const serviceObj = await instanceStore.get(`${instanceStoreKey}-expiry`)
+
+  if (serviceObj) {
+    serviceObj.service = service
+    // Store the instance in the store
+    await instanceStore.set(instanceStoreKey, serviceObj)
+  } else {
+    instanceStore.delete(`${instanceStoreKey}-expiry`)
+  }
 
   // Return the impersonated client
   return service
