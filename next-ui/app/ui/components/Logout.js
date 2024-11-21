@@ -61,7 +61,7 @@ function Logout() {
     logoutUser()
   }, [setEmail, navigate])
 
-  return <h2 className="text-white">Logging out...</h2>
+  return <h2>Logging out...</h2>
 }
 
 export default Logout

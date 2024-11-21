@@ -46,7 +46,7 @@ function ListGroupsActivities() {
     fetchActivities()
   }, [clickCount])
   return (
-    <div className="text-white my-6">
+    <div className="my-6">
       <h1>Groups Activities in your organization for past 6 months</h1>
       <p>
         NB: these logs are for 'enterprise_groups' only. 'groups' are not included. Tell Maria if you want to include

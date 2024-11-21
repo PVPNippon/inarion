@@ -17,7 +17,7 @@ function page() {
   return (
     <LoggedInUserProvider>
       <ProjectDataProvider>
-        <h2 className="text-white">Shared drives</h2>
+        <h2>Shared drives</h2>
         <ListSharedDriveFiles></ListSharedDriveFiles>
       </ProjectDataProvider>
     </LoggedInUserProvider>

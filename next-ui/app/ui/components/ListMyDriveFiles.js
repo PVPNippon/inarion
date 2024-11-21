@@ -1,11 +1,11 @@
-'use client'
-
 import React, { useState, useEffect, useContext } from 'react'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import axios from 'axios'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
+import { SettingsAccess } from './settings-access'
+import { SquarePlusIcon, ChevronDownIcon, EllipsisIcon } from 'lucide-react'
+import { Card } from '@/components/ui/card'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 // Helper function to get the formatted file type
 const getFileType = (mimeType) => {
@@ -13,19 +13,65 @@ const getFileType = (mimeType) => {
   return type ? type.charAt(0).toUpperCase() + type.slice(1).replace(/_/g, ' ') : 'Unknown'
 }
 
-/**
- * A component that fetches personal drive files from the server using the user's email
- * and project data from the URL, and displays it. If the data is still loading,
- * it displays a loading message. If there's an error, it displays an error message.
- * @param {string} email The email of the user to impersonate.
- * @returns {JSX.Element} A React component that displays the file data or
- * a loading or error message.
- */
+function FileCardRow({ name, itemId, mimeType, owner, sharedExternally, trashed, onChevronClick, isExpanded }) {
+  return (
+    <Card className="flex items-center justify-between py-3 px-5 mb-3 border rounded-lg custom-shadow">
+      {/* Row Content */}
+      <div className="flex w-full items-center">
+        {/* Name */}
+        <div className="flex-1">
+          <span className="font-medium">{name}</span>
+        </div>
+        {/* Item ID - truncated */}
+        <div className="flex-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger>
+                <span className="text-gray-600 truncate">{itemId.slice(0, 10)}...</span>
+              </TooltipTrigger>
+              <TooltipContent>{itemId}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+
+        {/* MIME Type */}
+        <div className="flex-1">
+          <span>{mimeType}</span>
+        </div>
+
+        {/* Owner */}
+        <div className="flex-1">
+          <span>{owner}</span>
+        </div>
+
+        {/* Shared Externally */}
+        <div className="flex-1">
+          <span>{sharedExternally ? 'No' : 'Yes'}</span>
+        </div>
+
+        {/* Trashed */}
+        <div className="flex-1">
+          <span>{trashed}</span>
+        </div>
+
+        {/* Actions */}
+        <div className="flex items-center space-x-2">
+          <SquarePlusIcon className="h-5 w-5 cursor-pointer" />
+          <ChevronDownIcon
+            className={`h-5 w-5 cursor-pointer transition-transform duration-400 ${isExpanded ? 'rotate-180' : ''}`}
+            onClick={onChevronClick}
+          />
+        </div>
+      </div>
+    </Card>
+  )
+}
+
 const ListMyDriveFiles = () => {
   const [filesData, setFilesData] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [expandedFolders, setExpandedFolders] = useState({}) // Store which folders are expanded
+  const [expandedFolders, setExpandedFolders] = useState({})
   const { email } = useContext(LoggedInUserContext)
   const { projectData } = useContext(ProjectDataContext)
 
@@ -33,10 +79,9 @@ const ListMyDriveFiles = () => {
     const fetchFiles = async () => {
       try {
         const response = await axios.post(
-          'http://localhost:4000/api/drive/personal-drives',
+          'http://localhost:4000/api/drive/all-drives',
           {
-            userEmail: email,
-            projectId: projectData.projectData.projectId,
+            adminEmail: email,
             serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
             serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
           },
@@ -55,10 +100,6 @@ const ListMyDriveFiles = () => {
     fetchFiles()
   }, [email, projectData])
 
-  /**
-   * Toggles the expanded state of a folder.
-   * @param {string} id The ID of the folder to toggle.
-   */
   const toggleFolder = (id) => {
     setExpandedFolders((prev) => ({
       ...prev,
@@ -66,91 +107,85 @@ const ListMyDriveFiles = () => {
     }))
   }
 
-  /**
-   * Recursively renders the children of a folder with indentation.
-   * @param {object[]} children The children to render.
-   * @param {number} level The level of indentation (default is 1).
-   * @returns {JSX.Element[]} The rendered children.
-   */
-  const renderChildren = (children, level = 1) => {
-    return children.map((child) => (
-      <React.Fragment key={child.id}>
-        <TableRow
-          className="cursor-pointer"
-          onClick={() => toggleFolder(child.id)}
-          style={{ paddingLeft: `${level * 20}px` }} // Add indentation based on level
-        >
-          <TableCell className="pl-8">
-            {child.mimeType === 'application/vnd.google-apps.folder' ? <>📁 {child.name}</> : <>📄 {child.name}</>}
-          </TableCell>
-          <TableCell>{getFileType(child.mimeType)}</TableCell>
-          <TableCell>{child.modifiedTime}</TableCell>
-        </TableRow>
-        {/* Recursively render children if folder is expanded */}
-        {expandedFolders[child.id] && child.children && child.children.length > 0 && (
-          <>{renderChildren(child.children, level + 1)}</> // Increment level for nested children
-        )}
-      </React.Fragment>
-    ))
-  }
-
   if (loading) return <p>Loading folders...</p>
   if (error) return <p>Error loading folders: {error.message}</p>
 
   if (filesData.length === 0) {
-    return <p>No folders found.</p>
+    return <p>No data available.</p>
   }
 
   return (
-    <div className="max-h-screen overflow-auto p-4">
-      {filesData.map((userFiles, index) => (
-        <div key={index} className="mb-8">
-          <h3 className="text-lg font-bold mb-2 text-white">
-            {userFiles.email}'s Drive ({userFiles.driveName})
-          </h3>
+    <div className="p-4">
+      <h3 className="text-lg font-bold mb-2">Drive Files</h3>
 
-          <div className="overflow-auto max-h-[400px]">
-            <Table className="min-w-full">
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Folder Name</TableHead>
-                  <TableHead>MIME Type</TableHead>
-                  <TableHead>Last Modified</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className="text-white">
-                {userFiles.children && userFiles.children.length > 0 ? (
-                  userFiles.children
-                    .filter((child) => child.mimeType === 'application/vnd.google-apps.folder') // Only display folders
-                    .map((folder) => (
-                      <React.Fragment key={folder.id}>
-                        <TableRow
-                          className="border-b border-gray-200 cursor-pointer"
-                          onClick={() => toggleFolder(folder.id)}
-                        >
-                          <TableCell>
-                            <Badge className="bg-white-14">📁 {folder.name}</Badge>
-                          </TableCell>
-                          <TableCell>{getFileType(folder.mimeType)}</TableCell>
-                          <TableCell>{folder.modifiedTime}</TableCell>
-                        </TableRow>
-                        {/* Render folder's children with indentation */}
-                        {expandedFolders[folder.id] && folder.children && folder.children.length > 0 && (
-                          <>{renderChildren(folder.children, 2)}</> // Start at level 2 for children
-                        )}
-                      </React.Fragment>
-                    ))
-                ) : (
-                  <TableRow>
-                    <TableCell className="text-center text-white" colSpan={3}>
-                      No folders available in this drive.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+      <Card className="flex items-center justify-between py-3 px-5 mb-3 border rounded-lg custom-shadow">
+        {/* Row Content */}
+        <div className="flex w-full items-center">
+          {/* Name */}
+          <div className="flex-1">
+            <span>Name</span>
+          </div>
+
+          {/* Item ID */}
+          <div className="flex-1">
+            <span>Item ID</span>
+          </div>
+
+          {/* Type */}
+          <div className="flex-1">
+            <span>Type</span>
+          </div>
+
+          {/* Owner */}
+          <div className="flex-1">
+            <span>Owner</span>
+          </div>
+
+          {/* Shared Externally */}
+          <div className="flex-1">
+            <span>Shared Externally?</span>
+          </div>
+
+          {/* Trashed */}
+          <div className="flex-1">
+            <span>Trashed</span>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center space-x-2">
+            <EllipsisIcon className="h-5 w-5 cursor-pointer" />
+            <ChevronDownIcon className="h-5 w-5 text-white" />
           </div>
         </div>
+      </Card>
+
+      {/* File Rows */}
+      {filesData.map((userFiles, index) => (
+        <React.Fragment key={index}>
+          {userFiles.children
+            .filter((child) => child.mimeType === 'application/vnd.google-apps.folder')
+            .map((folder) => (
+              <React.Fragment key={folder.id}>
+                <FileCardRow
+                  name={folder.name}
+                  itemId={folder.id}
+                  mimeType={getFileType(folder.mimeType)}
+                  owner={userFiles.email}
+                  sharedExternally="No"
+                  trashed={folder.trashed ? 'Yes' : 'No'}
+                  onChevronClick={() => toggleFolder(folder.id)}
+                  isExpanded={expandedFolders[folder.id]}
+                />
+                <div
+                  className={`overflow-hidden  animate-fade-in transition-all duration-500 ease-in-out ${
+                    expandedFolders[folder.id] ? ' opacity-100 my-5' : 'max-h-0 opacity-0 my-0'
+                  }`}
+                >
+                  <SettingsAccess />
+                </div>
+              </React.Fragment>
+            ))}
+        </React.Fragment>
       ))}
     </div>
   )

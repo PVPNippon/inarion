@@ -27,6 +27,7 @@ function ListSharedDriveFiles() {
           {
             userEmail: email,
             serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
+            serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
           },
           {
             withCredentials: true,
@@ -72,7 +73,7 @@ function ListSharedDriveFiles() {
     <div className="max-h-screen overflow-auto p-4">
       {sharedDrivesData.map((drive, index) => (
         <div key={index} className="mb-8">
-          <h3 className="text-lg font-bold mb-2 text-white">{drive.driveName}</h3>
+          <h3 className="text-lg font-bold mb-2">{drive.driveName}</h3>
           <div className="overflow-auto max-h-[400px]">
             <Table className="min-w-full">
               <TableHeader>
@@ -82,7 +83,7 @@ function ListSharedDriveFiles() {
                   <TableHead>Last Modified</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="text-white">
+              <TableBody>
                 {drive.children && drive.children.length > 0 ? (
                   drive.children
                     .filter((child) => child.mimeType === 'application/vnd.google-apps.folder') // Only display folders
@@ -93,7 +94,7 @@ function ListSharedDriveFiles() {
                           onClick={() => toggleFolder(folder.id)}
                         >
                           <TableCell>
-                            <Badge className="bg-white-14">📁 {folder.name}</Badge>
+                            <Badge>{folder.name}</Badge>
                           </TableCell>
                           <TableCell>{getFileType(folder.mimeType)}</TableCell>
                           <TableCell>{folder.modifiedTime}</TableCell>
@@ -104,9 +105,9 @@ function ListSharedDriveFiles() {
                               <TableRow key={child.id}>
                                 <TableCell className="pl-8">
                                   {child.mimeType === 'application/vnd.google-apps.folder' ? (
-                                    <>📁 {child.name}</>
+                                    <> {child.name}</>
                                   ) : (
-                                    <>📄 {child.name}</>
+                                    <>{child.name}</>
                                   )}
                                 </TableCell>
                                 <TableCell>{getFileType(child.mimeType)}</TableCell>
@@ -119,7 +120,7 @@ function ListSharedDriveFiles() {
                     ))
                 ) : (
                   <TableRow>
-                    <TableCell className="text-center text-white" colSpan={3}>
+                    <TableCell className="text-center" colSpan={3}>
                       No folders available in this drive.
                     </TableCell>
                   </TableRow>

@@ -15,7 +15,7 @@ function LoggedInUserDetails() {
 
   return (
     <div>
-      <p className="text-white">Admin Email currently logged in: {email}</p> {/* Display the stored admin email */}
+      <p>Admin Email currently logged in: {email}</p> {/* Display the stored admin email */}
     </div>
   )
 }

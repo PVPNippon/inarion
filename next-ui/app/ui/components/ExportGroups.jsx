@@ -172,13 +172,9 @@ function ExportGroups() {
         <Button onClick={() => setCount(count + 1)}>Export</Button>
       </div>
       <div className="flex">
-        <Checkbox
-          className="bg-white"
-          id="derivedMembership"
-          onCheckedChange={() => setDerivedMembership(!derivedMembership)}
-        ></Checkbox>
+        <Checkbox id="derivedMembership" onCheckedChange={() => setDerivedMembership(!derivedMembership)}></Checkbox>
         <label htmlFor="derivedMembership">Include derived membership</label>
-        <Checkbox className="bg-white" id="allColumns" onCheckedChange={() => setAllColumns(!allColumns)}></Checkbox>
+        <Checkbox id="allColumns" onCheckedChange={() => setAllColumns(!allColumns)}></Checkbox>
         <label htmlFor="allColumns">Include all columns</label>
       </div>
       <div>{error && `Error: ${error.message}`}</div>

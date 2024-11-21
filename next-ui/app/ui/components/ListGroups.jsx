@@ -52,7 +52,7 @@ function ListGroups() {
     fetchGroups()
   }, [clickCount])
   return (
-    <div className="text-white mt-6">
+    <div className="mt-6">
       <h1>Groups in your organization</h1>
       <div className="flex w-full max-w-sm items-center space-x-2">
         <Button onClick={() => setClickCount(clickCount + 1)} type="submit">

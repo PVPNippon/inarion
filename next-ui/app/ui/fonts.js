@@ -1,11 +1,6 @@
-import { Inter, Lusitana, Open_Sans } from 'next/font/google'
+import { Figtree } from 'next/font/google'
 
-export const inter = Inter({ subsets: ['latin'] })
-export const lusitana = Lusitana({
-  weight: ['400', '700'],
+export const figtree = Figtree({
   subsets: ['latin'],
-})
-export const openSans = Open_Sans({
-  subsets: ['latin'],
-  weight: ['400', '700', '600'],
+  weight: ['400', '500', '600', '700'], // Adjust weights as necessary
 })

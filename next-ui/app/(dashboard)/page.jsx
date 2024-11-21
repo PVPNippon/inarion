@@ -15,12 +15,8 @@ import { ValueProvider } from '../ui/contexts/ValueContext'
  */
 export default function Home() {
   return (
-    <ValueProvider>
-      <LoggedInUserProvider>
-        <div>
-          <RegisteOrLogin></RegisteOrLogin>
-        </div>
-      </LoggedInUserProvider>
-    </ValueProvider>
+    <div>
+      <RegisteOrLogin></RegisteOrLogin>
+    </div>
   )
 }

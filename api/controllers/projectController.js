@@ -11,6 +11,7 @@ const session = require('express-session')
 const cors = require('cors')
 const app = express()
 const dataController = require('../controllers/dataController')
+const logger = require('../logger')(__filename)
 // Utility function to retry an async function on failure
 async function retryAsync(fn, retries = 5, delay = 2000) {
   for (let i = 0; i < retries; i++) {
@@ -48,7 +49,10 @@ const getOrganizationId = async () => {
 // Get or create a project in Google Cloud
 const getOrCreateProject = async (projectName, organizationId, userId) => {
   const projects = await googleService.listProjects(oauth2Client, organizationId)
-  console.log('Trying to find if user and projects exists in the db')
+  logger.debug('Trying to find if user and projects exists in the db', {
+    functionName: 'getOrCreateProject',
+    module: 'Projects',
+  })
   const existingProject = projects.find((project) => project.displayName.trim() === projectName.trim())
   let projectId, project
 
@@ -74,13 +78,16 @@ const getOrCreateProject = async (projectName, organizationId, userId) => {
 
 // Route to create a new project
 exports.createProject = async (req, res) => {
-  console.log('Entered the create project route')
+  logger.debug('Entered the create project route', { functionName: 'createProject', module: 'Projects' })
   const { tokens, email, projectName } = req.session
 
   // Logging the tokens and other parameters for debugging
-  console.log('Tokens used to create project:', tokens)
-  console.log('Email:', email)
-  console.log('Project Name:', projectName)
+  logger.debug(`Tokens used to create project:${JSON.stringify(tokens, null, 2)}`, {
+    functionName: 'createProject',
+    module: 'Projects',
+  })
+  logger.debug(`Email:${email}`, { functionName: 'createProject', module: 'Projects' })
+  logger.debug(`Project Name:${projectName}`, { functionName: 'createProject', module: 'Projects' })
   try {
     // Set OAuth2 credentials for the Google service
     googleService.setOauth2Credentials(tokens)
@@ -88,7 +95,7 @@ exports.createProject = async (req, res) => {
     // Find the user by email
     const user = await findUserByEmail(email)
     const userId = user.id
-    console.log('userId ', userId)
+    logger.debug(`userId: ${userId}`, { functionName: 'createProject', module: 'Projects' })
 
     // Get the organization ID
     const organizationId = await getOrganizationId()
@@ -107,7 +114,10 @@ exports.createProject = async (req, res) => {
     const serviceAccountName = email.replace(/[@.]/g, '-')
     var serviceAccounts = await googleService.listServiceAccounts(oauth2Client, projectId)
     if (serviceAccounts === undefined) serviceAccounts = []
-    console.log('List of Service accounts: ', serviceAccounts)
+    logger.debug(`List of Service accounts: ${JSON.stringify(serviceAccounts, null, 2)}`, {
+      functionName: 'createProject',
+      module: 'Projects',
+    })
 
     // Checking if service account exists in customer's project
     let serviceAccount = serviceAccounts.find((account) => account.displayName === `${email}'s Service Account`)
@@ -116,7 +126,10 @@ exports.createProject = async (req, res) => {
     let existingServiceAccountInDB = await ServiceAccount.findOne({ where: { projectId: projectId } })
 
     if (!existingServiceAccountInDB && !serviceAccount) {
-      console.log('Creating service account in Google Cloud and storing it in the database...')
+      logger.debug('Creating service account in Google Cloud and storing it in the database...', {
+        functionName: 'createProject',
+        module: 'Projects',
+      })
       serviceAccount = await googleService.createServiceAccount(
         oauth2Client,
         projectId,
@@ -128,13 +141,19 @@ exports.createProject = async (req, res) => {
         serviceAccountEmail: serviceAccount.email,
       })
     } else if (serviceAccount && !existingServiceAccountInDB) {
-      console.log('Service account exists in Google Cloud but not in the database, storing it...')
+      logger.debug('Service account exists in Google Cloud but not in the database, storing it...', {
+        functionName: 'createProject',
+        module: 'Projects',
+      })
       await ServiceAccount.create({
         projectId,
         serviceAccountEmail: serviceAccount.email,
       })
     } else if (!serviceAccount && existingServiceAccountInDB) {
-      console.log('Service account exists in the database but not in Google Cloud, creating it...')
+      logger.debug('Service account exists in the database but not in Google Cloud, creating it...', {
+        functionName: 'createProject',
+        module: 'Projects',
+      })
       serviceAccount = await googleService.createServiceAccount(
         oauth2Client,
         projectId,
@@ -154,11 +173,17 @@ exports.createProject = async (req, res) => {
     let serviceAccountKey
 
     if (!serviceAccountKeyInDB) {
-      console.log('Creating service account key in Google Cloud and storing it in the database...')
+      logger.debug('Creating service account key in Google Cloud and storing it in the database...', {
+        functionName: 'createProject',
+        module: 'Projects',
+      })
       serviceAccountKey = await googleService.createServiceAccountKey(oauth2Client, projectId, serviceAccount.email)
-      console.log('Created key in GCloud: ', serviceAccountKey)
+      logger.debug(`Created key in GCloud: ${serviceAccountKey} `, {
+        functionName: 'createProject',
+        module: 'Projects',
+      })
       const privateKeyId = serviceAccountKey.name.split('/').pop() // Extract the private key ID
-      console.log('privateKeyId ', privateKeyId)
+      logger.debug(`privateKeyId ${privateKeyId}`, { functionName: 'createProject', module: 'Projects' })
       serviceAccountKeyInDB = await ServiceAccountKeys.create({
         serviceAccountEmail: serviceAccount.email,
         privateKeyId: privateKeyId,
@@ -167,10 +192,13 @@ exports.createProject = async (req, res) => {
         validBeforeTime: new Date(serviceAccountKey.validBeforeTime),
       })
 
-      console.log('Created key in DB ', serviceAccountKeyInDB)
+      logger.debug(`Created key in DB ${serviceAccountKeyInDB}`, { functionName: 'createProject', module: 'Projects' })
     }
 
-    console.log('existing service account ', serviceAccountKeyInDB)
+    logger.debug(`existing service account ${serviceAccountKeyInDB}`, {
+      functionName: 'createProject',
+      module: 'Projects',
+    })
 
     // Fetch service account details
     const serviceAccountEmail = serviceAccount.email
@@ -202,7 +230,7 @@ exports.createProject = async (req, res) => {
 // Route to get project data from the session
 exports.getProjectData = async (req, res) => {
   const { userEmail } = req.body
-  console.log(`UserEmailValue: ${userEmail}`)
+  logger.debug(`UserEmailValue: ${userEmail}`, { functionName: 'getProjectData', module: 'Projects' })
   let projectData = await dataController.getProjectData(userEmail)
   let serviceAccountData = await dataController.getServiceAccountData(projectData.projectId)
   let serviceAccountKeys = await dataController.getServiceAccountKey(serviceAccountData.serviceAccountEmail)
@@ -219,7 +247,7 @@ exports.getAllProjects = async (req, res) => {
     const projects = await Project.findAll()
     res.status(200).json(projects)
   } catch (error) {
-    console.error('Error fetching projects:', error)
+    logger.error(`Error fetching projects:${error}`, { functionName: 'getAllProjects', module: 'Projects' })
     res.status(500).json({ error: 'An error occurred while fetching projects.' })
   }
 }

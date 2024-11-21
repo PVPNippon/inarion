@@ -22,7 +22,7 @@ function GroupsDashboard() {
   return (
     <LoggedInUserProvider>
       <ProjectDataProvider>
-        <main className="text-white">
+        <main>
           <h2>Google Groups Page</h2>
           <p>This is a placeholder for the groups page.</p>
           <ListGroups></ListGroups>
