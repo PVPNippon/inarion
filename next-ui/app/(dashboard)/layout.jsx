@@ -1,8 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { AppSidebar } from '../ui/dashboard/app-sidebar'
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import Header from '../ui/dashboard/header'
-import SideNav from '../ui/dashboard/sidenav'
+import { ValueProvider } from '../ui/contexts/ValueContext'
+import { LoggedInUserProvider } from '../ui/contexts/LoggedInUserContext'
+import { ProjectDataProvider } from '../ui/contexts/ProjectDataContext'
 
 export const experimental_ppr = true
 
@@ -21,36 +24,21 @@ export const experimental_ppr = true
  * @returns {React.ReactElement} The rendered dashboard layout.
  */
 export default function Layout({ children }) {
-  const [isCollapsed, setIsCollapsed] = useState(true)
-
-  /**
-   * Toggle the collapsed state of the side navigation.
-   */
-  const toggleNav = () => {
-    setIsCollapsed(!isCollapsed)
-  }
-
   return (
-    <div className="flex flex-col h-screen bg-black">
-      {/* Header */}
-      <Header toggleNav={toggleNav} />
-
-      {/* Main Content Area */}
-      <div className="flex flex-grow">
-        {/* Side Navigation */}
-        <div
-          className={`${
-            isCollapsed
-              ? 'w-16 md:w-20' // Narrow width when collapsed
-              : 'w-64 md:w-72' // Expanded width
-          } transition-all duration-300 bg-black hidden md:flex`}
-        >
-          <SideNav isCollapsed={isCollapsed} />
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-grow p-6 md:overflow-y-auto md:p-12 bg-black">{children}</div>
-      </div>
-    </div>
+    <ValueProvider>
+      <LoggedInUserProvider>
+        <ProjectDataProvider>
+          <SidebarProvider>
+            <AppSidebar />
+            <main className="w-full">
+              <div>
+                <Header />
+                <div className=" px-3 pt-8 pl-6">{children}</div>
+              </div>
+            </main>
+          </SidebarProvider>
+        </ProjectDataProvider>
+      </LoggedInUserProvider>
+    </ValueProvider>
   )
 }

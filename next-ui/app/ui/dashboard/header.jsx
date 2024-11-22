@@ -1,4 +1,7 @@
-import { Bars3BottomLeftIcon, UserCircleIcon } from '@heroicons/react/24/outline'
+import { UserCircleIcon } from '@heroicons/react/24/outline'
+import Image from 'next/image'
+import FoxLogo from '../images/logo.png' // Ensure you have this logo in your public folder
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 /**
  * The Header component renders the top navigation bar of the app.
@@ -11,23 +14,22 @@ import { Bars3BottomLeftIcon, UserCircleIcon } from '@heroicons/react/24/outline
  */
 export default function Header({ toggleNav }) {
   return (
-    <header className="w-full flex items-center justify-between p-4 bg-black">
-      {/* Menu Icon */}
-      <div className="flex items-center">
-        <button onClick={toggleNav}>
-          <Bars3BottomLeftIcon className="h-6 w-6 text-white" />
-        </button>
+    <header className="w-full flex items-center justify-between border-b border-gray-200 py-3 pr-4 pl-6">
+      {/* Left Section - Logo and Title */}
+      <div className="flex items-center space-x-2">
+        {/* Logo */}
+        <Image src={FoxLogo} alt="Logo" width={24} height={24} />
+        {/* Title */}
+        <h1 className="font-medium text-lg">Inarion</h1>
       </div>
 
-      {/* Title and Logo */}
-      <div className="flex items-center justify-center">
-        <h1 className="text-white text-3xl font-bold mr-4">Placeholder Title</h1>
-        <div className="h-12 w-12 bg-gray-500"></div>
-      </div>
-
-      {/* User Profile Icon */}
+      {/* Right Section - User Profile */}
       <div className="flex items-center">
-        <UserCircleIcon className="h-8 w-8 text-white" />
+        {/* User Profile Image */}
+        <Avatar>
+          <AvatarImage src="https://github.com/shadcn.png" />
+          <AvatarFallback>CN</AvatarFallback>
+        </Avatar>
       </div>
     </header>
   )

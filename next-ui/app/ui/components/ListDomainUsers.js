@@ -35,7 +35,7 @@ function ListDomainUsers() {
     fetchDomainUsers()
   }, [])
 
-  return <div className="text-white">{JSON.stringify(usersList)}</div>
+  return <div>{JSON.stringify(usersList)}</div>
 }
 
 export default ListDomainUsers

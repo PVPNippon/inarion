@@ -12,8 +12,8 @@ export default function People() {
   return (
     <LoggedInUserProvider>
       <ProjectDataProvider>
-        <h2 className="text-white">People</h2>
-        <p className="text-white">This is a placeholder for the people page.</p>
+        <h2>People</h2>
+        <p>This is a placeholder for the people page.</p>
         <ListDomainUsers></ListDomainUsers>
       </ProjectDataProvider>
     </LoggedInUserProvider>

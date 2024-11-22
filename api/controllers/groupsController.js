@@ -1,3 +1,4 @@
+const logger = require('../logger')
 const groupsService = require('../services/groupsService')
 const { getNestedTable, getHierarchy } = require('../services/nestedGroupsService')
 
@@ -296,7 +297,7 @@ exports.listGroupsMembersInExportFormat = async (req, res) => {
       projectId,
       serviceAccountEmail,
       serviceAccountPrivateKey,
-      groups
+      groups,
     })
 
     res.status(200).json(members)
@@ -322,9 +323,14 @@ exports.listGroupsMembersInExportFormat = async (req, res) => {
 exports.updateWhoCanLeaveGroup = async (req, res) => {
   const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail, whoCanLeaveGroup } = req.body
 
-  if (whoCanLeaveGroup !== 'ALL_MEMBERS_CAN_LEAVE' && whoCanLeaveGroup !== 'ALL_MANAGERS_CAN_LEAVE' && whoCanLeaveGroup !== 'NONE_CAN_LEAVE') {
+  if (
+    whoCanLeaveGroup !== 'ALL_MEMBERS_CAN_LEAVE' &&
+    whoCanLeaveGroup !== 'ALL_MANAGERS_CAN_LEAVE' &&
+    whoCanLeaveGroup !== 'NONE_CAN_LEAVE'
+  ) {
     return res.status(400).json({
-      message: 'The value of \'whoCanLeaveGroup\' must be one of \'ALL_MEMBERS_CAN_LEAVE\', \'ALL_MANAGERS_CAN_LEAVE\' and \'NONE_CAN_LEAVE\''
+      message:
+        "The value of 'whoCanLeaveGroup' must be one of 'ALL_MEMBERS_CAN_LEAVE', 'ALL_MANAGERS_CAN_LEAVE' and 'NONE_CAN_LEAVE'",
     })
   }
 
@@ -342,11 +348,11 @@ exports.updateWhoCanLeaveGroup = async (req, res) => {
       res.status(200).json({ message: `Set the 'whoCanLeaveGroup' of ${groupEmail} to ${whoCanLeaveGroup}` })
     } else {
       res.status(500).json({ message: 'The request could not be handled for some reason' })
-      console.log(response)
+      logger.debug(JSON.stringify(response, null, 2))
     }
   } catch (error) {
-    console.log('Error updating the specified group\'s \'whoCanLeaveGroup\' setting:', error)
-    res.status(500).json({ message: 'Error updating the specified group\'s \'whoCanLeaveGroup\' setting' })
+    logger.error(`Error updating the specified group's 'whoCanLeaveGroup' setting:${error}`)
+    res.status(500).json({ message: "Error updating the specified group's 'whoCanLeaveGroup' setting" })
   }
 }
 
@@ -390,28 +396,31 @@ exports.deleteMembers = async (req, res) => {
       serviceAccountEmail,
       serviceAccountPrivateKey,
       groupEmail,
-      memberEmails: uniqueMembers
+      memberEmails: uniqueMembers,
     })
 
-    if (response.undeletedMembers.length === 0) { // All requested members were deleted from the group successfully.
+    if (response.undeletedMembers.length === 0) {
+      // All requested members were deleted from the group successfully.
       response.message = `Deleted All requested member(s) from ${groupEmail}`
       res.status(200).json(response)
-    
-    } else if (response.deletedMembers.length > 0) { // Some requested members were deleted from the group successfully, but some were not.
+    } else if (response.deletedMembers.length > 0) {
+      // Some requested members were deleted from the group successfully, but some were not.
       response.message = `${response.undeletedMembers.length} requested member(s) could not be deleted from ${groupEmail}`
       res.status(207).json(response) // Ref for the status code: https://xexeq.jp/blogs/media/it-glossary1206
-    
-    } else { // No requested members were deleted from the group.
+    } else {
+      // No requested members were deleted from the group.
       response.message = `No members were deleted from ${groupEmail}`
 
       // If one of the status codes are in 500, the status code of the response should be 500 (Internal Server Error).
       // Otherwise it should be 400 (Bad Request).
-      const statusCode = response.undeletedMembers.some(({statusCode}) => statusCode >= 500 && statusCode < 600) ? 500 : 400
-      
+      const statusCode = response.undeletedMembers.some(({ statusCode }) => statusCode >= 500 && statusCode < 600)
+        ? 500
+        : 400
+
       res.status(statusCode).json(response)
     }
   } catch (error) {
-    console.log('Error deleting members:', error)
+    logger.error(`Error deleting members:${error}`)
     res.status(500).json({ message: `Error deleting members from ${groupEmail}` })
   }
 }
@@ -456,28 +465,31 @@ exports.deleteMemberFromGroups = async (req, res) => {
       serviceAccountEmail,
       serviceAccountPrivateKey,
       groupEmails: uniqueGroups,
-      memberEmail
+      memberEmail,
     })
 
-    if (response.failedGroups.length === 0) { // The member was successfully deleted from all requested groups.
+    if (response.failedGroups.length === 0) {
+      // The member was successfully deleted from all requested groups.
       response.message = `Deleted ${memberEmail} from all requested group(s)`
       res.status(200).json(response)
-    
-    } else if (response.succeededGroups.length > 0) { // The member was deleted from some requested groups, but not from all requested groups.
+    } else if (response.succeededGroups.length > 0) {
+      // The member was deleted from some requested groups, but not from all requested groups.
       response.message = `${memberEmail} could not be deleted from ${response.failedGroups.length} requested group(s)`
       res.status(207).json(response) // Ref for the status code: https://xexeq.jp/blogs/media/it-glossary1206
-    
-    } else { // The member was not deleted from all requested groups.
+    } else {
+      // The member was not deleted from all requested groups.
       response.message = `${memberEmail} was not deleted from all requested group(s)`
 
       // If one of the status codes are in 500, the status code of the response should be 500 (Internal Server Error).
       // Otherwise it should be 400 (Bad Request).
-      const statusCode = response.failedGroups.some(({statusCode}) => statusCode >= 500 && statusCode < 600) ? 500 : 400
-      
+      const statusCode = response.failedGroups.some(({ statusCode }) => statusCode >= 500 && statusCode < 600)
+        ? 500
+        : 400
+
       res.status(statusCode).json(response)
     }
   } catch (error) {
-    console.log('Error deleting member:', error)
+    logger.error(`Error deleting member:${error}`)
     res.status(500).json({ message: `Error deleting ${memberEmail} from the requested group(s)` })
   }
 }

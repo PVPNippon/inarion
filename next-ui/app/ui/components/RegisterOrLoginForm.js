@@ -46,7 +46,7 @@ function RegisteOrLogin() {
 
   return (
     <div>
-      <h2 className="text-white">Register or Login with Admin Email</h2>
+      <h2>Register or Login with Admin Email</h2>
       <form onSubmit={handleSubmit}>
         <input
           type="email"
@@ -64,14 +64,12 @@ function RegisteOrLogin() {
         />
         <br />
         <br />
-        <button className="text-white" type="submit">
-          Login
-        </button>
+        <button type="submit">Login</button>
       </form>
       {authUrl && (
         <div>
-          <p className="text-white">Click the link below to authorize the application:</p>
-          <a className="text-white" href={authUrl} target="_blank" rel="noopener noreferrer">
+          <p>Click the link below to authorize the application:</p>
+          <a href={authUrl} target="_blank" rel="noopener noreferrer">
             Authorize
           </a>
         </div>

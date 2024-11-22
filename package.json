@@ -10,7 +10,9 @@
     "googleapis": "^105.0.0",
     "htmx.org": "^1.9.12",
     "nanoid": "^5.0.7",
+    "pino": "^9.5.0",
     "react-csv": "^2.2.2",
-    "react-day-picker": "^9.2.1"
+    "react-day-picker": "^9.2.1",
+    "winston": "^3.17.0"
   }
 }

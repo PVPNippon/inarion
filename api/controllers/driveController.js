@@ -8,6 +8,7 @@ const encryptionKey = 'my-hardcoded-secret-key'
 const config = require('../config/config')
 const { storeDriveList, getValueFromRedis } = require('../controllers/cacheController')
 const { drive } = require('googleapis/build/src/apis/drive')
+const logger = require('../logger')(__filename)
 
 // Function to decrypt the private key
 function decodePrivateKeyData(privateKeyData) {
@@ -32,7 +33,10 @@ exports.getFileDetails = async (req, res) => {
       return res.status(400).json({ message: 'User email and file ID are required' })
     }
 
-    console.log(`Fetching file details for user: ${userEmail} and file: ${fileId}`)
+    logger.info(`Fetching file details for user: ${userEmail} and file: ${fileId}`, {
+      functionName: 'getFileDetails',
+      module: 'Drive',
+    })
 
     const privateKey = decodePrivateKeyData(serviceAccountPrivateKey).private_key
 
@@ -46,7 +50,7 @@ exports.getFileDetails = async (req, res) => {
 
     res.status(200).json(fileData)
   } catch (error) {
-    console.error('Error fetching file details:', error)
+    logger.error(`Error fetching file details:${error}`, { functionName: 'getFileDetails', module: 'Drive' })
     res.status(500).json({ message: 'Error fetching file details' })
   }
 }
@@ -139,7 +143,10 @@ exports.getAllDrives = async (req, res) => {
 
   // If no cached drive list is found, fetch files directly from Google Drive
   if (!driveFilesList) {
-    console.log('No stored Drive cache found on Redis, fetching from Google Drive')
+    logger.info('No stored Drive cache found on Redis, fetching from Google Drive', {
+      functionName: 'getAllDrives',
+      module: 'Drive',
+    })
 
     // Fetch personal drive files using the provided service credentials
     const personalDriveFiles = await fetchPersonalDriveFiles(adminEmail, serviceAccountEmail, serviceAccountPrivateKey)
@@ -171,7 +178,7 @@ exports.getAllDrives = async (req, res) => {
 
   // Apply filters to the drive files list, whether cached or freshly fetched
   const filteredDriveData = filterDriveData(driveFilesList, filters)
-  console.log(filteredDriveData)
+  // logger.debug(filteredDriveData)
 
   // Return the filtered results as JSON
   return res.status(200).json(filteredDriveData)

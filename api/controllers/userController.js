@@ -1,10 +1,11 @@
 // controllers/userController.js
 // const pool = require('../models/db');
-const User = require('../models/User'); // User model for database operations
-const { google } = require('googleapis'); // Google APIs client library
-const { OAuth2Client } = require('google-auth-library'); // Google OAuth2 client library
-const oauth2Client = require('../models/googleAuth'); // Custom OAuth2 client setup
-const config = require('../config/config'); // Configuration settings
+const User = require('../models/User') // User model for database operations
+const { google } = require('googleapis') // Google APIs client library
+const { OAuth2Client } = require('google-auth-library') // Google OAuth2 client library
+const oauth2Client = require('../models/googleAuth') // Custom OAuth2 client setup
+const config = require('../config/config') // Configuration settings
+const logger = require('../logger')(__filename)
 
 /**
  * Generates an authentication URL for Google OAuth2.
@@ -18,8 +19,8 @@ const getAuthUrl = (email, projectName) => {
     // prompt: 'consent',
     scope: config.SCOPES,
     state: JSON.stringify({ email, projectName }),
-    redirect_uri: config.REDIRECT_URI
-  });
+    redirect_uri: config.REDIRECT_URI,
+  })
 
   // return oauth2Client.generateAuthUrl({
   //   access_type: 'offline',
@@ -28,7 +29,7 @@ const getAuthUrl = (email, projectName) => {
   //   state: JSON.stringify({ email, projectName }),
   //   redirect_uri: config.REDIRECT_URI
   // });
-};
+}
 
 /**
  * Retrieves user details by email.
@@ -37,22 +38,22 @@ const getAuthUrl = (email, projectName) => {
  */
 exports.getAdmins = async (req, res) => {
   // Extract email from the request body
-  const { email } = req.body;
+  const { email } = req.body
 
   try {
     // Find a user by email, from the database, if exists
-    const user = await User.findOne({ where: { email } });
+    const user = await User.findOne({ where: { email } })
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'User not found' })
     }
-    // Return user details  
-    res.status(200).json(user);
-  } catch (error) { 
-    console.error('Error fetching user:', error);
+    // Return user details
+    res.status(200).json(user)
+  } catch (error) {
+    logger.error(`Error fetching user:${error}`, { functionName: 'getAdmins', module: 'Users' })
     // Return 500 if there's an error
-    res.status(500).json({ message: 'Error fetching user' }); 
+    res.status(500).json({ message: 'Error fetching user' })
   }
-};
+}
 
 /**
  * Placeholder function for retrieving data from the database, not in use at the moment
@@ -65,9 +66,9 @@ exports.getData = async (req, res) => {
     // const data = await pool.query('SELECT * FROM team');
     // res.status(200).send(data.rows);
   } catch (err) {
-    res.sendStatus(500);
+    res.sendStatus(500)
   }
-};
+}
 
 /**
  * Registers a new user or updates an existing user's project.
@@ -76,50 +77,46 @@ exports.getData = async (req, res) => {
  */
 exports.registerUser = async (req, res) => {
   // Extract email and project name from request body
-  const { email, projectName } = req.body;
+  const { email, projectName } = req.body
 
   if (!email || !projectName) {
-    return res.status(400).send('Email and project name are required');
+    return res.status(400).send('Email and project name are required')
   }
 
   try {
-    console.log('Checking if the user and project already exist...');
+    logger.info('Checking if the user and project already exist...', { functionName: 'registerUser', module: 'Users' })
     // Check if user with the given email and project already exists
-    const existingUser = await User.findOne({ where: { email, projectName } });
+    const existingUser = await User.findOne({ where: { email, projectName } })
 
     if (existingUser) {
-      console.log('User with this project already exists');
+      logger.info('User with this project already exists', { functionName: 'registerUser', module: 'Users' })
     } else {
-      console.log('Creating a new user or updating existing user with new project...');
+      logger.info('Creating a new user or updating existing user with new project...', {
+        functionName: 'registerUser',
+        module: 'Users',
+      })
       // Check if the user exists without considering the project
-      const userWithoutProject = await User.findOne({ where: { email } });
+      const userWithoutProject = await User.findOne({ where: { email } })
 
       if (userWithoutProject) {
         // If the user exists, but with a different project, update the project name
-        userWithoutProject.projectName = projectName;
+        userWithoutProject.projectName = projectName
         // Save the updated user
-        await userWithoutProject.save();
-        console.log('Updated existing user with new project');
+        await userWithoutProject.save()
+        logger.info('Updated existing user with new project', { functionName: 'registerUser', module: 'Users' })
       } else {
         // If the user does not exist, create a new user
-        await User.create({ email, projectName });
-        console.log('New user created');
+        await User.create({ email, projectName })
+        logger.info('New user created', { functionName: 'registerUser', module: 'Users' })
       }
     }
 
-    const authUrl = getAuthUrl(email, projectName); // Generate the authentication URL
+    const authUrl = getAuthUrl(email, projectName) // Generate the authentication URL
 
-    console.log('Returning authUrl:', authUrl); // Log the authentication URL
-    return res.status(200).json({ authUrl }); // Return the authentication URL
-
+    logger.info(`Returning authUrl:${authUrl}`, { functionName: 'registerUser', module: 'Users' }) // Log the authentication URL
+    return res.status(200).json({ authUrl }) // Return the authentication URL
   } catch (error) {
-    console.error('Error during registration:', error);
-    return res.status(500).json({ error: 'An error occurred while registering the user' });
+    logger.error(`Error during registration:${error}`, { functionName: 'registerUser', module: 'Users' })
+    return res.status(500).json({ error: 'An error occurred while registering the user' })
   }
-};
-
-
-
-
-
-
+}

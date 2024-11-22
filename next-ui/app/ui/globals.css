@@ -21,6 +21,11 @@ input[type='number']::-webkit-outer-spin-button {
 .bg-white-14 {
   background-color: rgba(255, 255, 255, 0.14);
 }
+
+.custom-shadow {
+  box-shadow: 0px 1px 2px 0px hsla(7, 62%, 47%, 0.08);
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -29,17 +34,17 @@ input[type='number']::-webkit-outer-spin-button {
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 240 4.8% 95.9%;
+    --primary: 8, 85%, 58%; /*custom color*/
+    --primary-foreground: 9, 100%, 95%;
+    --secondary: 240 5.9% 90%;
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
+    --muted-foreground: 240 4% 46%;
+    --accent: 9, 100%, 95%;
     --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 324, 100%, 36%, 1;
     --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
+    --border: 8, 85%, 58%; /*custom color*/
     --input: 240 5.9% 90%;
     --ring: 240 10% 3.9%;
     --chart-1: 12 76% 61%;
@@ -48,6 +53,15 @@ input[type='number']::-webkit-outer-spin-button {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+    --radius-4xl: 40px;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
   .dark {
     --background: 240 10% 3.9%;
@@ -74,6 +88,14 @@ input[type='number']::-webkit-outer-spin-button {
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 @layer base {

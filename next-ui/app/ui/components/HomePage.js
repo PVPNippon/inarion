@@ -75,7 +75,7 @@ const HomePage = () => {
 
   // If there's no error and the data has been fetched, display it
   return (
-    <div className="font-normal text-white">
+    <div className="font-normal">
       <section className="mb-10">
         <h1 className="text-2xl mb-6">Hello, Jonathan</h1>
         <p className="text-base mb-5">You have 6 new alerts. 2 are tagged as critical and/or time sensitive.</p>
