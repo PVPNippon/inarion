@@ -5,16 +5,14 @@ const Users = require('../models/User')
 const Projects = require('../models/Project')
 const ServiceAccounts = require('../models/ServiceAccount')
 const instanceStore = require('..').instanceStore
+
 /**
- * Retrieves and decodes service account credentials from redis or the database.
+ * Retrieves and decodes service account credentials from the database.
  *
- * This function fetches the service account email and key using the provided email, decodes the base64-encoded privateKeyData,
- * and parses it to extract the credentials in JSON format. If the service account email and key are not provided, it tries to
- * fetch them from Redis and if not found, fetches it from the database and stores in Redis.
+ * This function fetches the service account credentials using the provided email, decodes the base64-encoded privateKeyData,
+ * and parses it to extract the credentials in JSON format.
  *
- * @param {string} userEmail - The email address associated with the user.
- * @param {string} serviceAccountEmail - The email address associated with the service account.
- * @param {string} serviceAccountPrivateKey - The private key associated with the service account.
+ * @param {string} userEmail - The email address associated with the service account.
  * @returns {Promise<Object>} - A promise that resolves to the decoded and validated credentials object.
  * @throws Will throw an error if the service account key is not found, the credentials are invalid, or the JSON parsing fails.
  */
@@ -36,10 +34,12 @@ async function getCredentials(userEmail) {
     const projectId = (await Projects.findOne({ where: { userId: user } })).projectId
     const serviceAccountEmail = (await ServiceAccounts.findOne({ where: { projectId: projectId } })).serviceAccountEmail
 
+    // If the service account email is not found, throw an error
     if (!serviceAccountEmail) {
       throw new Error(`Service account not found for ${userDomain}`)
     }
 
+    // Fetch the service account key from the database
     serviceAccountKeyInDB = await ServiceAccountKeys.findOne({
       where: { serviceAccountEmail: serviceAccountEmail },
     })
@@ -49,7 +49,7 @@ async function getCredentials(userEmail) {
       throw new Error(`Service account key not found for ${serviceAccountEmail}`)
     }
 
-    // Store the service account key in Redis
+    // Store the service account email and key in Redis
     await cacheService.storeDataInRedis(serviceAccountCredentialsKey, {
       serviceAccountEmail: serviceAccountKeyInDB.serviceAccountEmail,
       privateKeyData: serviceAccountKeyInDB.privateKeyData,
@@ -90,50 +90,45 @@ async function getCredentials(userEmail) {
  * @returns {Promise<Object>} - A promise that resolves to the initialized GoogleAuth client.
  */
 async function initializeGoogleAuth(credentials) {
-  // Initialize the GoogleAuth client using the provided credentials
-  const auth = new google.auth.GoogleAuth({
-    // Provide the credentials to the GoogleAuth client.
-    credentials: credentials,
-    // Specify the required scopes API access.
-    scopes: [
-      'https://www.googleapis.com/auth/drive',
-      'https://www.googleapis.com/auth/drive.metadata.readonly',
-      'https://www.googleapis.com/auth/admin.directory.group',
-      'https://www.googleapis.com/auth/admin.directory.user.readonly',
-      'https://www.googleapis.com/auth/admin.reports.audit.readonly',
-      'https://www.googleapis.com/auth/apps.groups.settings',
-    ],
-  })
+  let auth
+  try {
+    // Initialize the GoogleAuth client using the provided credentials
+    auth = new google.auth.GoogleAuth({
+      // Provide the credentials to the GoogleAuth client.
+      credentials: credentials,
+      // Specify the required scopes API access.
+      scopes: [
+        'https://www.googleapis.com/auth/drive',
+        'https://www.googleapis.com/auth/drive.metadata.readonly',
+        'https://www.googleapis.com/auth/admin.directory.group',
+        'https://www.googleapis.com/auth/admin.directory.user.readonly',
+        'https://www.googleapis.com/auth/admin.reports.audit.readonly',
+        'https://www.googleapis.com/auth/apps.groups.settings',
+      ],
+    })
+  } catch (error) {
+    console.error('Error initializing the GoogleAuth client:', error)
+    throw new Error('Error initializing the GoogleAuth clients')
+  }
 
   // Return the initialized auth client.
   return auth
 }
 
 /**
- * Impersonates a user to access Google Drive, Google Admin Reports, or Google Admin Directory resources on their behalf.
+ * Retrieves a Google API client instance based on the type of instance specified.
  *
- * This function sets up the Google Auth client to impersonate a specified user, allowing access to the user's resources.
+ * This function takes a JWT client instance and a type of instance as parameters.
+ * It returns a promise that resolves to the Google API client instance configured for the impersonated user.
+ * The type of instance can be 'drive', 'reports', or 'directory', and it determines which Google API client instance is created.
  *
- * @param {string} impersonatedUser - The email address of the user to impersonate.
- * @param {Object} auth - The initialized GoogleAuth client.
+ * @param {Object} jwtClient - The JWT client instance to use for authentication.
  * @param {string} typeOfInstance - The type of Google API client instance to create.
- *                                  Possible values are 'drive', 'reports', or 'directory'.
  * @returns {Promise<Object>} - A promise that resolves to the Google API client instance configured for the impersonated user.
  */
-async function impersonateClient(impersonatedUser, auth, typeOfInstance, instanceStoreKey) {
+async function getInstance(jwtClient, typeOfInstance) {
   let service
-
-  // Retrieve the client from the auth instance.
-  const jwtClient = await auth.getClient()
-  // Set the subject (user to impersonate) for the auth client.
-  jwtClient.subject = impersonatedUser // Impersonate the specified user
-
-  await jwtClient.on('tokens', (tokens) => {
-    if (tokens.access_token) {
-      instanceStore.set(`${instanceStoreKey}-expiry`, { expiryDate: tokens.expiry_date })
-    }
-  })
-
+  //Return the auth client instance configured with the impersonated user
   switch (typeOfInstance) {
     case 'drive':
       service = google.drive({ version: 'v3', auth: jwtClient })
@@ -144,25 +139,74 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance, instanc
     case 'directory':
       service = google.admin({ version: 'directory_v1', auth: jwtClient })
       break
+    case 'groups':
+      service = google.groupssettings({ version: 'v1', auth: jwtClient })
+      break
     default:
       service = google.admin({ version: 'directory_v1', auth: jwtClient })
+  }
+  return service
+}
+
+/**
+ * Impersonates a user to access Google Workspace resources on their behalf.
+ *
+ * This function configures the Google Auth client to impersonate a specified user, allowing access to the user's resources.
+ *
+ * @param {string} impersonatedUser - The email address of the user to impersonate.
+ * @param {Object} auth - The initialized GoogleAuth client.
+ * @param {string} typeOfInstance - The type of Google API client instance to create.
+ *                                  Possible values are 'drive', 'reports', or 'directory'.
+ * @param {string} instanceStoreKey - The key used in the in-memory instance store.
+ * @returns {Promise<Object>} - A promise that resolves to the Google Drive client instance configured for the impersonated user.
+ */
+async function impersonateClient(impersonatedUser, auth, typeOfInstance, instanceStoreKey) {
+  let jwtClient
+  let service
+
+  try {
+    // Retrieve the client from the auth instance.
+    //the variable is named jwtClient is because actually Google returns a JWT client in our case
+    jwtClient = await auth.getClient()
+
+    // Set the subject (user to impersonate) for the auth client.
+    jwtClient.subject = impersonatedUser
+
+    service = await getInstance(jwtClient, typeOfInstance) //return the auth client instance configured with the impersonated user
+
+    //Retrieve the expiry date using the 'on' method
+    //https://github.com/googleapis/google-auth-library-nodejs?tab=readme-ov-file#handling-token-events
+    //I'm storing the client and expiry date in in-memory store inside this function because everywhere else the expiry date was either undefinded or
+    //it returned the whole jwtClient instead of the expiry date
+    await jwtClient.on('tokens', async (tokens) => {
+      if (tokens.access_token) {
+        //if the access token is present, retrieve its expiry date and store it together with the impersonated client in in-memory store
+        //FYI the expiry period is 1 hour
+        instanceStore.set(`${instanceStoreKey}`, {
+          expiryDate: tokens.expiry_date,
+          service: service,
+        })
+      }
+    })
+  } catch (error) {
+    console.error('Error retrieving a JWT client:', error)
+    throw new Error('Could not obtain a JWT client')
   }
 
   return service
 }
 
 /**
- * Retrieves a Google API client instance impersonating a specified user.
+ * Retrieves a Google API client instance impersonating a user from an in-memory store.
  *
- * This function fetches the service account credentials, initializes the Google Auth client,
- * and then impersonates the specified user to access their Google Drive resources.
+ * If the instance already exists in the store and has an expiration time more than 5 minutes in the future,
+ * the existing instance is returned. Otherwise, the instance is created by impersonating the user and
+ * stored in the in-memory store.
  *
  * @param {string} impersonatedUser - The email address of the user to impersonate.
- * @param {string} serviceAccountEmail - The email address of the service account.
  * @param {string} typeOfInstance - The type of Google API client instance to create.
  *                                  Possible values are 'drive', 'reports', or 'directory'.
- * @returns {Promise<Object>} - A promise that resolves to the Google API client instance
- *                              configured for the impersonated user.
+ * @returns {Promise<Object>} - A promise that resolves to the Google API client instance configured for the impersonated user.
  */
 async function getImpersonatedClientInstance(impersonatedUser, typeOfInstance) {
   let service
@@ -170,15 +214,16 @@ async function getImpersonatedClientInstance(impersonatedUser, typeOfInstance) {
   const instanceStoreKey = `${impersonatedUser}-${typeOfInstance}-impersonatedClient`
 
   // Check if the instance already exists in the store
-
   service = await instanceStore.get(instanceStoreKey)
-  const timeNow = new Date().getTime()
   console.log('SERVICE HERE', service)
 
-  // If the instance already exists in the store, return it
+  // Get the current time
+  const timeNow = new Date().getTime()
+
+  // If the instance already exists in the in-memory store and expiration time is more than 5 minutes, return it
   if (service && service.expiryDate - timeNow > 300000) return service.service
 
-  // If the instance doesn't exist in the store, create it
+  // If the instance doesn't exist in the store or the expiry time is less than 5 minutes, create create the new instance
   // Get the service account credentials
   const credentials = await getCredentials(impersonatedUser)
 
@@ -188,17 +233,6 @@ async function getImpersonatedClientInstance(impersonatedUser, typeOfInstance) {
   // Impersonate the specified user
   service = await impersonateClient(impersonatedUser, authClient, typeOfInstance, instanceStoreKey)
 
-  const serviceObj = await instanceStore.get(`${instanceStoreKey}-expiry`)
-
-  if (serviceObj) {
-    serviceObj.service = service
-    // Store the instance in the store
-    await instanceStore.set(instanceStoreKey, serviceObj)
-  } else {
-    instanceStore.delete(`${instanceStoreKey}-expiry`)
-  }
-
-  // Return the impersonated client
   return service
 }
 
