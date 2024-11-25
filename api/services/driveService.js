@@ -375,6 +375,7 @@ const fetchPersonalDriveFiles = async (adminEmail, serviceAccountEmail, serviceA
     logger.debug(JSON.stringify(personalDrivesWithFiles, null, 2), {
       functionName: 'fetchPersonalDriveFiles',
       module: 'Drive',
+      storeLocation: 'file',
     })
     return personalDrivesWithFiles // Return the array of personal drives with their file structures
   } catch (error) {

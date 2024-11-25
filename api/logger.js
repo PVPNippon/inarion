@@ -28,9 +28,6 @@ const colorMap = {
   white: '37',
 }
 
-// Define the log file path
-const logFilePath = '../logs/combined.log'
-
 // Apply colors using ANSI escape sequences
 // This function takes a text string and a color name, and
 // returns the text wrapped in ANSI escape sequences to
@@ -94,6 +91,9 @@ const customFormat = (moduleName) => {
     // Align the log entries for better readability
     align(),
 
+    // Include the stack trace for error logs
+    winston.format.errors({ stack: true }),
+
     // Define a printf function to customize the log message
     printf((info) => {
       // Get the caller's line and column information
@@ -109,7 +109,8 @@ const customFormat = (moduleName) => {
         `${applyColor(`[Module: ${info.module || 'N/A'}]`, 'yellow')} ` +
         `${applyColor(`[Function: ${info.functionName || 'N/A'}]`, 'magenta')} ` +
         `${applyColor(info.level.toUpperCase() + ':', levelColor)} ` +
-        `${applyColor(info.message, 'white')} `
+        `${applyColor(info.message, 'white')} ` +
+        (info.stack ? `\n${applyColor(info.stack, 'red')}` : '') // Include stack trace if available
       )
     })
   )
@@ -120,7 +121,7 @@ const customFormat = (moduleName) => {
  * @param {string} storeLocation - Location to store the log. Can be 'stdout', 'file', or 'both'.
  * @returns {Array} An array of transports.
  */
-const createTransport = (storeLocation) => {
+const createTransport = (storeLocation, moduleName) => {
   const transports = []
 
   // Console transport
@@ -131,16 +132,49 @@ const createTransport = (storeLocation) => {
 
   // File transport
   if (storeLocation === 'file' || storeLocation === 'both') {
-    // Add a file transport
+    // Debug level logs go to app-debug.log
     transports.push(
       new winston.transports.File({
-        filename: logFilePath,
-        level: logLevel,
+        filename: 'app-debug.log',
+        level: 'debug',
+        format: customFormat(moduleName),
       }).on('error', (err) => {
-        // Log any errors writing to the log file
-        console.error('Error writing to log file:', err)
+        console.error('Error writing to app-debug.log:', err)
       })
     )
+
+    // Error level logs go to app-error.log
+    transports.push(
+      new winston.transports.File({
+        filename: 'app-error.log',
+
+        level: 'error',
+
+        format: customFormat(moduleName),
+      }).on('error', (err) => {
+        console.error('Error writing to app-error.log:', err)
+      })
+    )
+
+    // All logs go to combined.log when storeLocation is 'both'
+    if (storeLocation === 'both') {
+      transports.push(
+        new winston.transports.File({
+          /**
+           * The filename to write the log to. This filename is relative to the
+           * current working directory of the Node.js process.
+           */
+          filename: 'combined.log',
+          /**
+           * The format of the log messages. This format is used for both the
+           * console and file transports.
+           */
+          format: customFormat(moduleName),
+        }).on('error', (err) => {
+          console.error('Error writing to combined.log:', err)
+        })
+      )
+    }
   }
 
   return transports
@@ -169,7 +203,7 @@ const logger = (moduleName) => {
       const dynamicLogger = winston.createLogger({
         level: logLevel,
         format: customFormat(moduleName),
-        transports: createTransport(storeLocation),
+        transports: createTransport(storeLocation, moduleName),
       })
 
       /**

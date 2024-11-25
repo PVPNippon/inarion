@@ -1,5 +1,6 @@
-const { google } = require('googleapis');
-const ServiceAccountKeys = require('../models/ServiceAccountKeys');
+const { google } = require('googleapis')
+const ServiceAccountKeys = require('../models/ServiceAccountKeys')
+const logger = require('../logger')(__filename)
 
 /**
  * Retrieves and decodes service account credentials from the database.
@@ -11,39 +12,41 @@ const ServiceAccountKeys = require('../models/ServiceAccountKeys');
  * @returns {Promise<Object>} - A promise that resolves to the decoded and validated credentials object.
  * @throws Will throw an error if the service account key is not found, the credentials are invalid, or the JSON parsing fails.
  */
-async function  getCredentials(serviceAccountEmail, serviceAccountPrivateKey) {
-  let serviceAccountKeyInDB = ""
-  if(!serviceAccountPrivateKey){
+async function getCredentials(serviceAccountEmail, serviceAccountPrivateKey) {
+  let serviceAccountKeyInDB = ''
+  if (!serviceAccountPrivateKey) {
     // Fetch the service account key from the database using the provided email.
-    serviceAccountKeyInDB = await ServiceAccountKeys.findOne({ where: { serviceAccountEmail: serviceAccountEmail } });
+    serviceAccountKeyInDB = await ServiceAccountKeys.findOne({ where: { serviceAccountEmail: serviceAccountEmail } })
     // If the service account key is not found, throw an error to indicate the issue.
     if (!serviceAccountKeyInDB) {
-      throw new Error(`Service account key not found for ${serviceAccountEmail}`);
+      throw new Error(`Service account key not found for ${serviceAccountEmail}`)
     }
     serviceAccountPrivateKey = serviceAccountKeyInDB
   }
 
-
   // Decode the base64-encoded privateKeyData to get the actual JSON credentials.
-  const decodedCredentials = Buffer.from(serviceAccountPrivateKey, 'base64').toString('utf8');
+  const decodedCredentials = Buffer.from(serviceAccountPrivateKey, 'base64').toString('utf8')
 
-  let credentials;
+  let credentials
   try {
     // Parse the decoded JSON string to extract the credentials.
-    credentials = JSON.parse(decodedCredentials);
+    credentials = JSON.parse(decodedCredentials)
   } catch (error) {
     // If there is an error in parsing, log the error and throw a new error indicating invalid credentials format.
-    console.error('Error parsing the credentials JSON:', error);
-    throw new Error('Invalid credentials format');
+    logger.error(`Error parsing the credentials JSON:${error}`, {
+      functionName: 'getCredentials',
+      module: 'Google Drive',
+    })
+    throw new Error('Invalid credentials format')
   }
 
   // Ensure the parsed credentials contain the necessary fields: client_email, private_key, and token_uri.
   if (!credentials.client_email || !credentials.private_key || !credentials.token_uri) {
-    throw new Error('Invalid or incomplete credentials');
+    throw new Error('Invalid or incomplete credentials')
   }
 
   // Return the validated credentials to be used in further operations.
-  return credentials;
+  return credentials
 }
 
 /**
@@ -60,10 +63,10 @@ async function initializeGoogleAuth(credentials) {
     credentials: credentials,
     // Specify the required scopes for Google Drive API access.
     scopes: ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/drive.metadata.readonly'],
-  });
+  })
 
   // Return the initialized auth client.
-  return auth;
+  return auth
 }
 
 /**
@@ -77,15 +80,15 @@ async function initializeGoogleAuth(credentials) {
  */
 async function impersonateClient(impersonatedUser, auth) {
   // Retrieve the client from the auth instance.
-  const authClient = await auth.getClient();
+  const authClient = await auth.getClient()
   // Set the subject (user to impersonate) for the auth client.
-  authClient.subject = impersonatedUser; // Impersonate the specified user
+  authClient.subject = impersonatedUser // Impersonate the specified user
   // Return the Google Drive client instance configured with the impersonated user.
-  return google.drive({ version: 'v3', auth: authClient });
+  return google.drive({ version: 'v3', auth: authClient })
 }
 
 module.exports = {
   getCredentials,
   initializeGoogleAuth,
   impersonateClient,
-};
+}

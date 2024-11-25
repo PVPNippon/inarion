@@ -19,7 +19,10 @@ async function retryAsync(fn, retries = 5, delay = 2000) {
       return await fn()
     } catch (error) {
       if (i < retries - 1) {
-        console.warn(`Retry ${i + 1}/${retries} failed: ${error.message}. Retrying in ${delay / 1000} seconds...`)
+        logger.warn(`Retry ${i + 1}/${retries} failed: ${error.message}. Retrying in ${delay / 1000} seconds...`, {
+          functionName: 'retryAsync',
+          module: 'Projects',
+        })
         await new Promise((resolve) => setTimeout(resolve, delay)) // Wait before retrying
       } else {
         throw new Error(`Failed after ${retries} retries: ${error.message}`) // Throw error after all retries fail

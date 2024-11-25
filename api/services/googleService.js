@@ -43,7 +43,10 @@ const listOrganizations = async (authClient) => {
     return response.data.organizations
   } catch (error) {
     // Log and throw the error if the API request fails
-    console.error('Error listing organizations:', error.response?.data || error.message)
+    logger.error(`Error listing organizations: ${error.response?.data || error.message}`, {
+      functionName: 'listOrganizations',
+      module: 'Projects',
+    })
     throw error
   }
 }
@@ -100,7 +103,10 @@ const listProjects = async (authClient, organizationId) => {
     return response.data.projects
   } catch (error) {
     // Log and throw the error if the API request fails
-    console.error('Error listing projects:', error.response?.data || error.message)
+    logger.error(`Error listing projects:${error.response?.data || error.message}`, {
+      functionName: 'listProjects',
+      module: 'Projects',
+    })
     throw error
   }
 }

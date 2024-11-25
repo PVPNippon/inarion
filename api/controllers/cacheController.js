@@ -38,7 +38,10 @@ const getDataFromRedis = async (key) => {
     const data = await redisClient.get(key)
     return data ? JSON.parse(data) : null
   } catch (error) {
-    console.error('Error retrieving data from Redis:', error)
+    logger.error(`Error retrieving data from Redis:${error}`, {
+      functionName: 'getDataFromRedis',
+      module: 'Redis',
+    })
   }
 }
 

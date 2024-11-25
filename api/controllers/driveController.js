@@ -178,7 +178,11 @@ exports.getAllDrives = async (req, res) => {
 
   // Apply filters to the drive files list, whether cached or freshly fetched
   const filteredDriveData = filterDriveData(driveFilesList, filters)
-  // logger.debug(filteredDriveData)
+  logger.debug(JSON.stringify(filteredDriveData), {
+    functionName: 'getAllDrives',
+    module: 'Drive',
+    storeLocation: 'file',
+  })
 
   // Return the filtered results as JSON
   return res.status(200).json(filteredDriveData)
