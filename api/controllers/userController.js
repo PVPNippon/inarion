@@ -5,7 +5,7 @@ const { google } = require('googleapis') // Google APIs client library
 const { OAuth2Client } = require('google-auth-library') // Google OAuth2 client library
 const oauth2Client = require('../models/googleAuth') // Custom OAuth2 client setup
 const config = require('../config/config') // Configuration settings
-const logger = require('../logger')(__filename)
+const logger = require('../logger')(__filename, 'Users')
 
 /**
  * Generates an authentication URL for Google OAuth2.
@@ -49,7 +49,7 @@ exports.getAdmins = async (req, res) => {
     // Return user details
     res.status(200).json(user)
   } catch (error) {
-    logger.error(`Error fetching user:${error}`, { functionName: 'getAdmins', module: 'Users' })
+    logger.error(`Error fetching user:${error}`)
     // Return 500 if there's an error
     res.status(500).json({ message: 'Error fetching user' })
   }
@@ -84,17 +84,14 @@ exports.registerUser = async (req, res) => {
   }
 
   try {
-    logger.info('Checking if the user and project already exist...', { functionName: 'registerUser', module: 'Users' })
+    logger.info('Checking if the user and project already exist...')
     // Check if user with the given email and project already exists
     const existingUser = await User.findOne({ where: { email, projectName } })
 
     if (existingUser) {
-      logger.info('User with this project already exists', { functionName: 'registerUser', module: 'Users' })
+      logger.info('User with this project already exists')
     } else {
-      logger.info('Creating a new user or updating existing user with new project...', {
-        functionName: 'registerUser',
-        module: 'Users',
-      })
+      logger.info('Creating a new user or updating existing user with new project...')
       // Check if the user exists without considering the project
       const userWithoutProject = await User.findOne({ where: { email } })
 
@@ -103,20 +100,20 @@ exports.registerUser = async (req, res) => {
         userWithoutProject.projectName = projectName
         // Save the updated user
         await userWithoutProject.save()
-        logger.info('Updated existing user with new project', { functionName: 'registerUser', module: 'Users' })
+        logger.info('Updated existing user with new project')
       } else {
         // If the user does not exist, create a new user
         await User.create({ email, projectName })
-        logger.info('New user created', { functionName: 'registerUser', module: 'Users' })
+        logger.info('New user created')
       }
     }
 
     const authUrl = getAuthUrl(email, projectName) // Generate the authentication URL
 
-    logger.info(`Returning authUrl:${authUrl}`, { functionName: 'registerUser', module: 'Users' }) // Log the authentication URL
+    logger.info(`Returning authUrl:${authUrl}`) // Log the authentication URL
     return res.status(200).json({ authUrl }) // Return the authentication URL
   } catch (error) {
-    logger.error(`Error during registration:${error}`, { functionName: 'registerUser', module: 'Users' })
+    logger.error(`Error during registration:${error}`)
     return res.status(500).json({ error: 'An error occurred while registering the user' })
   }
 }

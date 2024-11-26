@@ -1,4 +1,4 @@
-const logger = require('../logger')(__filename)
+const logger = require('../logger')(__filename, 'Utility Functions')
 
 /**
  * Extracts the primary email addresses from a list of user objects.
@@ -39,7 +39,7 @@ const printHierarchy = (items, level = 0) => {
 
   // Iterate over each item in the array and print its name with the appropriate indentation.
   items.forEach((item) => {
-    logger.debug(`${indent}┗━${item.name}`, { functionName: 'printHierarchy', module: 'Utility' }) // Print the item with an arrow to indicate its position in the tree.
+    logger.debug(`${indent}┗━${item.name}`) // Print the item with an arrow to indicate its position in the tree.
 
     // If the item has children, recursively call printHierarchy on its children, increasing the indentation level.
     if (item.children && item.children.length > 0) {

@@ -5,7 +5,7 @@ const { extractEmails } = require('../utility/utilityFunctions')
 const { default: axios } = require('axios')
 const API_BASE_URL = process.env.API_BASE_URL
 const { getMimeTypeOrKey } = require('../helper/mimeType')
-const logger = require('../logger')(__filename)
+const logger = require('../logger')(__filename, 'Drive')
 
 /**
  * Initializes the Google Drive instance for a specified user.
@@ -53,10 +53,7 @@ const fetchFilesFromDrive = async (drive, driveId = null) => {
   // }
 
   // query = `('testadmin@pvp-test-domain2.com' in  owners)`
-  logger.debug(`Generated query:${JSON.stringify(query, null, 2)}`, {
-    functionName: 'fetchFilesFromDrive',
-    module: 'Drive',
-  }) // Log the query for debugging
+  logger.debug(`Generated query:${JSON.stringify(query, null, 2)}`) // Log the query for debugging
 
   do {
     try {
@@ -91,7 +88,7 @@ const fetchFilesFromDrive = async (drive, driveId = null) => {
       // Update nextPageToken for pagination
       nextPageToken = filesResponse.data.nextPageToken
     } catch (error) {
-      logger.error(`Error fetching files:${error.message}`, { functionName: 'fetchFilesFromDrive', module: 'Drive' })
+      logger.error(`Error fetching files:${error.message}`)
       throw error
     }
   } while (nextPageToken) // Continue fetching files while there are more pages
@@ -283,18 +280,12 @@ const fetchSharedDrivesFiles = async (
     const drivesResponse = await drive.drives.list() // Fetch all shared drives
     const sharedDrives = drivesResponse.data.drives || [] // Fallback to an empty array if no drives are found
     const sharedDrivesWithFiles = [] // Array to store drives and their files
-    logger.info(JSON.stringify(sharedDrives, null, 2), {
-      functionName: 'fetchSharedDrivesFiles',
-      module: 'Drive',
-    })
+    logger.info(JSON.stringify(sharedDrives, null, 2))
     // let filters = {
     //   trashed: false,
     // };
     if (driveId) {
-      logger.info('Drive Id filter applied', {
-        functionName: 'fetchSharedDrivesFiles',
-        module: 'Drive',
-      })
+      logger.info('Drive Id filter applied')
       const driveFiles = await fetchAndBuildDriveFiles(drive, 'DRIVE-NAME', true, driveId, '', trashed, owners)
       sharedDrivesWithFiles.push(driveFiles) // Add the built hierarchy to the array
       return sharedDrivesWithFiles
@@ -317,10 +308,7 @@ const fetchSharedDrivesFiles = async (
     return sharedDrivesWithFiles // Return the array of shared drives with their file structures
   } catch (error) {
     // Log any errors that occur while fetching shared drives
-    logger.error(`Error fetching shared drives and their file metadata:${error.message}`, {
-      functionName: 'fetchSharedDrivesFiles',
-      module: 'Drive',
-    })
+    logger.error(`Error fetching shared drives and their file metadata:${error.message}`)
     throw error
   }
 }
@@ -355,9 +343,9 @@ const fetchUsersList = async (adminEmail, serviceAccountEmail, serviceAccountPri
 const fetchPersonalDriveFiles = async (adminEmail, serviceAccountEmail, serviceAccountPrivateKey) => {
   try {
     let emailList = await fetchUsersList(adminEmail, serviceAccountEmail, serviceAccountPrivateKey)
-    logger.info('Fetched Users', { functionName: 'fetchPersonalDriveFiles', module: 'Drive' })
+    logger.info('Fetched Users')
     const personalDrivesWithFiles = [] // Array to store personal drives and their files
-    logger.info(emailList, { functionName: 'fetchPersonalDriveFiles', module: 'Drive' })
+    logger.info(emailList)
     for (const email of emailList) {
       try {
         const drive = await getDriveInstance(email, serviceAccountEmail, serviceAccountPrivateKey)
@@ -366,23 +354,16 @@ const fetchPersonalDriveFiles = async (adminEmail, serviceAccountEmail, serviceA
         personalDrivesWithFiles.push(driveFiles) // Add the built hierarchy to the array
       } catch (error) {
         // Log any errors that occur while processing a specific user's drive
-        logger.error(`Failed to process email ${email}: ${error.message}`, {
-          functionName: 'fetchPersonalDriveFiles',
-          module: 'Drive',
-        })
+        logger.error(`Failed to process email ${email}: ${error.message}`)
       }
     }
     logger.debug(JSON.stringify(personalDrivesWithFiles, null, 2), {
-      functionName: 'fetchPersonalDriveFiles',
-      module: 'Drive',
+      storeLocation: 'file',
     })
     return personalDrivesWithFiles // Return the array of personal drives with their file structures
   } catch (error) {
     // Log any errors that occur while fetching personal drives
-    logger.error(`Error fetching personal drive files and their metadata:${error.message}`, {
-      functionName: 'fetchPersonalDriveFiles',
-      module: 'Drive',
-    })
+    logger.error(`Error fetching personal drive files and their metadata:${error.message}`)
     throw error
   }
 }
@@ -447,10 +428,7 @@ const fetchItemsSharedWithUser = async (userEmail, emailToImpersonate, serviceAc
 
     return filesSharedWithUser
   } catch (error) {
-    logger.error(`Error fetching items shared with user:${error}`, {
-      functionName: 'fetchItemsSharedWithUser',
-      module: 'Drive',
-    })
+    logger.error(`Error fetching items shared with user:${error}`)
     throw error
   }
 }
