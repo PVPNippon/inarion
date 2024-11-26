@@ -6,7 +6,7 @@ const User = require('../models/User') // User model for database operations
 const router = express.Router()
 const axios = require('axios') // Import axios
 const projectController = require('../controllers/projectController')
-const logger = require('../logger')(__filename)
+const logger = require('../logger')(__filename, 'Authentication')
 
 // Retrieve the API base URL from environment variables
 const API_BASE_URL = process.env.API_BASE_URL
@@ -31,18 +31,16 @@ exports.oauth2callback = async (req, res, next) => {
   req.session.projectName = projectName
 
   // Log  for debugging
-  logger.debug(`Email: ${email}`, { functionName: 'oauth2callback', module: 'Authentication' })
-  logger.debug(`Project Name: ${projectName}`, { functionName: 'oauth2callback', module: 'Authentication' })
-  logger.debug(`Tokens: ${tokens['refresh_token']}`, { functionName: 'oauth2callback', module: 'Authentication' })
+  logger.debug(`Email: ${email}`)
+  logger.debug(`Project Name: ${projectName}`)
+  logger.debug(`Tokens: ${tokens['refresh_token']}`)
   // If a refresh token is present, store it in the database
   if (tokens.refresh_token) {
-    logger.debug('Storing refresh token', { functionName: 'oauth2callback', module: 'Authentication' })
+    logger.debug('Storing refresh token')
     const existingUser = await User.findOne({ where: { email } })
 
     if (existingUser) {
       logger.debug(`Existing user: ${existingUser.toJSON()}`, {
-        functionName: 'oauth2callback',
-        module: 'Authentication',
         storeLocation: 'file',
       })
       // Update the existing user's tokens
@@ -74,7 +72,7 @@ exports.logout = async (req, res) => {
     if (token) {
       // Revoke the token
       await oauth2Client.revokeToken(token)
-      logger.debug('Token revoked successfully', { functionName: 'logout', module: 'Logout' })
+      logger.debug('Token revoked successfully')
     }
 
     // Clear the session or cookies
@@ -84,7 +82,7 @@ exports.logout = async (req, res) => {
     // Send a success response
     res.status(200).send({ message: 'Logged out successfully' })
   } catch (error) {
-    logger.error(`Error during logout: ${error}`, { functionName: 'logout', module: 'Logout' })
+    logger.error(`Error during logout: ${error}`)
     res.status(500).send({ message: 'Failed to logout' })
   }
 }

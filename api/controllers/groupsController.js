@@ -1,4 +1,4 @@
-const logger = require('../logger')(__filename)
+const logger = require('../logger')(__filename, 'Groups')
 const groupsService = require('../services/groupsService')
 const { getNestedTable, getHierarchy } = require('../services/nestedGroupsService')
 
@@ -28,7 +28,7 @@ exports.listAllGroups = async (req, res) => {
     // Return the list of all organization's groups
     res.status(200).json(groups)
   } catch (error) {
-    logger.error(`Error fetching groups:${error}`, { functionName: 'listAllGroups', module: 'Groups' })
+    logger.error(`Error fetching groups:${error}`)
     res.status(500).json({ message: 'Error fetching groups' })
   }
 }
@@ -59,8 +59,6 @@ exports.getGroup = async (req, res) => {
     res.status(200).json(response)
   } catch (error) {
     logger.error(`Error fetching group: ${error.message} ${error.stack}`, {
-      functionName: 'getGroup',
-      module: 'Groups',
       storeLocation: 'file',
     })
     //the reason why 404 and 403 are grouped is:
@@ -102,7 +100,7 @@ exports.listDirectMembers = async (req, res) => {
     // Return the list of direct members of the group
     res.status(200).json(response)
   } catch (error) {
-    logger.error(`Error fetching members:${error}`, { functionName: 'listDirectMembers', module: 'Groups' })
+    logger.error(`Error fetching members:${error}`)
     if (error.status === 404 || error.status === 403) {
       return res
         .status(404)
@@ -138,7 +136,7 @@ exports.listAllMembers = async (req, res) => {
     // Return the list of direct members of the group
     res.status(200).json(response)
   } catch (error) {
-    logger.error(`Error fetching members: ${error}`, { functionName: 'listAllMembers', module: 'Groups' })
+    logger.error(`Error fetching members: ${error}`)
     if (error.status === 404 || error.status === 403) {
       return res
         .status(404)
@@ -174,7 +172,7 @@ exports.getGroupActivity = async (req, res) => {
     // Return the list of group activity in customer organization
     res.status(200).json(response)
   } catch (error) {
-    logger.error(`Error fetching group activity:${error}`, { functionName: 'getGroupActivity', module: 'Groups' })
+    logger.error(`Error fetching group activity:${error}`)
     res.status(500).json({ message: 'Error fetching group activity' })
   }
 }
@@ -204,10 +202,7 @@ exports.getGroupJoinedActivity = async (req, res) => {
     })
     res.status(200).json(allActivities)
   } catch (error) {
-    logger.error(`Error fetching group joined activity:${error}`, {
-      functionName: 'getGroupJoinedActivity',
-      module: 'Groups',
-    })
+    logger.error(`Error fetching group joined activity:${error}`)
     res.status(500).json({ message: 'Error fetching group joined activity' })
   }
 }
@@ -237,7 +232,7 @@ exports.getNestedMembership = async (req, res) => {
     //Return the data with group membership details
     res.status(200).json(nestedTable)
   } catch (error) {
-    logger.error(`Error fetching nested membership:${error}`, { functionName: 'getNestedMembership', module: 'Groups' })
+    logger.error(`Error fetching nested membership:${error}`)
     res.status(500).json({ message: 'Error fetching nested membership' })
   }
 }
@@ -309,10 +304,7 @@ exports.listGroupsMembersInExportFormat = async (req, res) => {
 
     res.status(200).json(members)
   } catch (error) {
-    logger.error(`Error creating member lists in CSV format:${error}`, {
-      functionName: 'listGroupsMembersInExportFormat',
-      module: 'Groups',
-    })
+    logger.error(`Error creating member lists in CSV format:${error}`)
     res.status(500).json({ message: 'Error creating member lists in CSV format' })
   }
 }

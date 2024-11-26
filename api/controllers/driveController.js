@@ -8,7 +8,7 @@ const encryptionKey = 'my-hardcoded-secret-key'
 const config = require('../config/config')
 const { storeDriveList, getValueFromRedis } = require('../controllers/cacheController')
 const { drive } = require('googleapis/build/src/apis/drive')
-const logger = require('../logger')(__filename)
+const logger = require('../logger')(__filename, 'Drive')
 
 // Function to decrypt the private key
 function decodePrivateKeyData(privateKeyData) {
@@ -33,10 +33,7 @@ exports.getFileDetails = async (req, res) => {
       return res.status(400).json({ message: 'User email and file ID are required' })
     }
 
-    logger.info(`Fetching file details for user: ${userEmail} and file: ${fileId}`, {
-      functionName: 'getFileDetails',
-      module: 'Drive',
-    })
+    logger.info(`Fetching file details for user: ${userEmail} and file: ${fileId}`)
 
     const privateKey = decodePrivateKeyData(serviceAccountPrivateKey).private_key
 
@@ -50,7 +47,7 @@ exports.getFileDetails = async (req, res) => {
 
     res.status(200).json(fileData)
   } catch (error) {
-    logger.error(`Error fetching file details:${error}`, { functionName: 'getFileDetails', module: 'Drive' })
+    logger.error(`Error fetching file details:${error}`)
     res.status(500).json({ message: 'Error fetching file details' })
   }
 }
@@ -143,10 +140,7 @@ exports.getAllDrives = async (req, res) => {
 
   // If no cached drive list is found, fetch files directly from Google Drive
   if (!driveFilesList) {
-    logger.info('No stored Drive cache found on Redis, fetching from Google Drive', {
-      functionName: 'getAllDrives',
-      module: 'Drive',
-    })
+    logger.info('No stored Drive cache found on Redis, fetching from Google Drive')
 
     // Fetch personal drive files using the provided service credentials
     const personalDriveFiles = await fetchPersonalDriveFiles(adminEmail, serviceAccountEmail, serviceAccountPrivateKey)
@@ -179,8 +173,6 @@ exports.getAllDrives = async (req, res) => {
   // Apply filters to the drive files list, whether cached or freshly fetched
   const filteredDriveData = filterDriveData(driveFilesList, filters)
   logger.debug(JSON.stringify(filteredDriveData), {
-    functionName: 'getAllDrives',
-    module: 'Drive',
     storeLocation: 'file',
   })
 

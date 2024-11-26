@@ -1,6 +1,6 @@
 const { google } = require('googleapis')
 const ServiceAccountKeys = require('../models/ServiceAccountKeys')
-const logger = require('../logger')(__filename)
+const logger = require('../logger')(__filename, 'Drive')
 
 /**
  * Retrieves and decodes service account credentials from the database.
@@ -33,10 +33,7 @@ async function getCredentials(serviceAccountEmail, serviceAccountPrivateKey) {
     credentials = JSON.parse(decodedCredentials)
   } catch (error) {
     // If there is an error in parsing, log the error and throw a new error indicating invalid credentials format.
-    logger.error(`Error parsing the credentials JSON:${error}`, {
-      functionName: 'getCredentials',
-      module: 'Google Drive',
-    })
+    logger.error(`Error parsing the credentials JSON:${error}`)
     throw new Error('Invalid credentials format')
   }
 
