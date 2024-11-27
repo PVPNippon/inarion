@@ -50,7 +50,7 @@ async function getCredentials(userEmail) {
     }
 
     // Store the service account email and key in Redis
-    await cacheService.storeDataInRedis(serviceAccountCredentialsKey, {
+    cacheService.storeDataInRedis(serviceAccountCredentialsKey, {
       serviceAccountEmail: serviceAccountKeyInDB.serviceAccountEmail,
       privateKeyData: serviceAccountKeyInDB.privateKeyData,
     })
