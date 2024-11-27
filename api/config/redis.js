@@ -1,6 +1,6 @@
 // config/redisClient.js
 const redis = require('redis')
-const logger = require('../logger')(__filename)
+const logger = require('../logger')(__filename, 'Redis Connection')
 
 // Create a Redis client using environment variables
 const redisClient = redis.createClient({
@@ -9,25 +9,16 @@ const redisClient = redis.createClient({
 
 // Connect the Redis client
 redisClient.connect().catch((err) => {
-  logger.error(`Error connecting to Redis:${err}`, {
-    functionName: 'redisClient',
-    module: 'redis connection',
-  })
+  logger.error(`Error connecting to Redis:${err}`)
 })
 
 // Event listeners to monitor the Redis connection status
 redisClient.on('connect', () => {
-  logger.info('Connected to Redis successfully!', {
-    functionName: 'redisClient',
-    module: 'redis connection',
-  })
+  logger.info('Connected to Redis successfully!')
 })
 
 redisClient.on('error', (err) => {
-  logger.error(`Redis error:${err}`, {
-    functionName: 'redisClient',
-    module: 'redis connection',
-  })
+  logger.error(`Redis error:${err}`)
 })
 
 // Export the Redis client for use in other files

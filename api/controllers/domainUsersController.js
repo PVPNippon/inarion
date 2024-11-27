@@ -6,7 +6,7 @@ const crypto = require('crypto')
 const dataController = require('../controllers/dataController')
 const encryptionKey = 'my-hardcoded-secret-key'
 const config = require('../config/config')
-const logger = require('../logger')(__filename)
+const logger = require('../logger')(__filename, 'Domain Users')
 require('dotenv').config()
 
 function decodePrivateKeyData(privateKeyData) {
@@ -30,10 +30,7 @@ function decodePrivateKeyData(privateKeyData) {
 exports.getDomainUsersList = async (req, res) => {
   let { email, userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body // Extract the email and userEmail from the request body
 
-  logger.debug(`Type of projectData:${typeof serviceAccountEmail}`, {
-    functionName: 'getDomainUsersList',
-    module: 'DomainUsers',
-  })
+  logger.debug(`Type of projectData:${typeof serviceAccountEmail}`)
   // Retrieve project data using the user email
   // let projectData = await dataController.getProjectData(userEmail);
   // if(projectId === undefined){
@@ -60,12 +57,9 @@ exports.getDomainUsersList = async (req, res) => {
 
   // Decode the private key data for the service account
   // const keyData = decodePrivateKeyData(serviceAccountKey.privateKeyData);
-  logger.debug(`Privvvv key: ${serviceAccountPrivateKey}`, {
-    functionName: 'getDomainUsersList',
-    module: 'DomainUsers',
-  })
+  logger.debug(`Privvvv key: ${serviceAccountPrivateKey}`)
   const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
-  logger.debug(JSON.stringify(keyData, null, 2), { functionName: 'getDomainUsersList', module: 'DomainUsers' })
+  logger.debug(JSON.stringify(keyData, null, 2))
   const privateKey = keyData.private_key
 
   // Create a new JWT client, specifying the user to impersonate
@@ -101,10 +95,7 @@ exports.listAllDriveFiles = async (req, res) => {
     // Return the result in the response
     res.status(200).json(allUserDriveFiles)
   } catch (error) {
-    logger.error(`Error listing Drive files for all users:${error}`, {
-      functionName: 'listAllDriveFiles',
-      module: 'DomainUsers',
-    })
+    logger.error(`Error listing Drive files for all users:${error}`)
     res.status(500).json({ message: 'Error listing Drive files for users' })
   }
 }

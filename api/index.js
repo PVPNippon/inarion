@@ -4,7 +4,7 @@ exports.instanceStore = instanceStore
 // server file
 const express = require('express')
 const session = require('express-session')
-const logger = require('./logger')(__filename)
+const logger = require('./logger')(__filename, 'Main')
 const config = require('./config/config')
 const cacheRoutes = require('./routes/cacheRoutes')
 const authRoutes = require('./routes/authRoutes')
@@ -81,6 +81,4 @@ app.get('/', (req, res) => {
 // });
 
 const port = config.PORT
-app.listen(port, () =>
-  logger.info(`Listening on port ${port}`, { functionName: 'app.listen', module: 'hosting connection' })
-)
+app.listen(port, () => logger.info(`Listening on port ${port}`))

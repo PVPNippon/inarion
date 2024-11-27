@@ -1,6 +1,6 @@
 const redisClient = require('../config/redis.js')
 const config = require('../config/config')
-const logger = require('../logger.js')(__filename)
+const logger = require('../logger.js')(__filename, 'Redis')
 
 // Generic function to set a value in Redis with optional TTL
 const setValueInRedis = async (key, value, ttl) => {
@@ -15,20 +15,11 @@ const setValueInRedis = async (key, value, ttl) => {
     } else {
       await redisClient.set(key, jsonString)
     }
-    logger.info(`Value set in Redis for key: "${key}"${ttl ? ` with TTL: ${ttl} seconds` : ''}`, {
-      functionName: 'setValueInRedis',
-      module: 'Redis',
-    })
+    logger.info(`Value set in Redis for key: "${key}"${ttl ? ` with TTL: ${ttl} seconds` : ''}`)
     const storedData = await getDataFromRedis(key)
-    logger.info(JSON.stringify(storedData, null, 2), {
-      functionName: 'setValueInRedis',
-      module: 'Redis',
-    })
+    logger.info(JSON.stringify(storedData, null, 2), { storeLocation: 'file' })
   } catch (err) {
-    logger.error(`Error setting value in Redis for key "${key}":${err}`, {
-      functionName: 'setValueInRedis',
-      module: 'Redis',
-    })
+    logger.error(`Error setting value in Redis for key "${key}":${err}`)
     throw err
   }
 }
@@ -38,40 +29,25 @@ const getDataFromRedis = async (key) => {
     const data = await redisClient.get(key)
     return data ? JSON.parse(data) : null
   } catch (error) {
-    console.error('Error retrieving data from Redis:', error)
+    logger.error(`Error retrieving data from Redis:${error}`)
   }
 }
 
 const storeDataInRedis = async (key, data) => {
   try {
     await redisClient.set(key, JSON.stringify(data))
-    logger.info('Data stored successfully in Redis', {
-      functionName: 'storeDataInRedis',
-      module: 'Redis',
-    })
+    logger.info('Data stored successfully in Redis')
     const storedData = await getDataFromRedis(key)
-    logger.info(storedData, {
-      functionName: 'storeDataInRedis',
-      module: 'Redis',
-    })
+    logger.info(storedData)
   } catch (error) {
-    logger.error(`Error storing data in Redis:${error}`, {
-      functionName: 'storeDataInRedis',
-      module: 'Redis',
-    })
+    logger.error(`Error storing data in Redis:${error}`)
   }
 }
 
 // Generic function to get a value from Redis
 const getValueFromRedis = async (key) => {
-  logger.info(key, {
-    functionName: 'getValueFromRedis',
-    module: 'Redis',
-  })
-  logger.info(`this is the key:${key}`, {
-    functionName: 'getValueFromRedis',
-    module: 'Redis',
-  })
+  logger.info(key)
+  logger.info(`this is the key:${key}`)
   try {
     if (!key) {
       throw new Error('Key is required to fetch data.')
@@ -79,10 +55,7 @@ const getValueFromRedis = async (key) => {
 
     const jsonString = await redisClient.get(key)
     if (!jsonString) {
-      logger.info(`No data found in Redis for key: "${key}".`, {
-        functionName: 'getValueFromRedis',
-        module: 'Redis',
-      })
+      logger.info(`No data found in Redis for key: "${key}".`)
       return null
     }
 
@@ -93,10 +66,7 @@ const getValueFromRedis = async (key) => {
       return jsonString // If it's not JSON, return the raw string
     }
   } catch (err) {
-    logger.error(`Error fetching data from Redis for key "${key}": ${err}`, {
-      functionName: 'getValueFromRedis',
-      module: 'Redis',
-    })
+    logger.error(`Error fetching data from Redis for key "${key}": ${err}`)
     throw err
   }
 }
@@ -106,10 +76,7 @@ const setCache = async (req, res) => {
   try {
     const { key, value, ttl } = req.body
     await setValueInRedis(key, value, ttl)
-    res.status(200).send(`Value set in Redis for key: "${key}".`, {
-      functionName: 'setCache',
-      module: 'Redis',
-    })
+    res.status(200).send(`Value set in Redis for key: "${key}".`)
   } catch (err) {
     res.status(500).send('Error setting value in Redis.')
   }
@@ -118,10 +85,7 @@ const setCache = async (req, res) => {
 // Route handler to get a value from Redis
 const getCache = async (req, res) => {
   try {
-    logger.info(req.query, {
-      functionName: 'getCache',
-      module: 'Redis',
-    })
+    logger.info(req.query)
     const { key } = req.query
     const value = await getValueFromRedis(key)
 
@@ -143,10 +107,7 @@ const scanKeys = async (req, res) => {
 
     res.status(200).json(result.keys.length !== 0 ? result.keys : `No key exists`)
   } catch (err) {
-    logger.error(`Failed to complete the scan operation:${err}`, {
-      functionName: 'scanKeys',
-      module: 'Redis',
-    })
+    logger.error(`Failed to complete the scan operation:${err}`)
     return res.status(500).json({ error: 'Failed to complete the scan operation.' })
   }
 }
@@ -160,10 +121,7 @@ const storeJsonData = async (jsonData) => {
 
     await setValueInRedis(jsonData.driveName, jsonData, config.TTL)
   } catch (err) {
-    logger.error(`Error storing JSON in Redis:${err}`, {
-      functionName: 'storeJsonData',
-      module: 'Redis',
-    })
+    logger.error(`Error storing JSON in Redis:${err}`)
     throw err
   }
 }
@@ -196,10 +154,7 @@ const storeDriveList = async (key, driveList) => {
 
     await setValueInRedis(key, driveList, config.TTL)
   } catch (err) {
-    logger.error(`Error storing drive list for key "${key}":${err}`, {
-      functionName: 'storeDriveList',
-      module: 'Redis',
-    })
+    logger.error(`Error storing drive list for key "${key}":${err}`)
     throw err
   }
 }
@@ -213,10 +168,7 @@ const storeDriveData = async (key, driveData) => {
 
     await setValueInRedis(key, driveData, config.TTL)
   } catch (err) {
-    logger.error(`Error storing drive data for key "${key}":${err}`, {
-      functionName: 'storeDriveData',
-      module: 'Redis',
-    })
+    logger.error(`Error storing drive data for key "${key}":${err}`)
     throw err
   }
 }
@@ -268,23 +220,14 @@ const deleteCacheInRedis = async (key) => {
 
     const result = await redisClient.del(key)
     if (result === 1) {
-      logger.info(`Key "${key}" successfully deleted from Redis.`, {
-        functionName: 'deleteCacheInRedis',
-        module: 'Redis',
-      })
+      logger.info(`Key "${key}" successfully deleted from Redis.`)
     } else {
-      logger.info(`Key "${key}" not found in Redis.`, {
-        functionName: 'deleteCacheInRedis',
-        module: 'Redis',
-      })
+      logger.info(`Key "${key}" not found in Redis.`)
     }
 
     return result
   } catch (err) {
-    logger.error(`Error deleting key "${key}" from Redis:${err}`, {
-      functionName: 'deleteCacheInRedis',
-      module: 'Redis',
-    })
+    logger.error(`Error deleting key "${key}" from Redis:${err}`)
     throw err
   }
 }
