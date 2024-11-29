@@ -248,7 +248,7 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance, instanc
     //https://github.com/googleapis/google-auth-library-nodejs?tab=readme-ov-file#handling-token-events
     //I'm storing the client and expiry date in in-memory store inside this function because everywhere else the expiry date was either undefinded or
     //it returned the whole jwtClient instead of the expiry date
-    await jwtClient.on('tokens', async (tokens) => {
+    await jwtClient.on('tokens', async function storeClientExpiryDate(tokens) {
       if (tokens.access_token) {
         //if the access token is present, retrieve its expiry date and store it together with the impersonated client in in-memory store
         //FYI the expiry period is 1 hour
@@ -311,7 +311,7 @@ async function getImpersonatedClientInstance(impersonatedUser, typeOfInstance) {
     // Check if the instance already exists in the store
     service = await instanceStore.get(instanceStoreKey)
     if (typeof service === 'undefined') {
-      logger.error(`Instance does not exist in store`)
+      logger.info(`Instance does not exist in store`)
     } else {
       logger.debug(
         `Impersonated client retrieved from in-memory store.\nExpiry Date: ${JSON.stringify(
