@@ -1,10 +1,5 @@
 const { google } = require('googleapis')
-const {
-  getCredentials,
-  initializeGoogleAuth,
-  impersonateClient,
-  getImpersonatedClientInstance,
-} = require('./authService')
+const { getImpersonatedClientInstanceForAdmin } = require('./authService')
 /**
  * Decodes the base64-encoded privateKeyData and parses it as JSON.
  *
@@ -67,7 +62,7 @@ async function getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmai
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 async function listGroups({ userEmail, serviceAccountEmail, serviceAccountPrivateKey, client, query }) {
-  const directory = await getImpersonatedClientInstance(userEmail, 'directory')
+  const directory = await getImpersonatedClientInstanceForAdmin(userEmail, 'directory')
 
   const groups = [] // Container for all groups retrieved
   let groupsResponse // Response from the API
