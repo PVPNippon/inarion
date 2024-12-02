@@ -210,6 +210,17 @@ async function getInstance(jwtClient, typeOfInstance) {
 }
 
 /**
+ * Creates a key for the instance store based on the impersonated user and type of instance.
+ *
+ * @param {string} impersonatedUser - The email address of the user to impersonate.
+ * @param {string} typeOfInstance - The type of Google API client instance to create.
+ * @returns {string} - The key for the instance store.
+ */
+function createInstanceStoreKey(impersonatedUser, typeOfInstance) {
+  return `${impersonatedUser}-${typeOfInstance}-impersonatedClient`
+}
+
+/**
  * Impersonates a user to access Google Workspace resources on their behalf.
  *
  * This function configures the Google Auth client to impersonate a specified user, allowing access to the user's resources.
@@ -221,7 +232,8 @@ async function getInstance(jwtClient, typeOfInstance) {
  * @param {string} instanceStoreKey - The key used in the in-memory instance store.
  * @returns {Promise<Object>} - A promise that resolves to the Google Drive client instance configured for the impersonated user.
  */
-async function impersonateClient(impersonatedUser, auth, typeOfInstance, instanceStoreKey) {
+async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
+  const instanceStoreKey = createInstanceStoreKey(impersonatedUser, typeOfInstance)
   let jwtClient
   let service
 
@@ -281,15 +293,14 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance, instanc
 }
 
 /**
- * Retrieves a Google API client instance impersonating a user from an in-memory store.
+ * Retrieves a Google API client instance based on the type of instance specified.
  *
- * If the instance already exists in the store and has an expiration time more than 5 minutes in the future,
- * the existing instance is returned. Otherwise, the instance is created by impersonating the user and
- * stored in the in-memory store.
+ * This function takes a user to impersonate and a type of instance as parameters.
+ * It returns a promise that resolves to the Google API client instance configured for the impersonated user.
+ * The type of instance can be 'drive', 'reports', or 'directory', and it determines which Google API client instance is created.
  *
  * @param {string} impersonatedUser - The email address of the user to impersonate.
  * @param {string} typeOfInstance - The type of Google API client instance to create.
- *                                  Possible values are 'drive', 'reports', 'directory' or 'groups'.
  * @returns {Promise<Object>} - A promise that resolves to the Google API client instance configured for the impersonated user.
  */
 async function getImpersonatedClientInstance(impersonatedUser, typeOfInstance) {
@@ -299,79 +310,154 @@ async function getImpersonatedClientInstance(impersonatedUser, typeOfInstance) {
   if (typeof impersonatedUser === 'undefined') {
     logger.error(`Impersonated user is Undefined:`)
     throw new Error(`Impersonated user is Undefined.`)
-    // Error handling of typeOfInstance
-  } else if (!instanceArray.includes(typeOfInstance)) {
-    logger.error(`Unexpected type of instance:`)
-    throw new Error(`Unexpected type of instance.`)
-  } else {
-    // Create a unique key for the instance store based on the impersonated user and type of instance
-    // TODO: Prepare another function for instanceStoreKey
-    const instanceStoreKey = `${impersonatedUser}-${typeOfInstance}-impersonatedClient`
-    logger.debug(`Instance store key created successfully: ${instanceStoreKey}`)
-    // Check if the instance already exists in the store
-    service = await instanceStore.get(instanceStoreKey)
-    if (typeof service === 'undefined') {
-      logger.info(`Instance does not exist in store`)
-    } else {
-      logger.debug(
-        `Impersonated client retrieved from in-memory store.\nExpiry Date: ${JSON.stringify(
-          service.expiryDate,
-          null,
-          2
-        )}\nProject ID: ${JSON.stringify(
-          service.service.context?._options.auth.projectId,
-          null,
-          2
-        )}\nService Account Email: ${JSON.stringify(
-          service.service.context?._options.auth.email,
-          null,
-          2
-        )}\nUser Email: ${JSON.stringify(service.service.context?._options.auth.subject, null, 2)}`
-      )
-    }
-    // Get the current time
-    const timeNow = new Date().getTime()
-    logger.debug(`Current time retrieved successfully: ${timeNow}`)
-
-    // If the instance already exists in the in-memory store and expiration time is more than 5 minutes, return it
-    if (service && service.expiryDate - timeNow > 300000) return service.service
-
-    // If the instance doesn't exist in the store or the expiry time is less than 5 minutes, create create the new instance
-    // Get the service account credentials
-    const credentials = await getCredentials(impersonatedUser)
-    logger.debug(`Credentials retrieved successfully: ${JSON.stringify(credentials, null, 2)}`)
-
-    // Initialize the Google Auth client
-    const authClient = await initializeGoogleAuth(credentials)
-    logger.debug(
-      `Auth client retrieved successfully.\nService Account Email: ${JSON.stringify(
-        authClient.jsonContent.client_email,
-        null,
-        2
-      )}`
-    )
-
-    // Impersonate the specified user
-    service = await impersonateClient(impersonatedUser, authClient, typeOfInstance, instanceStoreKey)
-    // Error handling for impersonated instance
-    if (typeof service === 'undefined') {
-      logger.error(`Instance does not exist in store`)
-    } else {
-      // logger.debug(`SERVICE INSTANCE HERE: ${JSON.stringify(service, null, 2)}`)
-      logger.debug(
-        `User impersonated successfully.\nProject ID: ${JSON.stringify(
-          service.context._options.auth.projectId,
-          null,
-          2
-        )}\nService Account Email: ${JSON.stringify(
-          service.context._options.auth.email,
-          null,
-          2
-        )}\nUser Email: ${JSON.stringify(service.context._options.auth.subject, null, 2)}`
-      )
-    }
   }
 
+  // Error handling of typeOfInstance
+  if (!instanceArray.includes(typeOfInstance)) {
+    logger.error(`Unexpected type of instance:`)
+    throw new Error(`Unexpected type of instance.`)
+  }
+
+  // Create a unique key for the instance store based on the impersonated user and type of instance
+  // TODO: Prepare another function for instanceStoreKey
+  const instanceStoreKey = createInstanceStoreKey(impersonatedUser, typeOfInstance)
+  logger.debug(`Instance store key created successfully: ${instanceStoreKey}`)
+  // Check if the instance already exists in the store
+  service = await instanceStore.get(instanceStoreKey)
+  if (typeof service === 'undefined') {
+    logger.info(`Instance does not exist in store`)
+  } else {
+    logger.debug(
+      `Impersonated client retrieved from in-memory store.\nExpiry Date: ${JSON.stringify(
+        service.expiryDate,
+        null,
+        2
+      )}\nProject ID: ${JSON.stringify(
+        service.service.context?._options.auth.projectId,
+        null,
+        2
+      )}\nService Account Email: ${JSON.stringify(
+        service.service.context?._options.auth.email,
+        null,
+        2
+      )}\nUser Email: ${JSON.stringify(service.service.context?._options.auth.subject, null, 2)}`
+    )
+  }
+  // Get the current time
+  const timeNow = new Date().getTime()
+  logger.debug(`Current time retrieved successfully: ${timeNow}`)
+
+  // If the instance already exists in the in-memory store and expiration time is more than 5 minutes, return it
+  if (service && service.expiryDate - timeNow > 300000) return service.service
+
+  // If the instance doesn't exist in the store or the expiry time is less than 5 minutes, create create the new instance
+  // Get the service account credentials
+  const credentials = await getCredentials(impersonatedUser)
+  logger.debug(`Credentials retrieved successfully: ${JSON.stringify(credentials, null, 2)}`)
+
+  // Initialize the Google Auth client
+  const authClient = await initializeGoogleAuth(credentials)
+  logger.debug(
+    `Auth client retrieved successfully.\nService Account Email: ${JSON.stringify(
+      authClient.jsonContent.client_email,
+      null,
+      2
+    )}`
+  )
+
+  // Impersonate the specified user
+  service = await impersonateClient(impersonatedUser, authClient, typeOfInstance)
+  // Error handling for impersonated instance
+  if (typeof service === 'undefined') {
+    logger.error(`Instance does not exist in store`)
+  } else {
+    // logger.debug(`SERVICE INSTANCE HERE: ${JSON.stringify(service, null, 2)}`)
+    logger.debug(
+      `User impersonated successfully.\nProject ID: ${JSON.stringify(
+        service.context?._options.auth.projectId,
+        null,
+        2
+      )}\nService Account Email: ${JSON.stringify(
+        service.context?._options.auth.email,
+        null,
+        2
+      )}\nUser Email: ${JSON.stringify(service.context?._options.auth.subject, null, 2)}`
+    )
+  }
+
+  return service
+}
+
+async function getDriveInstance({ impersonatedUser, typeOfInstance, auth, adminEmail }) {
+  // impersonatedUser and typeOfInstance are required
+  let service
+  const instanceStoreKey = createInstanceStoreKey(impersonatedUser, typeOfInstance)
+  service = await instanceStore.get(instanceStoreKey)
+  if (typeof service === 'undefined') {
+    logger.error(`Unable to retrieved instance since impersonatedUser or typeOfInstance is missing.`)
+  } else {
+    logger.debug(
+      `Instance retrieved from impersonated user and type of instance successfully.\nProject ID: ${JSON.stringify(
+        service.service.context?._options.auth.projectId,
+        null,
+        2
+      )}\nService Account Email: ${JSON.stringify(
+        service.service.context?._options.auth.email,
+        null,
+        2
+      )}\nUser Email: ${JSON.stringify(
+        service.service.context?._options.auth.subject,
+        null,
+        2
+      )}\nExpires At: ${JSON.stringify(service.service.context?._options.auth.gtoken.expiresAt, null, 2)}`
+    )
+  }
+  const timeNow = new Date().getTime()
+  if (service && service.expiryDate - timeNow > 300000) return service.service
+
+  if (auth) {
+    service = await impersonateClient(impersonatedUser, auth, typeOfInstance, instanceStoreKey)
+    if (typeof service === 'undefined') {
+      logger.error(`Unable to retrieved instance.`)
+    } else {
+      logger.debug(
+        `Instance retrieved from auth successfully.\nProject ID: ${JSON.stringify(
+          service.context?._options.auth.projectId,
+          null,
+          2
+        )}\nService Account Email: ${JSON.stringify(
+          service.context?._options.auth.email,
+          null,
+          2
+        )}\nUser Email: ${JSON.stringify(service.context?._options.auth.subject, null, 2)}`
+      )
+    }
+    return service
+  }
+
+  if (adminEmail) {
+    const credentials = await getCredentials(adminEmail)
+    const authClient = await initializeGoogleAuth(credentials)
+    service = await impersonateClient(impersonatedUser, authClient, typeOfInstance, instanceStoreKey)
+    if (typeof service === 'undefined') {
+      logger.error(`Unable to retrieved instance.`)
+    } else {
+      logger.debug(
+        `Instance retrieved from admin email successfully.\nProject ID: ${JSON.stringify(
+          service.context?._options.auth.projectId,
+          null,
+          2
+        )}\nService Account Email: ${JSON.stringify(
+          service.context?._options.auth.email,
+          null,
+          2
+        )}\nUser Email: ${JSON.stringify(service.context?._options.auth.subject, null, 2)}`
+      )
+    }
+    return service
+  }
+
+  logger.error(`Unable to retrieve auth instance because auth and admin email provided.`)
   return service
 }
 
@@ -380,4 +466,5 @@ module.exports = {
   initializeGoogleAuth,
   impersonateClient,
   getImpersonatedClientInstance,
+  getDriveInstance,
 }
