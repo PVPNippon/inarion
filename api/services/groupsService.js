@@ -428,7 +428,7 @@ async function listMembersInExportFormat({
   const userNameMap = new Map()
 
   const [allGroupsInOrganization, allUsersInOrganization] = await Promise.all([
-    listGroups({ client: jwtClient }),
+    listGroups({ userEmail, client: jwtClient }),
     listUsers({ client: jwtClient }),
   ])
 
