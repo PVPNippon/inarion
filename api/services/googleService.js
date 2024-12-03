@@ -1,7 +1,7 @@
 const { google } = require('googleapis')
 const { ProjectsClient } = require('@google-cloud/resource-manager').v3
 const oauth2Client = require('../models/googleAuth')
-const logger = require('../logger')(__filename, 'Google Service')
+const logger = require('../logger/logger')(__filename, 'Google Service')
 
 /**
  * Sets OAuth2 credentials for the OAuth2 client using the provided tokens.

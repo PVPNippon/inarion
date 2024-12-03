@@ -5,7 +5,7 @@ const { extractEmails } = require('../utility/utilityFunctions')
 const { default: axios } = require('axios')
 const API_BASE_URL = process.env.API_BASE_URL
 const { getMimeTypeOrKey } = require('../helper/mimeType')
-const logger = require('../logger')(__filename, 'Drive')
+const logger = require('../logger/logger')(__filename, 'Drive')
 
 /**
  * Initializes the Google Drive instance for a specified user.

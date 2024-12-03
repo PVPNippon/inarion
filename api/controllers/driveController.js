@@ -8,7 +8,7 @@ const encryptionKey = 'my-hardcoded-secret-key'
 const config = require('../config/config')
 const { storeDriveList, getValueFromRedis } = require('../controllers/cacheController')
 const { drive } = require('googleapis/build/src/apis/drive')
-const logger = require('../logger')(__filename, 'Drive')
+const logger = require('../logger/logger')(__filename, 'Drive')
 
 // Function to decrypt the private key
 function decodePrivateKeyData(privateKeyData) {

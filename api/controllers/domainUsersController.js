@@ -6,7 +6,7 @@ const crypto = require('crypto')
 const dataController = require('../controllers/dataController')
 const encryptionKey = 'my-hardcoded-secret-key'
 const config = require('../config/config')
-const logger = require('../logger')(__filename, 'Domain Users')
+const logger = require('../logger/logger')(__filename, 'Domain Users')
 require('dotenv').config()
 
 function decodePrivateKeyData(privateKeyData) {

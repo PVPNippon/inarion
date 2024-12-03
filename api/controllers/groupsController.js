@@ -1,4 +1,4 @@
-const logger = require('../logger')(__filename, 'Groups')
+const logger = require('../logger/logger')(__filename, 'Groups')
 const groupsService = require('../services/groupsService')
 const { getNestedTable, getHierarchy } = require('../services/nestedGroupsService')
 

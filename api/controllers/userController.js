@@ -5,7 +5,7 @@ const { google } = require('googleapis') // Google APIs client library
 const { OAuth2Client } = require('google-auth-library') // Google OAuth2 client library
 const oauth2Client = require('../models/googleAuth') // Custom OAuth2 client setup
 const config = require('../config/config') // Configuration settings
-const logger = require('../logger')(__filename, 'Users')
+const logger = require('../logger/logger')(__filename, 'Users')
 
 /**
  * Generates an authentication URL for Google OAuth2.

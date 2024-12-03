@@ -1,7 +1,7 @@
 // server file
 const express = require('express')
 const session = require('express-session')
-const logger = require('./logger')(__filename, 'Main')
+const logger = require('./logger/logger')(__filename, 'Main')
 const config = require('./config/config')
 const cacheRoutes = require('./routes/cacheRoutes')
 const authRoutes = require('./routes/authRoutes')
