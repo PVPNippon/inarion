@@ -6,28 +6,37 @@ const Projects = require('../models/Project')
 const ServiceAccounts = require('../models/ServiceAccount')
 const instanceStore = require('..').instanceStore
 const logger = require('../logger')(__filename, 'AuthModule')
-const instanceArray = ['drive', 'reports', 'directory', 'groups'] // Need to be updated if the type of Auth client changed
+const instanceArray = ['drive', 'reports', 'directory', 'groups'] // Needs to be updated every time a new instance type is added to the getInstance function
 
 /**
- * Retrieves and decodes service account credentials from the database.
+ * Retrieves the service account credentials for a given user email.
  *
- * This function fetches the service account credentials using the provided email, decodes the base64-encoded privateKeyData,
- * and parses it to extract the credentials in JSON format.
+ * This function attempts to fetch the service account credentials from Redis cache first.
+ * If not found, it queries the database for the user's associated project and service account email.
+ * It handles various errors related to invalid user email and missing credentials, logs the events,
+ * and throws appropriate error messages. The credentials are decoded and parsed to ensure they
+ * contain the required fields before being returned.
  *
- * @param {string} userEmail - The email address associated with the service account.
+ * @param {string} userEmail - The email address of the user(SuperAdmin) whose service account credentials are being retrieved.
  * @returns {Promise<Object>} - A promise that resolves to the decoded and validated credentials object.
- * @throws Will throw an error if the service account key is not found, the credentials are invalid, or the JSON parsing fails.
+ * @throws Will throw an error if there are issues with the user email, domain retrieval,
+ * service account email retrieval, decoding, or parsing of credentials.
  */
 async function getCredentials(userEmail) {
   // Error handling of userEmail
   if (!userEmail) {
     logger.error(`Unable to retrieve Service account credentials because NO user email provided.`)
+    throw new Error('Unable to retrieve Service account credentials because NO user email provided.') //Throw error to stop the function execution because without a valid userEmail, no service account credentials can be retrieved
     // Logger if userEmail contains 0 or 2 or more @
   } else if (userEmail.match(/@/g) === null || userEmail.match(/@/g).length >= 2) {
     logger.error(`Unable to retrieve Service account credentials because INVALID user email provided.`)
+    throw new Error('Unable to retrieve Service account credentials because INVALID user email provided.')
     // Logger if a service account email address is passed instead of a userEmail
   } else if (userEmail.match(/^[a-zA-Z0-9._%+-]+@(.*\.)?gserviceaccount\.com$/) !== null) {
     logger.error(
+      `Unable to retrieve Service account credentials because service account email is passed instead of user email`
+    )
+    throw new Error(
       `Unable to retrieve Service account credentials because service account email is passed instead of user email`
     )
   } else {
@@ -40,6 +49,7 @@ async function getCredentials(userEmail) {
     logger.debug(`Domain retrieved successfully: ${userDomain}`)
   } else if (!userDomain) {
     logger.error(`Unable to retrieve domain from user email.`)
+    throw new Error('Unable to retrieve domain from user email.') //Throw error to stop the function execution because without a valid userDomain, no service account credentials can be retrieved
   }
 
   const serviceAccountCredentialsKey = userDomain + '_SA_credentials' // Create a Redis key for the service account credentials
@@ -48,10 +58,11 @@ async function getCredentials(userEmail) {
     logger.debug(`Service Account Credentials Key for Redis created successfully: ${serviceAccountCredentialsKey}`)
   } else if (!serviceAccountCredentialsKey) {
     logger.error(`Unable to retrieve Service Account Credentials Key from user domain.`)
+    throw new Error('Unable to retrieve Service Account Credentials Key from user domain.') //Throw error to stop the function execution because without a valid serviceAccountCredentialsKey, no service account credentials can be retrieved
   }
 
   let serviceAccountKeyInDB // Variable to store the service account key retrieved from db or redis
-  let serviceAccountPrivateKey
+  let serviceAccountPrivateKey // Variable to store the service account private key
 
   //First try fetching the service account key from redis
   serviceAccountKeyInDB = (await cacheService.getValueFromRedis(serviceAccountCredentialsKey)) || null
@@ -62,31 +73,34 @@ async function getCredentials(userEmail) {
   // If the service account key is not found in Redis, fetch it from the database
   if (!serviceAccountKeyInDB || !serviceAccountKeyInDB.privateKeyData) {
     logger.debug(`Service Account Credentials Key is not found in Redis.`)
-    // Q: is better to add try catch after 3 queries is combined ?
+
     //TODO: combine 3 queries into 1(postponed till when DB schema is updated to support associations)
+    //I'm not adding detailed logs for queries since there will be detailed logging on the database side
+    logger.debug(`Trying to fetch Service Account Email from DB`)
     const user = (await Users.findOne({ where: { email: userEmail } })).id
     const projectId = (await Projects.findOne({ where: { userId: user } })).projectId
     const serviceAccountEmail = (await ServiceAccounts.findOne({ where: { projectId: projectId } })).serviceAccountEmail
-    logger.debug(`Trying to fetch Service Account Email from DB`)
 
     // If the service account email is not found, throw an error
     if (!serviceAccountEmail) {
       logger.error(`Service account Email for ${userDomain} was not found.`)
+      throw new Error(`Service account Email not found for ${userDomain}`) //Throw error to stop the function execution because without a valid service account email, no service account credentials can be retrieved
     }
 
     // Fetch the service account key from the database
     serviceAccountKeyInDB = await ServiceAccountKeys.findOne({
       where: { serviceAccountEmail: serviceAccountEmail },
     })
-    logger.debug(
-      `Service account credentials Key fetched from DB successfully: ${JSON.stringify(serviceAccountKeyInDB, null, 2)}` // need to be checked if this data can be contained in the log
-    )
 
     // If the service account key is still not found, throw an error
     if (!serviceAccountKeyInDB) {
       logger.error(`Service account key for ${serviceAccountEmail} was not found.`)
       throw new Error(`Service account key not found for ${serviceAccountEmail}`)
     }
+
+    logger.debug(
+      `Service account credentials Key fetched from DB successfully: ${JSON.stringify(serviceAccountKeyInDB, null, 2)}`
+    )
 
     try {
       // Store the service account email and key in Redis
@@ -101,16 +115,25 @@ async function getCredentials(userEmail) {
 
   try {
     // Update the serviceAccountPrivateKey with the fetched service account key
+    //this try and catch block is for cases when there is a service account key record in DB, but the privateKeyData is null for some reason
     serviceAccountPrivateKey = serviceAccountKeyInDB.privateKeyData
     logger.debug(
       `Service Account Private Key updated successfully: ${JSON.stringify(serviceAccountPrivateKey, null, 2)}`
     )
   } catch (error) {
     logger.error(`Unable to update Service Account Private Key: ${error.message} ${error.stack}`)
+    throw new Error('Unable to update Service Account Private Key')
   }
+
   //Decode the base64-encoded privateKeyData to get the actual JSON credentials.
-  const decodedCredentials = Buffer.from(serviceAccountPrivateKey, 'base64').toString('utf8')
-  logger.debug(`Private key data decoded successfully.`)
+  let decodedCredentials
+  try {
+    decodedCredentials = Buffer.from(serviceAccountPrivateKey, 'base64').toString('utf8')
+    logger.debug(`Private key data decoded successfully.`)
+  } catch (error) {
+    logger.error(`Unable to decode private key data: ${error.message} ${error.stack}`)
+    throw new Error('Unable to decode private key data')
+  }
 
   let credentials
   try {
