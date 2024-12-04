@@ -162,7 +162,7 @@ async function getCredentials(userEmail) {
 /**
  * Initializes the Google Auth client.
  *
- * This function sets up the Google Auth client using the provided credentials and configures it with the necessary scopes for accessing Google APIs.
+ * This function sets up the Google Auth client using the provided service accountcredentials and configures it with the necessary scopes for accessing Google APIs.
  *
  * @param {Object} credentials - The credentials object containing the client_email, private_key, and token_uri.
  * @returns {Promise<Object>} - A promise that resolves to the initialized GoogleAuth client.
@@ -195,19 +195,38 @@ async function initializeGoogleAuth(credentials) {
 }
 
 /**
- * Retrieves a Google API client instance based on the type of instance specified.
+ * Configures and returns a Google API client instance, configured for the specified type of instance.
  *
- * This function takes a JWT client and a type of instance as parameters.
- * It returns a promise that resolves to the Google API client instance configured for the impersonated user.
- * The type of instance can be 'drive', 'reports', 'groups' or 'directory', and it determines which Google API client instance is created.
+ * This function creates a Google API client instance for the specified type of instance.
+ * It requires a JWT client, which is a JWT client configured for the impersonated user.
  *
- * @param {Object} jwtClient - The JWT client used to authenticate the request.
- * @param {string} typeOfInstance - The type of Google API client instance to create.
- * @returns {Promise<Object>} - A promise that resolves to the Google API client instance configured for the impersonated user.
+ * @param {Object} jwtClient - The JWT client configured for the impersonated user.
+ * @param {string} typeOfInstance - The type of Google API client instance to create (e.g., 'drive', 'reports').
+ * @returns {Promise<Object>} - A promise that resolves to the Google API client instance.
+ * @throws {Error} - Throws an error if the JWT client or type of instance is invalid.
  */
 function getInstance(jwtClient, typeOfInstance) {
+  //Throw error if jwtClient is not provided
+  if (!jwtClient) {
+    logger.error('Unale to create Google API client instance because JWT is not provided.')
+    throw new Error('Unale to create Google API client instance because JWT is not provided.')
+  }
+
+  //Throw error if typeOfInstance is not provided
+  if (!typeOfInstance) {
+    logger.error('Unable to create Google API client instance because type of instance is not provided.')
+    throw new Error('Unable to create Google API client instance because type of instance is not provided.')
+  }
+
+  //Throw error if an invalid typeOfInstance has been provided by the caller function
+  if (!instanceArray.includes(typeOfInstance)) {
+    logger.error(`Unexpected type of instance: ${typeOfInstance}.`)
+    throw new Error(`Unexpected type of instance.`)
+  }
+
   let service
   //Return the auth client instance configured with the impersonated user
+  //I have removed the default case because it will make troubleshooting more difficult if an unsupported typeOfInstance is passed
   switch (typeOfInstance) {
     case 'drive':
       service = google.drive({ version: 'v3', auth: jwtClient })
@@ -270,7 +289,7 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
       `Impersonated user set as Subject successfully.\nUser Email: ${JSON.stringify(jwtClient.subject, null, 2)}`
     )
 
-    service = await getInstance(jwtClient, typeOfInstance) //return the auth client instance configured with the impersonated user
+    service = await getInstance(jwtClient, typeOfInstance) //get the auth client instance configured with the impersonated user
     logger.debug(
       `Impersonated user client retrieved successfully.\nService Account Email: ${JSON.stringify(
         service.context._options.auth.email,
@@ -287,6 +306,8 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
       if (tokens.access_token) {
         //if the access token is present, retrieve its expiry date and store it together with the impersonated client in in-memory store
         //FYI the expiry period is 1 hour
+        //FYI2 the "on" method does not return a refresh_token in our case, so we don't store it and don't refresh the access_token
+        //Instead we retrieve the expiry date and store it together with the impersonated client. If expiry period is over or nearing, a whole new client will be obtained
         instanceStore.set(`${instanceStoreKey}`, {
           expiryDate: tokens.expiry_date,
           service: service,
@@ -310,15 +331,15 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
       }
     })
   } catch (error) {
-    logger.error(`Error retrieving a impersonated client: ${error.message} ${error.stack}`)
-    throw new Error('Could not obtain a JWT client')
+    logger.error(`Error retrieving an impersonated client: ${error.message} ${error.stack}`)
+    throw new Error(`Error retrieving an impersonated client: ${error.message} ${error.stack}`)
   }
 
   return service
 }
 
 /**
- * Retrieves or creates an impersonated Google API client instance.
+ * Retrieves or creates an impersonated Google API client instance for a given user(currently logged-in SuperAdmin) and instance type.
  *
  * This function checks if an impersonated client instance for a given user and instance type
  * already exists in the in-memory store. If so, it returns the existing instance if its expiration
@@ -331,24 +352,22 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
  * @throws {Error} - Throws an error if the impersonated user or type of instance is invalid.
  */
 async function getImpersonatedClientInstanceForAdmin(impersonatedUser, typeOfInstance) {
-  let service
-
   // Error handling of impersonatedUser
-  if (typeof impersonatedUser === 'undefined') {
-    logger.error(`Impersonated user is Undefined:`)
-    throw new Error(`Impersonated user is Undefined.`)
+  if (!impersonatedUser) {
+    logger.error(`Impersonated user has not been provided.`)
+    throw new Error(`Impersonated user has not been provided.`)
   }
 
   // Error handling of typeOfInstance
-  //Throw error if typeOfInstance has not been provided by the caller function
-  if (typeof typeOfInstance === 'undefined') {
-    logger.error(`Type of instance is Undefined:`)
-    throw new Error(`Type of instance is Undefined.`)
+  // Throw error if typeOfInstance has not been provided by the caller function
+  if (!typeOfInstance) {
+    logger.error(`Type of instance has not been provided.`)
+    throw new Error(`Type of instance has not been provided.`)
   }
 
-  //Throw error if an invalid typeOfInstance has been provided by the caller function
+  // Throw error if an invalid typeOfInstance has been provided by the caller function
   if (!instanceArray.includes(typeOfInstance)) {
-    logger.error(`Unexpected type of instance:`)
+    logger.error(`Unexpected type of instance:${typeOfInstance}.`)
     throw new Error(`Unexpected type of instance.`)
   }
 
@@ -356,9 +375,11 @@ async function getImpersonatedClientInstanceForAdmin(impersonatedUser, typeOfIns
   const instanceStoreKey = createInstanceStoreKey(impersonatedUser, typeOfInstance)
   logger.debug(`Instance store key created successfully: ${instanceStoreKey}`)
 
+  let service
   // Check if the instance already exists in the store
   service = await instanceStore.get(instanceStoreKey)
-  if (typeof service === 'undefined') {
+
+  if (!service) {
     logger.info(`Instance does not exist in store`)
   } else {
     logger.debug(
@@ -376,16 +397,25 @@ async function getImpersonatedClientInstanceForAdmin(impersonatedUser, typeOfIns
         2
       )}\nUser Email: ${JSON.stringify(service.service.context?._options.auth.subject, null, 2)}`
     )
+
+    // Get the current time
+    const timeNow = new Date().getTime()
+    logger.debug(`Current time retrieved successfully: ${timeNow}`)
+
+    // If the instance already exists in the in-memory store and expiration time is more than 5 minutes, return it
+    if (service && service.expiryDate - timeNow > 300000) {
+      logger.debug(
+        `Reusing the instance from in-memory store. The client will expire in about ${Math.floor(
+          (service.expiryDate - timeNow) / 60000
+        )} minutes.`
+      )
+      return service.service
+    } else {
+      logger.debug(`Instance is going to expire soon. Creating a new instance.`)
+    }
   }
 
-  // Get the current time
-  const timeNow = new Date().getTime()
-  logger.debug(`Current time retrieved successfully: ${timeNow}`)
-
-  // If the instance already exists in the in-memory store and expiration time is more than 5 minutes, return it
-  if (service && service.expiryDate - timeNow > 300000) return service.service
-
-  // If the instance doesn't exist in the store or the expiry time is less than 5 minutes, create create the new instance
+  // If the instance doesn't exist in the store or the expiry time is less than 5 minutes, create the new instance
   // Get the service account credentials
   const credentials = await getCredentials(impersonatedUser)
   logger.debug(`Credentials retrieved successfully: ${JSON.stringify(credentials, null, 2)}`)
@@ -402,30 +432,31 @@ async function getImpersonatedClientInstanceForAdmin(impersonatedUser, typeOfIns
 
   // Impersonate the specified user
   service = await impersonateClient(impersonatedUser, authClient, typeOfInstance)
+
   // Error handling for impersonated instance
-  if (typeof service === 'undefined') {
+  if (!service) {
     logger.error(`Failed to obtain the impersonated ${typeOfInstance} instance for ${impersonatedUser}`)
-  } else {
-    logger.debug(
-      `User impersonated successfully.\nProject ID: ${JSON.stringify(
-        service.context?._options.auth.projectId,
-        null,
-        2
-      )}\nService Account Email: ${JSON.stringify(
-        service.context?._options.auth.email,
-        null,
-        2
-      )}\nUser Email: ${JSON.stringify(service.context?._options.auth.subject, null, 2)}`
-    )
+    throw new Error(`Failed to obtain the impersonated ${typeOfInstance} instance for ${impersonatedUser}`)
   }
 
+  logger.debug(
+    `User impersonated successfully.\nProject ID: ${JSON.stringify(
+      service.context?._options.auth.projectId,
+      null,
+      2
+    )}\nService Account Email: ${JSON.stringify(
+      service.context?._options.auth.email,
+      null,
+      2
+    )}\nUser Email: ${JSON.stringify(service.context?._options.auth.subject, null, 2)}`
+  )
   return service
 }
 
 /**
- * Retrieves a Google API client instance based on the type of instance specified.
- *
- * This function takes impersonatedUser, typeOfInstance, auth and adminEmail as parameters.
+ * Retrieves or creates an impersonated Google API client instance for a given user and instance type.
+ * This function is meant for cases when authentication user(currently logged-in SuperAdmin) and user to impersotate are different.
+ * This function takes impersonatedUser, typeOfInstance, auth client(optional) and adminEmail(optional) as parameters.
  * It returns a promise that resolves to the Google API client instance configured for the impersonated user.
  * The type of instance can be 'drive', 'reports', 'groups' or 'directory', and it determines which Google API client instance is created.
  * If the auth is provided, it will be used to impersonate the user.
@@ -434,44 +465,49 @@ async function getImpersonatedClientInstanceForAdmin(impersonatedUser, typeOfIns
  * @param {string} impersonatedUser - The email address of the user to impersonate.
  * @param {string} typeOfInstance - The type of Google API client instance to create.
  * @param {Object} auth - The initialized GoogleAuth client.
- * @param {string} adminEmail - The email address of the service account to get the credentials from.
+ * @param {string} adminEmail - The email address of the currently logged-in SuperAdmin which is used to obtain the credentials for the service account(the only valid option as of now, but we definitely need something more stable in the future).
  * @returns {Promise<Object>} - A promise that resolves to the Google API client instance configured for the impersonated user.
  */
 async function getImpersonatedClientInstanceForUser({ impersonatedUser, typeOfInstance, auth, adminEmail }) {
   //impersonatedUser and typeOfInstance are required to be provided by the caller function
 
   // Error handling of impersonatedUser
-  if (typeof impersonatedUser === 'undefined') {
-    logger.error(`Impersonated user is Undefined:`)
-    throw new Error(`Impersonated user is Undefined.`)
+  if (!impersonatedUser) {
+    logger.error(`Impersonated user has not been provided.`)
+    throw new Error(`Impersonated user has not been provided.`)
   }
 
   // Error handling of typeOfInstance
-  //Throw error if typeOfInstance has not been provided by the caller function
-  if (typeof typeOfInstance === 'undefined') {
-    logger.error(`Type of instance is Undefined:`)
-    throw new Error(`Type of instance is Undefined.`)
+  // Throw error if typeOfInstance has not been provided by the caller function
+  if (!typeOfInstance) {
+    logger.error(`Type of instance has not been provided.`)
+    throw new Error(`Type of instance has not been provided.`)
   }
 
-  //Throw error if an invalid typeOfInstance has been provided by the caller function
+  // Throw error if an invalid typeOfInstance has been provided by the caller function
   if (!instanceArray.includes(typeOfInstance)) {
-    logger.error(`Unexpected type of instance:`)
+    logger.error(`Unexpected type of instance:${typeOfInstance}.`)
     throw new Error(`Unexpected type of instance.`)
   }
 
   // Create a unique key for the instance store based on the impersonated user and type of instance
   const instanceStoreKey = createInstanceStoreKey(impersonatedUser, typeOfInstance)
+  logger.debug(`Instance store key created successfully: ${instanceStoreKey}`)
 
   let service
 
   // Check if the instance already exists in the store
   service = await instanceStore.get(instanceStoreKey)
 
-  if (typeof service === 'undefined') {
+  if (!service) {
     logger.info(`Instance does not exist in store`)
   } else {
     logger.debug(
-      `Instance retrieved from impersonated user and type of instance successfully.\nProject ID: ${JSON.stringify(
+      `Impersonated client retrieved from in-memory store.\nExpiry Date: ${JSON.stringify(
+        service.expiryDate,
+        null,
+        2
+      )}\nProject ID: ${JSON.stringify(
         service.service.context?._options.auth.projectId,
         null,
         2
@@ -479,27 +515,34 @@ async function getImpersonatedClientInstanceForUser({ impersonatedUser, typeOfIn
         service.service.context?._options.auth.email,
         null,
         2
-      )}\nUser Email: ${JSON.stringify(
-        service.service.context?._options.auth.subject,
-        null,
-        2
-      )}\nExpires At: ${JSON.stringify(service.service.context?._options.auth.gtoken.expiresAt, null, 2)}`
+      )}\nUser Email: ${JSON.stringify(service.service.context?._options.auth.subject, null, 2)}`
     )
+
+    // Get the current time
+    const timeNow = new Date().getTime()
+    logger.debug(`Current time retrieved successfully: ${timeNow}`)
+
+    // If the instance already exists in the in-memory store and expiration time is more than 5 minutes, return it
+    if (service && service.expiryDate - timeNow > 300000) {
+      logger.debug(
+        `Reusing the instance from in-memory store. The client will expire in about ${Math.floor(
+          (service.expiryDate - timeNow) / 60000
+        )} minutes.`
+      )
+      return service.service
+    } else {
+      logger.debug(`Instance is going to expire soon. Creating a new instance.`)
+    }
   }
-
-  // Get the current time
-  const timeNow = new Date().getTime()
-
-  // If the instance already exists in the in-memory store and expiration time is more than 5 minutes, return it
-  if (service && service.expiryDate - timeNow > 300000) return service.service
 
   // If the instance doesn't exist in the store or the expiry time is less than 5 minutes, check if auth is provided.
   // By "auth" I mean the auth instance returned by the initializeGoogleAuth function.
   // You may have obtained the auth somewhere earlier in your logic, so you can provide it to skip getCredentials and initializeGoogleAuth steps.
   if (auth) {
     service = await impersonateClient(impersonatedUser, auth, typeOfInstance)
-    if (typeof service === 'undefined') {
-      logger.error(`Unable to retrieved instance.`)
+    if (!service) {
+      logger.error(`Unable to create an impersonated instance.`)
+      //not throwing an error here because if admin email is provided, we can get the credentials and then impersonate the user.
     } else {
       logger.debug(
         `Instance retrieved from auth successfully.\nProject ID: ${JSON.stringify(
@@ -517,7 +560,8 @@ async function getImpersonatedClientInstanceForUser({ impersonatedUser, typeOfIn
   }
 
   //Check if adminEmail is provided.
-  //If you have not provided auth, you can additionally provide adminEmail instead to get the impersonated instance.
+  //If you have not provided auth, you can provide adminEmail instead to get the impersonated instance.
+  //The reason we need adminEmail is to get the credentials for the service account(the only valid option as of now, but we definitely need something more stable in the future).
   if (adminEmail) {
     // Get the service account credentials
     const credentials = await getCredentials(adminEmail)
@@ -525,11 +569,13 @@ async function getImpersonatedClientInstanceForUser({ impersonatedUser, typeOfIn
     const authClient = await initializeGoogleAuth(credentials)
     // Impersonate the specified user
     service = await impersonateClient(impersonatedUser, authClient, typeOfInstance)
-    if (typeof service === 'undefined') {
-      logger.error(`Unable to retrieved instance.`)
+
+    if (!service) {
+      logger.error(`Unable to retrieve ${typeOfInstance} instance for ${impersonatedUser}.`)
+      throw new Error(`Unable to retrieve ${typeOfInstance} instance for ${impersonatedUser}.`)
     } else {
       logger.debug(
-        `Instance retrieved from admin email successfully.\nProject ID: ${JSON.stringify(
+        `Instance retrieved successfully.\nProject ID: ${JSON.stringify(
           service.context?._options.auth.projectId,
           null,
           2
@@ -539,12 +585,16 @@ async function getImpersonatedClientInstanceForUser({ impersonatedUser, typeOfIn
           2
         )}\nUser Email: ${JSON.stringify(service.context?._options.auth.subject, null, 2)}`
       )
+      return service
     }
-    return service
+  } else {
+    logger.error(
+      `Unable to retrieve ${typeOfInstance} instance for ${impersonatedUser} because neither auth nor admin email have been provided.`
+    )
+    throw new Error(
+      `Unable to retrieve ${typeOfInstance} instance for ${impersonatedUser} because neither auth nor admin email have been provided.`
+    )
   }
-
-  logger.error(`Unable to retrieve auth instance because auth and admin email provided.`)
-  return service
 }
 
 module.exports = {
