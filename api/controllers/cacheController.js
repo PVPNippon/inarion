@@ -1,6 +1,6 @@
 const redisClient = require('../config/redis.js')
 const config = require('../config/config')
-const logger = require('../logger.js')(__filename, 'Redis')
+const logger = require('../logger/logger.js')(__filename, 'Redis')
 
 // Generic function to set a value in Redis with optional TTL
 const setValueInRedis = async (key, value, ttl) => {

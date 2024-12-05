@@ -5,7 +5,7 @@ exports.instanceStore = instanceStore
 // server file
 const express = require('express')
 const session = require('express-session')
-const logger = require('./logger')(__filename, 'Main')
+const logger = require('./logger/logger')(__filename, 'Main')
 const config = require('./config/config')
 const cronJob = require('node-cron')
 const cacheRoutes = require('./routes/cacheRoutes')

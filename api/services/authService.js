@@ -5,7 +5,7 @@ const Users = require('../models/User')
 const Projects = require('../models/Project')
 const ServiceAccounts = require('../models/ServiceAccount')
 const instanceStore = require('..').instanceStore
-const logger = require('../logger')(__filename, 'AuthModule')
+const logger = require('../logger/logger')(__filename, 'AuthModule')
 const instanceArray = ['drive', 'reports', 'directory', 'groups'] // Needs to be updated every time a new instance type is added to the getInstance function
 
 /**

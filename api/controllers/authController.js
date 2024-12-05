@@ -6,7 +6,7 @@ const User = require('../models/User') // User model for database operations
 const router = express.Router()
 const axios = require('axios') // Import axios
 const projectController = require('../controllers/projectController')
-const logger = require('../logger')(__filename, 'Authentication')
+const logger = require('../logger/logger')(__filename, 'Authentication')
 
 // Retrieve the API base URL from environment variables
 const API_BASE_URL = process.env.API_BASE_URL

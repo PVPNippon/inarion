@@ -1,4 +1,4 @@
-const logger = require('../logger')(__filename, 'Utility Functions')
+const logger = require('../logger/logger')(__filename, 'Utility Functions')
 
 /**
  * Extracts the primary email addresses from a list of user objects.

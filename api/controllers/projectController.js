@@ -11,7 +11,7 @@ const session = require('express-session')
 const cors = require('cors')
 const app = express()
 const dataController = require('../controllers/dataController')
-const logger = require('../logger')(__filename, 'Projects')
+const logger = require('../logger/logger')(__filename, 'Projects')
 // Utility function to retry an async function on failure
 async function retryAsync(fn, retries = 5, delay = 2000) {
   for (let i = 0; i < retries; i++) {

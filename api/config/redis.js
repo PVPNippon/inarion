@@ -1,6 +1,6 @@
 // config/redisClient.js
 const redis = require('redis')
-const logger = require('../logger')(__filename, 'Redis Connection')
+const logger = require('../logger/logger')(__filename, 'Redis Connection')
 
 // Create a Redis client using environment variables
 const redisClient = redis.createClient({

@@ -1,6 +1,6 @@
 const { google } = require('googleapis')
 const ServiceAccountKeys = require('../models/ServiceAccountKeys')
-const logger = require('../logger')(__filename, 'Drive')
+const logger = require('../logger/logger')(__filename, 'Drive')
 
 /**
  * Retrieves and decodes service account credentials from the database.
