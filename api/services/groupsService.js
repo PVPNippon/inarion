@@ -46,23 +46,20 @@ async function getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmai
 /**
  * Retrieves the list of all groups in the organization.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `query` from the argument object `params`.
+ * This function takes the `userEmail` and optional `client` and `query` from the request body.
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
- * to list all groups in the organization.
- * If a `query` parameter is provided, it will be used as a filter. See the Google Admin Directory API documentation for more information.
+ * to list all groups in the organization. If `query` is given, it filters the groups based on the query.
  *
- * @param {Object} params - The parameters needed to fetch the list of groups.
- * @param {string} params.userEmail - The email address of the user to impersonate.
- * @param {string} params.projectId - The GCP project ID of the service account key.//will be removed in the future
- * @param {string} params.serviceAccountEmail - The email address of the service account.//will be removed in the future
- * @param {string} params.serviceAccountPrivateKey - The private key of the service account.//will be removed in the future
+ * @param {Object} params - The object containing the `userEmail` and optional `client` and `query` in the request body.
+ * @param {string} params.userEmail - The email address of the user performing the action.
+ * @param {Object} [params.client] - The pre-authorized client to use for the API call.
  * @param {string} [params.query] - The filter to apply to the groups list.
- * @param {Object} [params.client=null] - The JWT client to use to authenticate the API call.//will be removed in the future
- * @returns {Promise<Object[]>} - A promise that resolves to an array of groups.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of objects containing the groups' details.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function listGroups({ userEmail, serviceAccountEmail, serviceAccountPrivateKey, client, query }) {
-  const directory = await getImpersonatedClientInstanceForAdmin(userEmail, 'directory')
+async function listGroups({ userEmail, client, query }) {
+  //Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
 
   const groups = [] // Container for all groups retrieved
   let groupsResponse // Response from the API
@@ -98,44 +95,26 @@ async function listGroups({ userEmail, serviceAccountEmail, serviceAccountPrivat
 }
 
 /**
- * Retrieves the details of a specific group in the organization.
+ * Retrieves the details of a single group by its email address.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the argument object `params`.
+ * This function takes the email address of the user to impersonate, the email address of the group to retrieve,
+ * and optionally an existing impersonated auth client for Directory API.
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
- * to retrieve the details of a group specified by `groupEmail`.
+ * to retrieve the group's details.
  *
- * The function also takes an optional `client` parameter, which is a JWT client that can be used to authenticate the API call.
- * If `client` is provided, it will be used instead of creating a new JWT client.
- *
- * @param {Object} params - The parameters needed to fetch the details of the group.
- * @param {string} params.userEmail - The email address of the user to impersonate.
- * @param {string} params.projectId - The project ID of the service account key.
- * @param {string} params.serviceAccountEmail - The email address of the service account.
- * @param {string} params.serviceAccountPrivateKey - The private key of the service account.
- * @param {string} params.groupEmail - The email address of the group to retrieve its details.
- * @param {Object} [params.client=null] - The JWT client to use to authenticate the API call.
- * @returns {Promise<Object>} - A promise that resolves to an object containing the group's details.
+ * @param {Object} options - An object containing the following properties:
+ *   - {string} userEmail - The email address of the user to impersonate.
+ *   - {string} groupEmail - The email address of the group to retrieve.
+ *   - {Object} [client] - An existing impersonated auth client for Directory API.
+ * @returns {Promise<Object>} - A promise that resolves to the group's details or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function getGroupByEmail({
-  userEmail,
-  projectId,
-  serviceAccountEmail,
-  serviceAccountPrivateKey,
-  groupEmail,
-  client,
-}) {
-  // Retrieve JWT client or create it if it's not specified
-  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
-
-  // Create the Admin Directory API client
-  const admin = google.admin({
-    version: 'directory_v1',
-    auth: jwtClient,
-  })
+async function getGroupByEmail({ userEmail, groupEmail, client }) {
+  //Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
 
   // Get the group details
-  const response = await admin.groups.get({
+  const response = await directory.groups.get({
     groupKey: groupEmail,
   })
 
@@ -143,44 +122,24 @@ async function getGroupByEmail({
 }
 
 /**
- * Retrieves the list of members of a specific group in the organization.
+ * Retrieves the list of members of a group.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the argument object `params`.
+ * This function takes the email address of the user to impersonate, the email address of the group to retrieve,
+ * a boolean indicating whether to include indirect members, and optionally an existing impersonated auth client for Directory API.
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
- * to fetch the list of members of a group specified by `groupEmail` in the request body.
- * It can include both direct and indirect members based on the `includeDerivedMembership` flag.
+ * to retrieve the list of members of the group.
  *
- * The function also takes an optional `client` parameter, which is a JWT client that can be used to authenticate the API call.
- * If `client` is provided, it will be used instead of creating a new JWT client.
- *
- * @param {Object} params - The parameters needed to fetch the list of members of the group.
- * @param {string} params.userEmail - The email address of the user to impersonate.
- * @param {string} params.projectId - The project ID of the service account key.
- * @param {string} params.serviceAccountEmail - The email address of the service account.
- * @param {string} params.serviceAccountPrivateKey - The private key of the service account.
- * @param {string} params.groupEmail - The email address of the group to retrieve its members.
- * @param {boolean} params.includeDerivedMembership - Flag to include indirect members if true.
- * @param {Object} [params.client=null] - The JWT client to use to authenticate the API call.
- * @returns {Promise<Object[]>} - A promise that resolves to an array of group members.
+ * @param {Object} options - An object containing the following properties:
+ *   - {string} userEmail - The email address of the user to impersonate.
+ *   - {string} groupEmail - The email address of the group to retrieve.
+ *   - {boolean} includeDerivedMembership - Whether to include indirect members in the list.
+ *   - {Object} [client] - An existing impersonated auth client for Directory API.
+ * @returns {Promise<Object[]>} - A promise that resolves to the list of members of the group or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function listGroupMembers({
-  userEmail,
-  projectId,
-  serviceAccountEmail,
-  serviceAccountPrivateKey,
-  groupEmail,
-  includeDerivedMembership,
-  client,
-}) {
-  // Retrieve JWT client or create it if it's not specified
-  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
-
-  // Create the Admin Directory API client
-  const directory = google.admin({
-    version: 'directory_v1',
-    auth: jwtClient,
-  })
+async function listGroupMembers({ userEmail, groupEmail, includeDerivedMembership, client }) {
+  //Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
 
   // Create the request object
   const requestObj = {
