@@ -172,7 +172,7 @@ exports.getGroupActivity = async (req, res) => {
     // Return the list of group activity in customer organization
     res.status(200).json(response)
   } catch (error) {
-    logger.error(`Error fetching group activity:${error}`)
+    logger.error(`Error fetching group activity:${error.message}${error.stack}`)
     res.status(500).json({ message: 'Error fetching group activity' })
   }
 }
@@ -233,6 +233,7 @@ exports.getNestedMembership = async (req, res) => {
     res.status(200).json(nestedTable)
   } catch (error) {
     logger.error(`Error fetching nested membership:${error}`)
+
     res.status(500).json({ message: 'Error fetching nested membership' })
   }
 }

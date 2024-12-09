@@ -60,7 +60,6 @@ async function getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmai
 async function listGroups({ userEmail, client, query }) {
   //Retrieve an existing impersonated auth client for Directory API or create a new one
   const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
-
   const groups = [] // Container for all groups retrieved
   let groupsResponse // Response from the API
 
@@ -166,29 +165,23 @@ async function listGroupMembers({ userEmail, groupEmail, includeDerivedMembershi
 }
 
 /**
- * Retrieves the list of activity logs related to groups in the organization.
+ * Retrieves the list of activity logs for a given application name and type of logs.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the argument object `params`.
- * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
- * to list all activity logs related to groups in the organization.
+ * This function takes the email address of the user to impersonate, the application name, the type of logs, and optionally an existing impersonated auth client for Reports API.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Reports API
+ * to retrieve the list of activity logs for the given application name and type of logs.
  *
- * @param {Object} params - The parameters needed to list the activity logs.
- * @param {string} params.userEmail - The email address of the user to impersonate.
- * @param {string} params.projectId - The project ID of the service account key.
- * @param {string} params.serviceAccountEmail - The email address of the service account.
- * @param {string} params.serviceAccountPrivateKey - The private key of the service account.
- * @param {string} [appName='groups_enterprise'] - The type of Google service to get activity logs from.
- * @param {string} [typeOfLog=''] - The type of activity logs to get.
- * @param {Object} [client=null] - The JWT client to use to authenticate the API call.
- * @returns {Promise<Object[]>} - A promise that resolves to an array of activity logs.
+ * @param {Object} options - An object containing the following properties:
+ *   - {string} userEmail - The email address of the user to impersonate.
+ *   - {string} appName - The application name to retrieve activity logs for.
+ *   - {string} typeOfLogs - The type of logs to retrieve.
+ *   - {Object} [client] - An existing impersonated auth client for Reports API.
+ * @returns {Promise<Object[]>} - A promise that resolves to the list of activity logs or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function getAllGroupsLogs(
-  { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey },
-  appName = 'groups_enterprise',
-  typeOfLogs,
-  client
-) {
+//I'm only keeping this function in case it can be reused in the future(we might need some groups logs other than joining logs)
+//If no such future comes, it should be merged or replaced by the getJoinGroupsLogs function
+async function getAllGroupsLogs({ userEmail, appName = 'groups_enterprise', typeOfLogs, client }) {
   //'groups_enterprise' don't have 'join_via_mail' type of logs, but "groups" have
   //=> if appName is 'groups_enterprise' and typeOfLogs is 'join_via_mail', return nothing
   //https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups-enterprise
@@ -206,11 +199,7 @@ async function getAllGroupsLogs(
   let activityResponse // Response from the API
 
   // Retrieve JWT client or create it if it's not specified
-  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
-  const directory = google.admin({
-    version: 'reports_v1',
-    auth: jwtClient,
-  })
+  const reports = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'reports'))
 
   // Create the request object
   const requestObj = {
@@ -240,7 +229,7 @@ async function getAllGroupsLogs(
       requestObj.eventName = 'ADD_GROUP_MEMBER'
     }
 
-    activityResponse = await directory.activities.list(requestObj) // Call the API
+    activityResponse = await reports.activities.list(requestObj) // Call the API
 
     // Append the fetched groups to the activity logs array
     if (typeof activityResponse.data.items !== 'undefined') {
@@ -267,10 +256,9 @@ async function getAllGroupsLogs(
  * @returns {Promise<Object[]>} - A promise that resolves to an array of all activities related to joining groups in the organization.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function getJoinGroupsLogs({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, client }) {
+async function getJoinGroupsLogs({ userEmail, client }) {
   // Retrieve JWT client or create it if it's not specified
-  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
-
+  const reports = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'reports'))
   const promises = []
   let allActivities = []
 
@@ -289,17 +277,12 @@ async function getJoinGroupsLogs({ userEmail, projectId, serviceAccountEmail, se
     activityNames.forEach(async (activityName) => {
       const x = new Promise(async (resolve, reject) => {
         resolve(
-          getAllGroupsLogs(
-            {
-              userEmail,
-              projectId,
-              serviceAccountEmail,
-              serviceAccountPrivateKey,
-            },
+          getAllGroupsLogs({
+            userEmail,
             appName,
             activityName,
-            jwtClient
-          )
+            client: reports,
+          })
         )
       })
       promises.push(x)
@@ -309,7 +292,7 @@ async function getJoinGroupsLogs({ userEmail, projectId, serviceAccountEmail, se
   //Iterate through the promises array and concat the results
   await Promise.all(promises).then((results) => {
     results.forEach((result) => {
-      if (typeof result === 'undefined' || result === null) return
+      if (!result) return
       allActivities = allActivities.concat(result)
     })
   })

@@ -1,4 +1,5 @@
 const groupsService = require('../services/groupsService')
+const { getImpersonatedClientInstanceForAdmin } = require('./authService')
 
 /**
  * Checks if the given group or user already exists in the given hierarchy as a node or edge.
@@ -40,38 +41,27 @@ function hasRelation(suspectedParent, theGroupOrUser, family) {
 }
 
 /**
- * Given an array of group objects and an email address of a group or user,
- * returns a Map of group objects, each containing a group object and a list of all its members(both direct and indirect).
+ * Creates a map of group objects, each containing a group object and a list of all its members, direct and indirect.
+ * The map is created by fetching the members of each group in the given array of groups.
+ * The map only contains the groups which are direct or indirect ancestor of the given target group or user.
+ * The key for each entry in the map is the email address of the group.
  *
- * This function takes the user and service account credentials, along with the array of groups,
- * and returns a Map containing the group details and all its members(direct+indirect)
- * for the groups that the specified email address belongs to.
- *
- * @param {string} userEmail - The email address of the user to impersonate.
- * @param {string} projectId - The project ID of the service account key.
- * @param {string} serviceAccountEmail - The email address of the service account.
- * @param {string} serviceAccountPrivateKey - The private key of the service account.
- * @param {Object[]} groups - An array of group objects, each containing a `group` with an `email`.
- * @param {string} theGroupOrUser - The email address of the group or user to check.
- * @returns {Promise<Map>} - A promise that resolves to a Map containing the group details and all its members(direct+indirect).
+ * @param {Object} options - An object containing the following properties:
+ *   - {string} userEmail - The email address of the user to impersonate.
+ *   - {Object[]} groups - An array of group objects, each containing at least the email address of the group.
+ *   - {string} theGroupOrUser - The email address of the target group or user.
+ *   - {Object} [client] - An existing impersonated auth client for Directory API.
+ * @returns {Promise<Map<string, {group: Object, members: Object[]}>}
+ *   A promise that resolves to a map of group objects, each containing a group object and a list of all its members.
  */
-async function getFamilyWithAllMembers({
-  userEmail,
-  projectId,
-  serviceAccountEmail,
-  serviceAccountPrivateKey,
-  groups,
-  theGroupOrUser,
-}) {
+async function getFamilyWithAllMembers({ userEmail, groups, theGroupOrUser, client }) {
   //create a map of group objects, each containing a group object and a list of all its members
   const promises = groups.map((group) =>
     groupsService.listGroupMembers({
       userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
       groupEmail: group.email,
       includeDerivedMembership: true,
+      client,
     })
   )
 
@@ -96,29 +86,26 @@ async function getFamilyWithAllMembers({
 }
 
 /**
- * Retrieves an array of direct members for each group in the given family.
+ * Retrieves an array of direct members for each group in the provided family map.
  *
- * This function takes user and service account credentials along with a family of groups,
- * and fetches the list of direct members for each group. It returns an array where each
- * element corresponds to the direct members of a group from the family.
+ * This function takes the user's email, a map of group objects, and an optional client to impersonate.
+ * For each group in the family map, it fetches the list of direct members by querying the Google Admin Directory API.
+ * This is done because the API method that returns all members does not differentiate between direct and indirect members.
  *
- * @param {string} userEmail - The email address of the user to impersonate.
- * @param {string} projectId - The project ID of the service account key.
- * @param {string} serviceAccountEmail - The email address of the service account.
- * @param {string} serviceAccountPrivateKey - The private key of the service account.
- * @param {Map} family - A map of group objects, where each key is a group's email and each value contains the group object and its members.
- * @returns {Promise<Object[][]>} - A promise that resolves to an array of arrays, each containing the direct members of a group.
+ * @param {Object} options - An object containing the following properties:
+ *   - {string} userEmail - The email address of the user to impersonate.
+ *   - {Map} family - A map of group objects, where each key is a group's email and each value contains the group object and its members.
+ *   - {Object} [client] - An existing impersonated auth client for Directory API.
+ * @returns {Promise<Object[][]>} - A promise that resolves to an array of arrays, each containing the direct members of the corresponding group.
  */
-async function getDirectMembersArray({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, family }) {
+async function getDirectMembersArray({ userEmail, family, client }) {
   //get direct member array for each group
   const promises = [...family.keys()].map((groupEmail) =>
     groupsService.listGroupMembers({
       userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
       groupEmail,
       includeDerivedMembership: false,
+      client,
     })
   )
 
@@ -159,18 +146,18 @@ function getTransitive(family, directMembersArray, theGroupOrUser) {
 }
 
 /**
- * Determines the joining time of a member to a group based on activity logs.
+ * Retrieves the joined time of a group or user from the activity logs.
  *
- * This function processes a list of activities to find the specific activity
- * where a member joined a group. The function distinguishes between two types
- * of logs: those where the member is the actor and those where the member is
- * the target of the action. It returns the joining time if the activity is
- * found, formatted according to specified options.
+ * The function takes an array of all activities, member ID, group ID, and all groups as arguments.
+ * It then iterates through all activities and checks if the member ID and group ID matches with the target group and member.
+ * If yes, it returns the joining time in the format 'MMM d, yyyy, h:mm a z'.
+ * Otherwise, it returns 'not found'.
  *
- * @param {Object[]} allActivities - The array of activity logs to search within.
- * @param {string} memberId - The email address of the member whose joining time is to be determined.
- * @param {string} groupId - The email address of the group to check for member joining activity.
- * @returns {string} - The formatted joining time if found, otherwise 'not found'.
+ * @param {Object[]} allActivities - An array of objects containing activity logs.
+ * @param {string} memberId - The email address of the member.
+ * @param {string} groupId - The email address of the group.
+ * @param {Object[]} allGroups - An array of objects containing all groups.
+ * @returns {string} - The joined time in the format 'MMM d, yyyy, h:mm a z' or 'not found' if no logs are found.
  */
 function getJoinedTime(allActivities, memberId, groupId, allGroups) {
   //since logs are only available for last 6 months, in many cases there won't be any joining logs
@@ -180,7 +167,7 @@ function getJoinedTime(allActivities, memberId, groupId, allGroups) {
   //iterate through all activities
   for (const activity of allActivities) {
     //if activity is undefined or null, move to the next activity
-    if (typeof activity === 'undefined' || activity === null) continue
+    if (!activity) continue
 
     //retrieve member and group id from activity
     //all groups joined logs can be devided in 2 types: when added member is the actor, or  when they are target of the action
@@ -238,32 +225,23 @@ function isGroup(allGroupsArray, theGroupOrUser) {
 }
 
 /**
- * Constructs a table of membership details for each parent group of the target group/user.
+ * Constructs a table representing the membership details of a specified group or user within a family of groups.
  *
- * This function retrieves and processes group joining logs and direct membership information
- * to determine the membership status of the target group/user within the family of groups.
- * It outputs an array of objects, each representing a row in the membership details table,
- * containing columns for group email, membership type (Direct or Inherited), inherited via,
- * and timestamp of when the membership was established.
+ * This function takes in information about a user's email, a family map of groups with their members,
+ * the target group or user, all groups available, and directory and reports clients for API access.
+ * It retrieves group joining logs and direct members of groups to determine the membership type (direct or inherited),
+ * and constructs a table with columns for group email, membership type, inherited path, and join timestamp.
  *
- * @param {string} userEmail - The email address of the user performing the action.
- * @param {string} projectId - The GCP project ID.
- * @param {string} serviceAccountEmail - The service account email address.
- * @param {string} serviceAccountPrivateKey - The service account private key.
- * @param {Map} family - A map of group objects, where each key is a group's email and each value contains the group object and its members.
- * @param {string} theGroupOrUser - The email address of the group or user to query.
- * @param {Object[]} allGroups - An array of all group objects within the organization.
- * @returns {Promise<Object[]>} - A promise that resolves to an array of objects containing membership details.
+ * @param {Object} options - An object containing the following properties:
+ *   - {string} userEmail - The email address of the user to impersonate.
+ *   - {Map<string, {group: Object, members: Object[]}>} family - A map of group objects and their members.
+ *   - {string} theGroupOrUser - The email address of the target group or user.
+ *   - {Object[]} allGroups - An array of objects containing all groups.
+ *   - {Object} [directoryClient] - An existing impersonated auth client for Directory API.
+ *   - {Object} [reportsClient] - An existing impersonated auth client for Reports API.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array representing the membership table.
  */
-async function getTable({
-  userEmail,
-  projectId,
-  serviceAccountEmail,
-  serviceAccountPrivateKey,
-  family,
-  theGroupOrUser,
-  allGroups,
-}) {
+async function getTable({ userEmail, family, theGroupOrUser, allGroups, directoryClient, reportsClient }) {
   const table = []
 
   //get an array with group joining logs for the last 6 months
@@ -272,9 +250,7 @@ async function getTable({
   //but it won't be 100% accurate
   const allActivities = await groupsService.getJoinGroupsLogs({
     userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
+    client: reportsClient,
   })
 
   //for each group in the family, fetch all its direct members
@@ -283,10 +259,8 @@ async function getTable({
   //so we need to find it out by ourselves in a roundabout way
   const directMembers = await getDirectMembersArray({
     userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
     family,
+    client: directoryClient,
   })
 
   //for each ancestor group, create JSON object containing membership details
@@ -322,26 +296,28 @@ async function getTable({
 }
 
 /**
- * Given an email address of a group or user, returns a table of membership details
- * for all direct/indirect parents of the target group/user.
+ * Retrieves a table of all groups that a given group or user is a member of, either directly or indirectly.
+ * The table contains columns for the group email, the type of membership (direct or indirect), and the timestamp
+ * of when the membership was created.
  *
- * @param {string} userEmail - The email address of the user performing the action.
- * @param {string} projectId - The GCP project ID.
- * @param {string} serviceAccountEmail - The service account email address.
- * @param {string} serviceAccountPrivateKey - The service account private key.
- * @param {string} queryEmail - The email address of the group or user to query.
- * @returns {Promise<Object[]>} - A promise that resolves to an array of objects containing membership details for direct/indirect parents of the target group.
+ * @param {Object} options - An object containing the following properties:
+ *   - {string} userEmail - The email address of the user to impersonate.
+ *   - {string} queryEmail - The email address of the group or user to query.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of objects, each containing the details of a group
+ *   that the target group or user is a member of.
  */
-//TODO: refactor the code to reduce the number of API calls(postponed till the next iteration)
-async function getNestedTable({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail }) {
+async function getNestedTable({ userEmail, queryEmail }) {
+  //TODO: refactor the code to reduce the number of API calls(postponed till the next iteration)
   const theGroupOrUser = queryEmail
+
+  //get impersonated clients
+  const directoryClient = await getImpersonatedClientInstanceForAdmin(userEmail, 'directory')
+  const reportsClient = await getImpersonatedClientInstanceForAdmin(userEmail, 'reports')
 
   //get a list of all groups in customer organization
   const allGroups = await groupsService.listGroups({
     userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
+    client: directoryClient,
   })
 
   //leave out groups with no members to reduce number of API calls
@@ -350,11 +326,9 @@ async function getNestedTable({ userEmail, projectId, serviceAccountEmail, servi
   //get an array of parent group objects
   const family = await getFamilyWithAllMembers({
     userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
     groups,
     theGroupOrUser,
+    client: directoryClient,
   })
 
   //if there are no groups in the family, return an empty array
@@ -363,12 +337,11 @@ async function getNestedTable({ userEmail, projectId, serviceAccountEmail, servi
   //get an array with membership details and timestamp for each parent/grandparent group of the target group/user
   const table = await getTable({
     userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
     family,
     theGroupOrUser,
     allGroups,
+    directoryClient,
+    reportsClient,
   })
 
   return table
@@ -472,9 +445,9 @@ async function getDescendantHierarchy({
   //get an array of direct members for each group in the downstreamfamily
   const directMembersOfChildGroups = await getDirectMembersArray({
     userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
+    // projectId,
+    // serviceAccountEmail,
+    // serviceAccountPrivateKey,
     family: childGroupFamily,
   })
 
