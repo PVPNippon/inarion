@@ -241,28 +241,25 @@ async function getAllGroupsLogs({ userEmail, appName = 'groups_enterprise', type
 }
 
 /**
- * Retrieves the list of all activities related to joining groups in the organization.
+ * Retrieves a list of all activities in the organization related to joining groups.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the argument object `params`.
- * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * This function takes the `userEmail` and an optional `client` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Reports API
  * to list all activities related to joining groups in the organization.
  *
- * @param {Object} params - The parameters needed to list the activity logs.
- * @param {string} params.userEmail - The email address of the user to impersonate.
- * @param {string} params.projectId - The project ID of the service account key.
- * @param {string} params.serviceAccountEmail - The email address of the service account.
- * @param {string} params.serviceAccountPrivateKey - The private key of the service account.
- * @param {Object} [params.client=null] - The JWT client to use to authenticate the API call.
- * @returns {Promise<Object[]>} - A promise that resolves to an array of all activities related to joining groups in the organization.
+ * @param {Object} options - An object containing the following properties:
+ *   - {string} userEmail - The email address of the user to impersonate.
+ *   - {Object} [client] - An existing impersonated auth client for Reports API.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of activity logs related to joining groups.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 async function getJoinGroupsLogs({ userEmail, client }) {
-  // Retrieve JWT client or create it if it's not specified
+  // Retrieve an impersonated auth client or create it if it's not specified
   const reports = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'reports'))
   const promises = []
   let allActivities = []
 
-  //Get all activities related to joining groups(could identify 5 by now, could be more)
+  //Get all activities related to joining groups
   //I'm not using "add_user" here, because it overlaps with "add_member" for "groups_enterprise"
   //But it WILL be used with "groups" later on the way because groups don't have "add_member"
   //It's impossible to query multiple apps at the same time, therefore we need to query each app separately
@@ -310,15 +307,12 @@ async function getJoinGroupsLogs({ userEmail, client }) {
 /**
  * Retrieves the list of lists of members of specified groups in exportable format.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the argument object `params`.
+ * This function takes the `userEmail`, `groups`, and an optional `client` from the request body.
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
  * to create a list of lists of members of the specified groups in exportable format.
  *
  * @param {Object} params - The parameters needed to list the lists of members in exportable format.
  * @param {string} params.userEmail - The email address of the user to impersonate.
- * @param {string} params.projectId - The project ID of the service account key.
- * @param {string} params.serviceAccountEmail - The email address of the service account.
- * @param {string} params.serviceAccountPrivateKey - The private key of the service account.
  * @param {Object[]} params.groups - An array of groups to be exported.
  *                                   Each element should be in the following format:
  *                                   {
@@ -345,16 +339,9 @@ async function getJoinGroupsLogs({ userEmail, client }) {
  *                                }
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function listMembersInExportFormat({
-  userEmail,
-  projectId,
-  serviceAccountEmail,
-  serviceAccountPrivateKey,
-  groups,
-  client,
-}) {
-  // Retrieve JWT client or create it if it's not specified
-  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
+async function listMembersInExportFormat({ userEmail, groups, client }) {
+  //Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
 
   // Map of all groups in the customer's organization to get group names from group addresses
   // (key, value) = (group email address, group name)
@@ -365,8 +352,8 @@ async function listMembersInExportFormat({
   const userNameMap = new Map()
 
   const [allGroupsInOrganization, allUsersInOrganization] = await Promise.all([
-    listGroups({ userEmail, client: jwtClient }),
-    listUsers({ client: jwtClient }),
+    listGroups({ userEmail, client: directoryClient }),
+    listUsers({ userEmail, client: directoryClient }),
   ])
 
   // Building groupNameMap
@@ -393,7 +380,7 @@ async function listMembersInExportFormat({
       listGroupMembers({
         groupEmail,
         includeDerivedMembership: false,
-        client: jwtClient,
+        client: directoryClient,
       })
     )
   )
@@ -407,7 +394,7 @@ async function listMembersInExportFormat({
         ? listGroupMembers({
             groupEmail,
             includeDerivedMembership,
-            client: jwtClient,
+            client: directoryClient,
           })
         : null
     )
@@ -510,30 +497,20 @@ async function listMembersInExportFormat({
 }
 
 /**
- * Retrieves the list of all users in the organization.
+ * Retrieves a list of all users in the organization.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the argument object `params`.
+ * This function takes the email address of the user to impersonate and an optional existing impersonated auth client.
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
  * to list all users in the organization.
  *
- * @param {Object} params - The parameters needed to fetch the list of users.
- * @param {string} params.userEmail - The email address of the user to impersonate.
- * @param {string} params.projectId - The project ID of the service account key.
- * @param {string} params.serviceAccountEmail - The email address of the service account.
- * @param {string} params.serviceAccountPrivateKey - The private key of the service account.
- * @param {Object} [params.client=null] - The JWT client to use to authenticate the API call.
- * @returns {Promise<Object[]>} - A promise that resolves to an array of users.
- * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ * @param {Object} params - An object containing the following properties:
+ *   - {string} userEmail - The email address of the user to impersonate.
+ *   - {Object} [client] - An existing impersonated auth client for Directory API.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of user objects, each containing user details.
  */
-async function listUsers({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, client }) {
-  // Retrieve JWT client or create it if it's not specified
-  const jwtClient = client ?? (await getClient(serviceAccountEmail, serviceAccountPrivateKey, userEmail))
-
-  // Create the Admin Directory API client
-  const directory = google.admin({
-    version: 'directory_v1',
-    auth: jwtClient,
-  })
+async function listUsers({ userEmail, client }) {
+  //Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
 
   // Create the request object
   const requestObj = {
