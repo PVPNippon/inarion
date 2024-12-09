@@ -57,7 +57,7 @@ exports.getDomainUsersList = async (req, res) => {
 
   // Decode the private key data for the service account
   // const keyData = decodePrivateKeyData(serviceAccountKey.privateKeyData);
-  logger.debug(`Privvvv key: ${serviceAccountPrivateKey}`)
+  logger.debug(`Privvvv key: ${serviceAccountPrivateKey}`, { storeLocation: 'file' })
   const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
   logger.debug(JSON.stringify(keyData, null, 2))
   const privateKey = keyData.private_key

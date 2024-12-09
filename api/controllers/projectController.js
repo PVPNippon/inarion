@@ -79,10 +79,7 @@ exports.createProject = async (req, res) => {
   const { tokens, email, projectName } = req.session
 
   // Logging the tokens and other parameters for debugging
-  logger.debug(`Tokens used to create project:${JSON.stringify(tokens, null, 2)}`, {
-    functionName: 'createProject',
-    module: 'Projects',
-  })
+  logger.debug(`Tokens used to create project:${JSON.stringify(tokens, null, 2)}`, {})
   logger.debug(`Email:${email}`)
   logger.debug(`Project Name:${projectName}`)
   try {

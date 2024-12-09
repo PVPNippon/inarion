@@ -50,7 +50,7 @@ const customFormat = (fileName, moduleName) => {
     label({ label: formattedFileName }),
 
     // Add a timestamp with the specified format
-    timestamp({ format: 'YYYY-MM-DD hh:mm:ss.SSS A' }),
+    timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
 
     // Align the log entries for better readability
     align(),
@@ -63,14 +63,20 @@ const customFormat = (fileName, moduleName) => {
       // Determine the color for the current log level
       const levelColor = customColors[info.level] || 'white'
 
+      // Format metadata if it exists
+      const metadataString = info.metadata ? ` | ${JSON.stringify(info.metadata)}` : ''
+      const miscString = info.misc ? ` | ${JSON.stringify(info.misc)}` : ''
+
       // Format and return the log message with color and information
       return (
         `${applyColor(`[${info.timestamp}]`, 'cyan')} ` +
-        `${applyColor(`[${info.label}]`, 'blue')} ` +
+        `${applyColor(`[${info.label} ${info.lineNumber}]`, 'blue')} ` +
         `${applyColor(`[Module: ${moduleName || 'N/A'}]`, 'yellow')} ` +
         `${applyColor(`[Function: ${info.functionName || 'N/A'}]`, 'magenta')} ` +
         `${applyColor(info.level.toUpperCase() + ':', levelColor)} ` +
         `${applyColor(info.message, 'white')} ` +
+        metadataString + // Append metadata string if it exists
+        miscString + // Append misc string if it exists
         (info.stack ? `\n${applyColor(info.stack, 'red')}` : '') // Include stack trace if available
       )
     })

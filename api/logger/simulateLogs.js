@@ -1,4 +1,4 @@
-const { logToConsoleWithBulk } = require('./dbLogging')
+const { logToConsoleWithBulk } = require('./consoleLogTest')
 
 /**
  * Simulate log entries to test the bulk logging process to console.
@@ -6,7 +6,7 @@ const { logToConsoleWithBulk } = require('./dbLogging')
 const simulateStressTestLogging = async () => {
   console.log('Starting stress test for console log simulation...')
 
-  const TOTAL_LOGS = 10000 // Total number of logs to simulate
+  const TOTAL_LOGS = 100 // Total number of logs to simulate
   const LOG_INTERVAL = 1 // Interval (ms) between logs
 
   for (let i = 1; i <= TOTAL_LOGS; i++) {

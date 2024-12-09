@@ -17,7 +17,7 @@ const setValueInRedis = async (key, value, ttl) => {
     }
     logger.info(`Value set in Redis for key: "${key}"${ttl ? ` with TTL: ${ttl} seconds` : ''}`)
     const storedData = await getDataFromRedis(key)
-    logger.info(JSON.stringify(storedData, null, 2), { storeLocation: 'file' })
+    // logger.info(JSON.stringify(storedData, null, 2), { storeLocation: 'file' })
   } catch (err) {
     logger.error(`Error setting value in Redis for key "${key}":${err}`)
     throw err

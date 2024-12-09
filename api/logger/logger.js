@@ -27,7 +27,8 @@ const logger = (fileName, moduleName = 'N/A') => {
      *   - {string} module - The module that is logging the message.
      *   - {string} storeLocation - The location to store the log. Can be 'stdout', 'file', or 'both'.
      */
-    return async (message, { module, storeLocation = 'stdout' } = {}) => {
+    return async (message, options = {}) => {
+      const { metadata = null, module, storeLocation = 'stdout', misc = null } = options
       if (storeLocation === 'db') {
         // Log to the database using the bulk logic
         await logToDatabaseWithBulk(message)
@@ -47,14 +48,22 @@ const logger = (fileName, moduleName = 'N/A') => {
 
         const callerInfo = getCallerInfo()
 
+        // Include metadata and misc as part of the log context
+        const logContext = {}
+        if (metadata) logContext.metadata = metadata
+        if (misc) logContext.misc = misc
+
+        const loggerWithContext = Object.keys(logContext).length ? dynamicLogger.child(logContext) : dynamicLogger
+
         /**
          * Logs a message with the specified level and metadata.
          * @param {Object} info - An object with the log level, message, and metadata.
          */
-        dynamicLogger.log({
+        loggerWithContext.log({
           level,
           message,
           functionName: callerInfo.functionName,
+          lineNumber: callerInfo.lineNumber,
           module,
         })
       }
