@@ -348,35 +348,32 @@ async function getNestedTable({ userEmail, queryEmail }) {
 }
 
 /**
- * Constructs a hierarchical representation of a group's members, including users and sub-groups.
- *
- * This function processes direct and indirect members of the target given group, updating the upper hierarchy with nodes
- * and edges representing users and groups. It filters members by type, checks for existing nodes, and
- * recursively processes child groups to build a comprehensive hierarchy.
- *
- * @param {string} userEmail - The email address of the user to impersonate.
- * @param {string} projectId - The GCP project ID.
- * @param {string} serviceAccountEmail - The email address of the service account.
- * @param {string} serviceAccountPrivateKey - The private key of the service account.
- * @param {Object} groupObj - An object representing the current group, containing its email.
- * @param {Object} hierarchy - An object representing the hierarchical structure, including nodes and edges.
- * @param {Object[]} directMembersOfTheGroup - An array of direct members of the group.
- * @param {Object[]} indirectMembersOfTheGroup - An array of indirect members of the group.
- * @param {Object[]} allMembersOfTheGroup - An array of all members (direct and indirect) of the group.
- * @returns {Object} - The updated hierarchy with nodes and edges representing the group's structure.
+ * Recursively constructs a hierarchical object representing the descendant groups of a given group.
+ * The hierarchy object contains a nodes list and an edges list.
+ * The nodes list contains objects with id, label, shape, and color keys.
+ * The edges list contains objects with from, to, and color keys.
+ * The color key is used to highlight the path from the target group to the root group.
+ * @param {Object} options - An object containing the following properties:
+ *   - {string} userEmail - The email address of the user to impersonate.
+ *   - {Object} groupObj - The group object of the target group.
+ *   - {Object} hierarchy - The object representing the hierarchy.
+ *   - {Object[]} directMembersOfTheGroup - An array of direct members of the group.
+ *   - {Object[]} indirectMembersOfTheGroup - An array of indirect members of the group.
+ *   - {Object[]} allMembersOfTheGroup - An array of all members of the group.
+ *   - {Object} [client=null] - An existing impersonated auth client for Directory API.
+ * @returns {Promise<Object>} - A promise that resolves to the constructed hierarchy object.
  */
-//TODO: refactor the code to reduce the number of API calls(postponed till the next iteration)
 async function getDescendantHierarchy({
   userEmail,
-  projectId,
-  serviceAccountEmail,
-  serviceAccountPrivateKey,
   groupObj,
   hierarchy,
   directMembersOfTheGroup,
   indirectMembersOfTheGroup,
   allMembersOfTheGroup,
+  client,
 }) {
+  //TODO: refactor the code to reduce the number of API calls(postponed till the next iteration)
+
   //filter users, "all organizastion users" and group members separately
   const users = directMembersOfTheGroup.filter((member) => member.type === 'USER')
   const allUsers = directMembersOfTheGroup.filter((member) => member.type === 'CUSTOMER')
@@ -445,10 +442,8 @@ async function getDescendantHierarchy({
   //get an array of direct members for each group in the downstreamfamily
   const directMembersOfChildGroups = await getDirectMembersArray({
     userEmail,
-    // projectId,
-    // serviceAccountEmail,
-    // serviceAccountPrivateKey,
     family: childGroupFamily,
+    client,
   })
 
   //loop through each descendant group and its direct member array and create a node(if it doesn't already exist) and edge for each group and member
@@ -480,32 +475,22 @@ async function getDescendantHierarchy({
 }
 
 /**
- * Constructs a hierarchical representation of ancestor groups for the specified target group or user.
+ * Constructs a hierarchical representation of ancestor groups for a specified group or user.
  *
- * This function processes a family of groups along with their direct members,
- * and builds a hierarchy containing nodes and edges. Nodes represent groups or users,
- * while edges represent membership relationships. The hierarchy is augmented with color
- * to highlight paths directly related to the target group or user.
+ * This function iterates over a family map of groups, fetching direct members
+ * to build a hierarchy of nodes and edges. Direct relationships to the target
+ * group or user are highlighted in the hierarchy.
  *
- * @param {string} userEmail - The email address of the user to impersonate.
- * @param {string} projectId - The GCP project ID.
- * @param {string} serviceAccountEmail - The service account email address.
- * @param {string} serviceAccountPrivateKey - The service account private key.
- * @param {Map} family - A map of group objects, where each key is a group's email and each value contains the group object and its members.
- * @param {string} theGroupOrUser - The email address of the group or user to query.
- * @param {Object[]} allGroups - An array of all group objects within the organization.
- * @returns {Object} - A hierarchical object containing a nodes list and an edges list.
+ * @param {Object} options - An object containing the following properties:
+ *   - {string} userEmail - The email address of the user to impersonate.
+ *   - {Map} family - A map containing group objects and their members.
+ *   - {string} theGroupOrUser - The email address of the target group or user.
+ *   - {Object[]} allGroups - An array of all groups to assist in determining if the target is a group.
+ *   - {Object} [client] - An existing impersonated auth client for Directory API.
+ * @returns {Promise<Object>} - A promise that resolves to the constructed hierarchy object.
  */
-//TODO: refactor the code to reduce the number of API calls(postponed till the next iteration)
-async function getAncestorHierarchy({
-  userEmail,
-  projectId,
-  serviceAccountEmail,
-  serviceAccountPrivateKey,
-  family,
-  theGroupOrUser,
-  allGroups,
-}) {
+async function getAncestorHierarchy({ userEmail, family, theGroupOrUser, allGroups, client }) {
+  //TODO: refactor the code to reduce the number of API calls(postponed till the next iteration)
   //prepare the hierarchical object
   const hierarchy = {
     nodes: [],
@@ -515,10 +500,8 @@ async function getAncestorHierarchy({
   //for each group in the family, fetch all its direct members
   const directMembers = await getDirectMembersArray({
     userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
     family,
+    client,
   })
 
   //for each ancestor group, create JSON object containing membership details
@@ -594,27 +577,33 @@ async function getAncestorHierarchy({
 }
 
 /**
- * Given a target group or user, creates a hierarchical object
- * containing a nodes list and an edges(=links between nodes) list.
- * The nodes list contains objects with id, label, shape, and color keys.
- * The edges list contains objects with from, to, and color keys.
- * The color key is used to highlight the path from the target group/user to the root group.
- * @param {string} userEmail - The email address of the user to impersonate.
- * @param {string} projectId - The GCP project ID.
- * @param {string} serviceAccountEmail - The email address of the service account.
- * @param {string} serviceAccountPrivateKey - The private key of the service account.
- * @param {string} queryEmail - The email address of the target group or user.
- * @returns {Object} - A hierarchical object containing a nodes list and an edges list.
+ * Retrieves a hierarchical representation of groups for a given email address.
+ *
+ * The hierarchy represents both the upward and downward family of the target group/user.
+ * The upward family is the set of all ancestor groups of the target group/user.
+ * The downward family is the set of all descendant groups and users of the target group.
+ *
+ * @param {Object} options - An object containing the following properties:
+ *   - {string} userEmail - The email address of the user to impersonate.
+ *   - {string} queryEmail - The email address of the group or user to query.
+ * @returns {Promise<Object>} - A promise that resolves to the group hierarchy object.
+ *   The hierarchy object contains a nodes and an edges list.
+ *   The nodes list contains objects with id, label, shape, and color keys.
+ *   The edges list contains objects with from, to, and color keys.
+ *   The color key is used to highlight the path from the target group to the root group.
  */
-async function getHierarchy({ userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail }) {
+async function getHierarchy({ userEmail, queryEmail }) {
   const theGroupOrUser = queryEmail
+
+  //fetch an impersonated directory client
+  //the reason I'm using directoryClient and not just client is because in the future
+  //we may need add other services such as reportsClient, for example to add joined timestamps to the hierarchy nodes
+  const directoryClient = await getImpersonatedClientInstanceForAdmin(userEmail, 'directory')
 
   //get a list of all groups in customer organization
   const allGroups = await groupsService.listGroups({
     userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
+    client: directoryClient,
   })
 
   //leave out groups with no members to reduce number of API calls(for the upper hierarchy)
@@ -623,22 +612,18 @@ async function getHierarchy({ userEmail, projectId, serviceAccountEmail, service
   //get an array of parent group objects
   const family = await getFamilyWithAllMembers({
     userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
     groups,
     theGroupOrUser,
+    client: directoryClient,
   })
 
   //get a hierarchy object for the upward family of the target group/user
   let hierarchy = await getAncestorHierarchy({
     userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
     family,
     theGroupOrUser,
     allGroups,
+    client: directoryClient,
   })
 
   //if the hierarchy is empty, add the target group/user to the hierarchy
@@ -669,21 +654,17 @@ async function getHierarchy({ userEmail, projectId, serviceAccountEmail, service
   //get all direct and indirect members of the target group
   const allMembersOfTheGroup = await groupsService.listGroupMembers({
     userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
     groupEmail: groupObj.email,
     includeDerivedMembership: true,
+    client: directoryClient,
   })
 
   //get direct members of the group
   const directMembersOfTheGroup = await groupsService.listGroupMembers({
     userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
     groupEmail: groupObj.email,
     includeDerivedMembership: false,
+    client: directoryClient,
   })
 
   //get indirect members of the group by subtracting direct members from all members
@@ -695,14 +676,12 @@ async function getHierarchy({ userEmail, projectId, serviceAccountEmail, service
   //construct the downstream hierarchy
   hierarchy = getDescendantHierarchy({
     userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
     groupObj,
     hierarchy,
     directMembersOfTheGroup,
     indirectMembersOfTheGroup,
     allMembersOfTheGroup,
+    client: directoryClient,
   })
 
   return hierarchy
