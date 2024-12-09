@@ -350,7 +350,7 @@ exports.updateWhoCanLeaveGroup = async (req, res) => {
       res.status(200).json({ message: `Set the 'whoCanLeaveGroup' of ${groupEmail} to ${whoCanLeaveGroup}` })
     } else {
       res.status(500).json({ message: 'The request could not be handled for some reason' })
-      logger.debug(JSON.stringify(response, null, 2))
+      // logger.debug(JSON.stringify(response, null, 2))
     }
   } catch (error) {
     logger.error(`Error updating the specified group's 'whoCanLeaveGroup' setting:${error}`)

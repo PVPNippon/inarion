@@ -246,7 +246,7 @@ const listServiceAccounts = async (authClient, projectId) => {
   })
 
   // Log the list of service accounts (for debugging)
-  logger.debug(`Service accounts: ${JSON.stringify(res.data.accounts, null, 2)}`)
+  // logger.debug(`Service accounts: ${JSON.stringify(res.data.accounts, null, 2)}`)
   // Return the list of service accounts, or an empty array if none are found
   return res.data.accounts
 }

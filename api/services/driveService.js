@@ -53,7 +53,7 @@ const fetchFilesFromDrive = async (drive, driveId = null) => {
   // }
 
   // query = `('testadmin@pvp-test-domain2.com' in  owners)`
-  logger.debug(`Generated query:${JSON.stringify(query, null, 2)}`) // Log the query for debugging
+  // logger.debug(`Generated query:${JSON.stringify(query, null, 2)}`) // Log the query for debugging
 
   do {
     try {
@@ -280,7 +280,7 @@ const fetchSharedDrivesFiles = async (
     const drivesResponse = await drive.drives.list() // Fetch all shared drives
     const sharedDrives = drivesResponse.data.drives || [] // Fallback to an empty array if no drives are found
     const sharedDrivesWithFiles = [] // Array to store drives and their files
-    logger.info(JSON.stringify(sharedDrives, null, 2))
+    // logger.info(JSON.stringify(sharedDrives, null, 2))
     // let filters = {
     //   trashed: false,
     // };
@@ -357,9 +357,9 @@ const fetchPersonalDriveFiles = async (adminEmail, serviceAccountEmail, serviceA
         logger.error(`Failed to process email ${email}: ${error.message}`)
       }
     }
-    logger.debug(JSON.stringify(personalDrivesWithFiles, null, 2), {
-      storeLocation: 'file',
-    })
+    // logger.debug(JSON.stringify(personalDrivesWithFiles, null, 2), {
+    //   storeLocation: 'file',
+    // })
     return personalDrivesWithFiles // Return the array of personal drives with their file structures
   } catch (error) {
     // Log any errors that occur while fetching personal drives

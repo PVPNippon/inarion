@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 services:
   api:
     build: ./api
@@ -6,14 +6,14 @@ services:
     ports:
       - '4000:4000'
     networks:
-
       - mynetwork
       - test
     # environment:
     #   - POSTGRES_HOST=192.168.1.7
     #   - POSTGRES_USER=postgres
     #   - POSTGRES_PASSWORD=***REMOVED***
-
+    volumes:
+      - ./api/logs:/usr/src/app/logs # Map host directory to container directory
     depends_on:
       - frontend
       - redis
@@ -34,7 +34,7 @@ services:
     ports:
       - '3000:3000'
     # environment:
-    #   - PORT=3000     
+    #   - PORT=3000
     #   - HOST=0.0.0.0
     stdin_open: true
     networks:
