@@ -21,6 +21,7 @@ function ListSharedDriveFiles() {
 
   useEffect(() => {
     const fetchFiles = async () => {
+      console.log('Fetching files...')
       try {
         const response = await axios.post(
           'http://localhost:4000/api/drive/shared-drives',

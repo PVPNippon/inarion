@@ -5,6 +5,7 @@
   "dependencies": {
     "@google-cloud/local-auth": "^2.1.0",
     "axios": "^1.7.7",
+    "crypto-js": "^4.2.0",
     "ejs": "^3.1.10",
     "express-session": "^1.18.0",
     "googleapis": "^105.0.0",

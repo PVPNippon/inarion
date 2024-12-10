@@ -1,37 +1,40 @@
 'use client'
 import React, { useState, useEffect, useContext } from 'react'
-import axios from 'axios'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
-import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { apiCall } from '@/utils/securePayload'
+import { apiClient } from '@/utils/apiClient'
 
 /**
- * Component that allows the user to enter a group email address and fetch the list of all its members,
- * both direct and indirect.
+ * Component for listing all members of a group, both direct and nested.
  *
- * The component fetches the list of members when the user clicks the "Go" button.
+ * This component allows the user to enter a group's email address and fetches
+ * the list of all members when the "Go" button is clicked. The members are
+ * displayed in a div, and any errors encountered during the fetch operation
+ * are also displayed.
  *
- * The component displays the list of members in a JSON format.
+ * Contexts:
+ * - Utilizes `LoggedInUserContext` to access the user's email.
  *
- * The component uses the `groups/list-all-members` API endpoint to fetch the list of members.
+ * States:
+ * - `inputValue`: Stores the group email address entered by the user.
+ * - `members`: Stores the fetched list of members or error messages.
+ * - `clickCount`: A counter to trigger the fetch operation.
  *
- * The component expects the following props:
- * - `email`: the email address of the user to impersonate
- * - `projectData`: the project data, including the project ID, service account email and private key
+ * Side Effects:
+ * - Uses `useEffect` to trigger the fetch of members whenever `clickCount` changes.
  *
- * The component uses the `LoggedInUserContext` and `ProjectDataContext` contexts to access the user's email
- * and project data.
+ * API:
+ * - Sends a POST request to `/api/groups/list-all-members` with the user's email
+ *   and the group email to retrieve the list of members.
  *
- * The component uses the `useState` hook to store the input value, the list of members and a click count.
- *
- * The component uses the `useEffect` hook to fetch the list of members when the user clicks the "Go" button.
+ * @returns {JSX.Element} The rendered component for listing all group members.
  */
-//a temporary component for dev purposes.
-//on click of button, fetch  all group's members and display in div(error or member list)
 function ListAllMembers() {
+  //a temporary component for dev purposes.
+  //on click of button, fetch  all group's members and display in div(error or member list)
   const { email } = useContext(LoggedInUserContext)
-  const { projectData } = useContext(ProjectDataContext)
   const [inputValue, setInputValue] = useState('')
   const [members, setMembers] = useState([])
   const [clickCount, setClickCount] = useState(0)
@@ -43,20 +46,19 @@ function ListAllMembers() {
           return
         }
 
-        const response = await axios.post(
-          'http://localhost:4000/api/groups/list-all-members',
+        const response = await apiClient(
+          '/api/groups/list-all-members', // Endpoint path relative to API_BASE_URL
+          'POST', // HTTP method
           {
             userEmail: email,
-            projectId: projectData.projectData.projectId,
-            serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-            serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
             groupEmail: inputValue,
           },
-          { withCredentials: true }
+          {}, // Additional headers, if any
+          true // withCredentials flag
         )
-        if (response.status === 200) {
-          setMembers(response.data)
-        }
+        //WARNING:if you need to use the response data as an array or object, you need to parse it with JSON.parse()
+        //I'm not doing it here because I only display the response data as is for now.
+        setMembers(response)
       } catch (error) {
         console.error(error)
         setMembers([{ error: error.message }])
@@ -81,7 +83,8 @@ function ListAllMembers() {
           Go
         </Button>
       </div>
-      <div>{members && JSON.stringify(members)}</div>
+      {/* <div>{members && JSON.stringify(members)}</div> */}
+      <div>{members && members}</div>
     </div>
   )
 }

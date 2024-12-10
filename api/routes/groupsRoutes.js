@@ -1,24 +1,35 @@
 const express = require('express')
 const router = express.Router()
 const groupsController = require('../controllers/groupsController')
+const { encryptResponseMiddleware, decryptRequestMiddleware } = require('../controllers/crypto/cryptoMiddleware')
 
 //route to list all groups in customer organization
-router.post('/list', groupsController.listAllGroups)
+router.post('/list', decryptRequestMiddleware, groupsController.listAllGroups, encryptResponseMiddleware)
 
 //route to get group by its email
-router.post('/get', groupsController.getGroup)
+router.post('/get', decryptRequestMiddleware, groupsController.getGroup, encryptResponseMiddleware)
 
 //route to list direct members of a group
-router.post('/list-direct-members', groupsController.listDirectMembers)
+router.post(
+  '/list-direct-members',
+  decryptRequestMiddleware,
+  groupsController.listDirectMembers,
+  encryptResponseMiddleware
+)
 
 //route to list all members of a group(both direct and indirect)
-router.post('/list-all-members', groupsController.listAllMembers)
+router.post('/list-all-members', decryptRequestMiddleware, groupsController.listAllMembers, encryptResponseMiddleware)
 
 //route to get group activity logs(all group logs for all groups in cx domain)
-router.post('/get-activity', groupsController.getGroupActivity)
+router.post('/get-activity', decryptRequestMiddleware, groupsController.getGroupActivity, encryptResponseMiddleware)
 
 //route to get group joined activity(all "add_member" and "accept_invitation" logs for all groups in cx domain)
-router.post('/get-joined-activity', groupsController.getGroupJoinedActivity)
+router.post(
+  '/get-joined-activity',
+  decryptRequestMiddleware,
+  groupsController.getGroupJoinedActivity,
+  encryptResponseMiddleware
+)
 
 //route to get nested membership table for a member(group or user)
 router.post('/get-nested-membership', groupsController.getNestedMembership)
@@ -27,7 +38,12 @@ router.post('/get-nested-membership', groupsController.getNestedMembership)
 router.post('/get-hierarchy', groupsController.getGroupHierarchy)
 
 //route to list members of groups in CSV format
-router.post('/bulk-export', groupsController.listGroupsMembersInExportFormat)
+router.post(
+  '/bulk-export',
+  decryptRequestMiddleware,
+  groupsController.listGroupsMembersInExportFormat,
+  encryptResponseMiddleware
+)
 
 //route to update the 'whoCanLeaveGroup' setting of the specified group
 router.put('/update-whocanleave', groupsController.updateWhoCanLeaveGroup)

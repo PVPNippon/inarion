@@ -1,36 +1,16 @@
 'use client'
 import React, { useState, useEffect, useContext } from 'react'
-import axios from 'axios'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
-import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { apiClient } from '@/utils/apiClient'
 
 /**
- * Component that allows the user to enter a group email address and then
- * fetches the group's details from the Google Admin Directory API.
- *
- * The component renders an input field for the user to enter a group email
- * address, a button to trigger the API call, and a div to display the
- * fetched data as JSON.
- *
- * The component uses the `LoggedInUserContext` and the `ProjectDataContext`
- * to get the user's email and the project data.
- *
- * The component uses the `axios` library to make a POST request to the
- * backend API to fetch the group's details.
- *
- * The component uses the `useState` hook to store the input value, the group
- * details, and a counter to trigger the API call.
- *
- * The component uses the `useEffect` hook to fetch the group's details when
- * the user clicks the button.
+ * A temporary component for dev purposes.
+ * On click of button, fetch group details and display in div(error or group details)
  */
-//a temporary component for dev purposes.
-//on click of button, fetch group details and display in div(error or group details)
 function GetGroup() {
   const { email } = useContext(LoggedInUserContext)
-  const { projectData } = useContext(ProjectDataContext)
   const [inputValue, setInputValue] = useState('')
   const [group, setGroup] = useState(null)
   const [clickCount, setClickCount] = useState(0)
@@ -41,21 +21,21 @@ function GetGroup() {
         if (inputValue === '') {
           return
         }
+        console.log('fetching group...')
 
-        const response = await axios.post(
-          'http://localhost:4000/api/groups/get',
+        const response = await apiClient(
+          '/api/groups/get', // Endpoint path relative to API_BASE_URL
+          'POST', // HTTP method
           {
             userEmail: email,
-            projectId: projectData.projectData.projectId,
-            serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-            serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
             groupEmail: inputValue,
           },
-          { withCredentials: true }
+          {}, // Additional headers, if any
+          true // withCredentials flag
         )
-        if (response.status === 200) {
-          setGroup(response.data)
-        }
+        //WARNING:if you need to use the response data as an array or object, you need to parse it with JSON.parse()
+        //I'm not doing it here because I only display the response data as is for now.
+        setGroup(response)
       } catch (error) {
         console.error(error)
         setGroup({ error: error.message })
@@ -80,7 +60,8 @@ function GetGroup() {
           Go
         </Button>
       </div>
-      <div>{group && JSON.stringify(group)}</div>
+      {/* <div>{group && JSON.stringify(group)}</div> */}
+      <div>{group && group}</div>
     </div>
   )
 }
