@@ -129,7 +129,7 @@ const filterDriveData = (data, filters = {}) => {
  * @returns {Promise<void>} - Sends a JSON response with the list of files from Google Drive, filtered if filters are provided.
  */
 
-exports.getAllDrives = async (req, res) => {
+exports.getAllDrives = async (req, res, next) => {
   // Extract filtering options from query parameters
   const { driveId, trashed, type, name, sharedWith, sharedExternally, onlySharedDrives } = req.query
   // Extract Google Drive credentials from the request body
@@ -140,7 +140,7 @@ exports.getAllDrives = async (req, res) => {
 
   // If no cached drive list is found, fetch files directly from Google Drive
   if (!driveFilesList) {
-    logger.info('No stored Drive cache found on Redis, fetching from Google Drive')
+    logger.debug('No stored Drive cache found on Redis, fetching from Google Drive')
 
     // Fetch personal drive files using the provided service credentials
     const personalDriveFiles = await fetchPersonalDriveFiles(adminEmail, serviceAccountEmail, serviceAccountPrivateKey)
@@ -172,12 +172,11 @@ exports.getAllDrives = async (req, res) => {
 
   // Apply filters to the drive files list, whether cached or freshly fetched
   const filteredDriveData = filterDriveData(driveFilesList, filters)
-  // logger.debug(JSON.stringify(filteredDriveData, null, 2), {
-  //   storeLocation: 'file',
-  // })
+  res.locals.data = filteredDriveData // Store the data in `res.locals` to be passed to the middleware
+  next() // Pass control to the middleware
 
   // Return the filtered results as JSON
-  return res.status(200).json(filteredDriveData)
+  // return res.status(200).json(filteredDriveData)
 }
 
 // Controller to handle getting sharing info

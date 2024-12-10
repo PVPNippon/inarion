@@ -4,6 +4,8 @@ import axios from 'axios'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
+import { serviceAccountPrivateKey } from '@/utils/keys'
+import { apiClient } from '@/utils/apiClient'
 
 /**
  * Component that fetches the list of groups joined by users in the organization for the past 6 months.
@@ -30,17 +32,37 @@ function ListGroupJoinedActivities() {
         return
       }
       try {
-        const response = await axios.post(
-          'http://localhost:4000/api/groups/get-joined-activity',
+        // const response = await axios.post(
+        //   'http://localhost:4000/api/groups/get-joined-activity',
+        //   // {
+        //   //   userEmail: email,
+        //   //   projectId: projectData.projectData.projectId,
+        //   //   serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
+        //   //   serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
+        //   // },
+        //   {
+        //     userEmail: 'testadmin@pvp-test-domain2.com',
+        //     projectId: '',
+        //     serviceAccountEmail: 'testadmin-pvp-test12-work@project-1725519589587.iam.gserviceaccount.com',
+        //     serviceAccountPrivateKey: serviceAccountPrivateKey,
+        //   },
+        //   { withCredentials: true }
+        // )
+
+        const response = await apiClient(
+          '/api/groups/get-joined-activity', // Endpoint path relative to API_BASE_URL
+          'POST', // HTTP method
+
           {
-            userEmail: email,
-            projectId: projectData.projectData.projectId,
-            serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-            serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
+            userEmail: 'testadmin@pvp-test-domain2.com',
+            projectId: '',
+            serviceAccountEmail: 'testadmin-pvp-test12-work@project-1725519589587.iam.gserviceaccount.com',
+            serviceAccountPrivateKey: serviceAccountPrivateKey,
           },
-          { withCredentials: true }
+          {}, // Additional headers, if any
+          true // withCredentials flag
         )
-        setActivityList(response.data)
+        setActivityList(response)
       } catch (error) {
         console.error(error)
         setActivityList([{ error: error.message }])
@@ -56,7 +78,8 @@ function ListGroupJoinedActivities() {
           Check
         </Button>
       </div>
-      <div>{activityList && JSON.stringify(activityList)}</div>
+      {/* <div>{activityList && JSON.stringify(activityList)}</div> */}
+      <div>{activityList && activityList}</div>
     </div>
   )
 }

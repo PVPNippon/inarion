@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import CsvDownloadButton from 'react-json-to-csv'
 import { Checkbox } from '@/components/ui/checkbox'
+import { apiClient } from '@/utils/apiClient'
+import { serviceAccountPrivateKey } from '@/utils/keys'
 
 //temporary component for dev purposes
 //it supports 4 types of csv export, and files for separate groups are downloaded separately with group email being the csv file name
@@ -122,18 +124,42 @@ function ExportGroups() {
           includeAllColumns: allColumns,
         }))
 
-        const response = await axios.post(
-          'http://localhost:4000/api/groups/bulk-export',
+        //post the groups array to the backend
+        // const response = await axios.post(
+        //   'http://localhost:4000/api/groups/bulk-export',
+        //   {
+        //     userEmail: email,
+        //     projectId: projectData.projectData.projectId,
+        //     serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
+        //     serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
+        //     groups: groupsArray,
+        //   },
+        //   { withCredentials: true }
+        // )
+
+        const response = await apiClient(
+          '/api/groups/bulk-export', // Endpoint path relative to API_BASE_URL
+          'POST', // HTTP method
+          // {
+          //   userEmail: email,
+          //   projectId: projectData.projectData.projectId,
+          //   serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
+          //   serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
+          // },
           {
-            userEmail: email,
-            projectId: projectData.projectData.projectId,
-            serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-            serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
+            userEmail: 'testadmin@pvp-test-domain2.com',
+            projectId: '',
+            serviceAccountEmail: 'testadmin-pvp-test12-work@project-1725519589587.iam.gserviceaccount.com',
+            serviceAccountPrivateKey: serviceAccountPrivateKey,
             groups: groupsArray,
           },
-          { withCredentials: true }
+          {}, // Additional headers, if any
+          true // withCredentials flag
         )
-        const tableData = response.data
+        const tableData = response
+
+        // const tableData = response.data
+        //create an array of objects, each containing a row to be written in the csv
         if (tableData) {
           //create headers based on derivedMembership and allColumn values taken from the first group in the list
           //as of now it has been desided that (the UI_UX team decided that we won't allow separate options for different groups

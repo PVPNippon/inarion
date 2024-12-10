@@ -69,6 +69,8 @@ const fetchFilesFromDrive = async (drive, driveId = null) => {
         includePermissionsForView: 'published',
       }
 
+
+
       // Add driveId only if it is a shared drive
       if (driveId) {
         listOptions.driveId = driveId

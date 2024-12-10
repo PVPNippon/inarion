@@ -4,6 +4,8 @@ import axios from 'axios'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
+import { apiClient } from '@/utils/apiClient'
+import { serviceAccountPrivateKey } from '@/utils/keys'
 
 /**
  * Component that lists all groups in the organization.
@@ -33,17 +35,32 @@ function ListGroups() {
         return
       }
       try {
-        const response = await axios.post(
-          'http://localhost:4000/api/groups/list',
+        console.log('fetching groups...')
+        const response = await apiClient(
+          '/api/groups/list', // Endpoint path relative to API_BASE_URL
+          'POST', // HTTP method
+
           {
-            userEmail: email,
-            projectId: projectData.projectData.projectId,
-            serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-            serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
+            userEmail: 'testadmin@pvp-test-domain2.com',
+            projectId: '',
+            serviceAccountEmail: 'testadmin-pvp-test12-work@project-1725519589587.iam.gserviceaccount.com',
+            serviceAccountPrivateKey: serviceAccountPrivateKey,
           },
-          { withCredentials: true }
+          {}, // Additional headers, if any
+          true // withCredentials flag
         )
-        setGroupList(response.data)
+
+        // const response = await axios.post(
+        //   'http://localhost:4000/api/groups/list',
+        //   {
+        //     userEmail: email,
+        //     projectId: projectData.projectData.projectId,
+        //     serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
+        //     serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
+        //   },
+        //   { withCredentials: true }
+        // )
+        setGroupList(response)
       } catch (error) {
         console.error(error)
         setGroupList([{ error: error.message }])
@@ -59,7 +76,7 @@ function ListGroups() {
           Check
         </Button>
       </div>
-      <div>{groupList && JSON.stringify(groupList)}</div>
+      <div>{groupList && groupList}</div>
     </div>
   )
 }
