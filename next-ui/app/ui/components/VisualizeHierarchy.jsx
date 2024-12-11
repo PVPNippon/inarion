@@ -43,24 +43,34 @@ function VisualizeHierarchy() {
       hierarchical: {
         enabled: true,
         levelSeparation: 150,
-        nodeSpacing: 200,
-        treeSpacing: 200,
+        //levelSeparation: 100,
+        // nodeSpacing: 200,
+        // treeSpacing: 200,
         blockShifting: true,
         edgeMinimization: true,
         parentCentralization: true,
         direction: 'UD', // UD, DU, LR, RL
         sortMethod: 'directed', // hubsize, directed
+        //  shakeTowards: 'roots',
+        //shakeTowards: 'leaves', //default
       },
     },
     physics: {
       enabled: true,
       hierarchicalRepulsion: {
-        nodeDistance: 200, // Put more distance between the nodes.
+        //nodeDistance: 200, // Put more distance between the nodes.
+        nodeDistance: 250,
       },
       stabilization: true,
     },
     edges: {
+      width: 2,
       color: 'blue',
+      smooth: {
+        // type: 'vertical',
+        type: 'discrete',
+        roundness: 1,
+      },
     },
     height: '1000px',
   }
@@ -76,6 +86,8 @@ function VisualizeHierarchy() {
      * @throws {Error} - Throws an error if there is an issue with the API call or if the hierarchy cannot be fetched.
      */
     const fetchHierarchy = async (req, res) => {
+      const oldGraph = localStorage.getItem('graph')
+      if (oldGraph) localStorage.removeItem('graph')
       try {
         if (inputValue === '') {
           return
@@ -94,9 +106,30 @@ function VisualizeHierarchy() {
 
         // if emtpy table is returned, set error 'No memberships found', otherwise set groupList
         if (response.status === 200) {
-          response.data.length === 0
-            ? setError({ message: 'No memberships found. Please check if the email address is correct and try again.' })
-            : setGroupList(response.data)
+          const responseData = response.data
+          if (responseData.length === 0) {
+            setError({ message: 'No memberships found. Please check if the email address is correct and try again.' })
+          } else {
+            setGroupList(responseData)
+
+            if (responseData.nodes && responseData.nodes.length > 0) {
+              //temporary logic to wrap labels
+              const nodes = responseData.nodes
+              nodes.forEach((node) => {
+                const label = node.label.split('@').join(`@\n`)
+                node.label = label
+              })
+
+              const graph = {
+                graph: responseData,
+                options: options, //I pass options from this page because in the future we might need to alter options dynamically based on the graph type
+              }
+
+              localStorage.setItem('graph', JSON.stringify(graph))
+
+              window.open('/groups/hierarchy/graph', '_blank')
+            }
+          }
         }
       } catch (error) {
         //if error is 404, set error 'Incorrect email address or you do not have access to this resource.',
@@ -133,7 +166,6 @@ function VisualizeHierarchy() {
       </div>
       <p>{error && error.message}</p>
       <div>{groupList && JSON.stringify(groupList)}</div>
-      <Graph graph={groupList} options={options} />
     </div>
   )
 }
