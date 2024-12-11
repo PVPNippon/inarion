@@ -234,7 +234,7 @@ async function getJoinGroupsLogs({ userEmail, client }) {
           getAllGroupsLogs({
             userEmail,
             appName,
-            activityName,
+            typeOfLogs: activityName,
             client: reportsClient,
           })
         )

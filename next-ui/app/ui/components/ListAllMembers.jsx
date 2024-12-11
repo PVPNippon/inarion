@@ -38,6 +38,7 @@ function ListAllMembers() {
   const [inputValue, setInputValue] = useState('')
   const [members, setMembers] = useState([])
   const [clickCount, setClickCount] = useState(0)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchMembers = async (req, res) => {
@@ -61,9 +62,10 @@ function ListAllMembers() {
         setMembers(response)
       } catch (error) {
         console.error(error)
-        setMembers([{ error: error.message }])
+        setError(error)
       }
     }
+    setError(null)
     setMembers([])
     fetchMembers()
   }, [clickCount])
@@ -84,6 +86,7 @@ function ListAllMembers() {
         </Button>
       </div>
       {/* <div>{members && JSON.stringify(members)}</div> */}
+      <p>{error && error.message}</p>
       <div>{members && members}</div>
     </div>
   )

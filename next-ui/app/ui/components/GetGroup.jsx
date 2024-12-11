@@ -14,6 +14,7 @@ function GetGroup() {
   const [inputValue, setInputValue] = useState('')
   const [group, setGroup] = useState(null)
   const [clickCount, setClickCount] = useState(0)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchGroup = async (req, res) => {
@@ -38,9 +39,10 @@ function GetGroup() {
         setGroup(response)
       } catch (error) {
         console.error(error)
-        setGroup({ error: error.message })
+        setError(error)
       }
     }
+    setError(null)
     setGroup(null)
     fetchGroup()
   }, [clickCount])
@@ -61,6 +63,7 @@ function GetGroup() {
         </Button>
       </div>
       {/* <div>{group && JSON.stringify(group)}</div> */}
+      <p>{error && error.message}</p>
       <div>{group && group}</div>
     </div>
   )

@@ -13,6 +13,7 @@ function ListGroupJoinedActivities() {
   const { email } = useContext(LoggedInUserContext)
   const [activityList, setActivityList] = useState([])
   const [clickCount, setClickCount] = useState(0)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchActivities = async (req, res) => {
@@ -34,9 +35,11 @@ function ListGroupJoinedActivities() {
         setActivityList(response)
       } catch (error) {
         console.error(error)
-        setActivityList([{ error: error.message }])
+        setError(error)
       }
     }
+    setError(null)
+    setActivityList([])
     fetchActivities()
   }, [clickCount])
   return (
@@ -48,6 +51,7 @@ function ListGroupJoinedActivities() {
         </Button>
       </div>
       {/* <div>{activityList && JSON.stringify(activityList)}</div> */}
+      <p>{error && error.message}</p>
       <div>{activityList && activityList}</div>
     </div>
   )

@@ -12,6 +12,7 @@ function ListGroups() {
   const { email } = useContext(LoggedInUserContext)
   const [groupList, setGroupList] = useState([])
   const [clickCount, setClickCount] = useState(0)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchGroups = async (req, res) => {
@@ -35,9 +36,11 @@ function ListGroups() {
         setGroupList(response)
       } catch (error) {
         console.error(error)
-        setGroupList([{ error: error.message }])
+        setError(error)
       }
     }
+    setError(null)
+    setGroupList([])
     fetchGroups()
   }, [clickCount])
   return (
@@ -48,6 +51,7 @@ function ListGroups() {
           Check
         </Button>
       </div>
+      <p>{error && error.message}</p>
       <div>{groupList && groupList}</div>
     </div>
   )

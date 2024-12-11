@@ -3,7 +3,6 @@ import React, { useState, useEffect, useContext } from 'react'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 import { Button } from '@/components/ui/button'
 import { apiClient } from '@/utils/apiClient'
-import { serviceAccountPrivateKey } from '@/utils/keys'
 
 /**
  * Function ListGroupsActivities
@@ -19,6 +18,7 @@ function ListGroupsActivities() {
   const { email } = useContext(LoggedInUserContext)
   const [activityList, setActivityList] = useState([])
   const [clickCount, setClickCount] = useState(0)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchActivities = async (req, res) => {
@@ -40,9 +40,11 @@ function ListGroupsActivities() {
         setActivityList(response)
       } catch (error) {
         console.error(error)
-        setActivityList([{ error: error.message }])
+        setError(error)
       }
     }
+    setError(null)
+    setActivityList([])
     fetchActivities()
   }, [clickCount])
   return (
@@ -58,6 +60,7 @@ function ListGroupsActivities() {
         </Button>
       </div>
       {/* <div>{activityList && JSON.stringify(activityList)}</div> */}
+      <p>{error && error.message}</p>
       <div>{activityList && activityList}</div>
     </div>
   )
