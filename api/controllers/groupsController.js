@@ -254,42 +254,41 @@ exports.getNestedMembership = async (req, res) => {
 /**
  * Retrieves a hierarchical representation of groups for a given email address.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `queryEmail` from the request body.
- * It uses these values to fetch a hierarchy of groups that the specified email address belongs to, including nodes and edges.
+ * This function takes the `userEmail` and `queryEmail` from the request body.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to list all nested groups that the group with the given email address is a member of, along with timestamps.
  *
- * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `queryEmail` in the request body.
- * @param {Object} res - The response object used to return the group hierarchy or an error message.
- * @returns {Promise<void>} - Responds with the group hierarchy or an error message.
- * @throws {Error} - Throws an error if there is an issue with the API call or if the hierarchy cannot be fetched.
+ * If there is only one node in the hierarchy, an empty array is returned.
+ * Otherwise, the hierarchy is returned.
+ *
+ * @param {Object} req - The request object containing the `userEmail` and `queryEmail` in the request body.
+ * @param {Object} res - The response object used to return the hierarchy or an error message.
+ * @param {Function} next - The next middleware function in the application's request-response cycle.
+ * @returns {Promise<void>} - Responds with the hierarchy or an error message.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-exports.getGroupHierarchy = async (req, res) => {
-  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
+exports.getGroupHierarchy = async (req, res, next) => {
+  const { userEmail, queryEmail } = req.body
 
-  //fetch array with nested membership and timestamps
-  const groupHierarchy = await getHierarchy({
-    userEmail,
-    projectId,
-    serviceAccountEmail,
-    serviceAccountPrivateKey,
-    queryEmail,
-  })
-
-  //if no group hierarchy, return 500
-  if (!groupHierarchy) {
-    res.status(500).json({ message: 'Error fetching hierarchy' })
-    return
-  }
-
-  //if hierarchy has only one node and no edges, return 200 with a message
-  if (groupHierarchy.nodes.length === 1 && groupHierarchy.edges.length === 0) {
-    res.status(200).json({
-      message: 'No parent groups or members found. Please check if the email address is correct and try again.',
+  try {
+    //fetch array with nested membership and timestamps
+    const groupHierarchy = await getHierarchy({
+      userEmail,
+      queryEmail,
     })
-    return
-  }
 
-  //otherwise, return groupHierarchy
-  res.status(200).json(groupHierarchy)
+    //If there is only one node in the hierarchy, return an array
+    //otherwise, return the hierarchy
+    if (groupHierarchy.nodes.length === 1 && groupHierarchy.edges.length === 0) {
+      res.locals.data = []
+    } else {
+      res.locals.data = groupHierarchy
+    }
+    next()
+  } catch (error) {
+    logger.error(`Error fetching hierarchy:${error}`)
+    res.status(500).json({ message: 'Error fetching hierarchy' })
+  }
 }
 
 /**

@@ -35,7 +35,7 @@ router.post(
 router.post('/get-nested-membership', groupsController.getNestedMembership)
 
 //route to get group hierarchy relative to a group(or potentially in the future a user)
-router.post('/get-hierarchy', groupsController.getGroupHierarchy)
+router.post('/get-hierarchy', decryptRequestMiddleware, groupsController.getGroupHierarchy, encryptResponseMiddleware)
 
 //route to list members of groups in CSV format
 router.post(
