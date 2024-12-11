@@ -2,34 +2,28 @@ const logger = require('../logger/logger')(__filename, 'Groups')
 const groupsService = require('../services/groupsService')
 const { getNestedTable, getHierarchy } = require('../services/nestedGroupsService')
 const { decryptPayloadForServer, decryptPayloadFromClient } = require('./crypto/cryptoMiddleware')
+
 /**
  * Retrieves the list of all groups in the organization.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
- * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
- * to list all groups in the organization.
- *
- * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` in the request body.
+ * @param {Object} req - The request object containing the `userEmail` in the request body.
  * @param {Object} res - The response object used to return the list of groups or an error message.
+ * @param {Function} next - The next middleware function in the stack.
  * @returns {Promise<void>} - Responds with the list of groups or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.listAllGroups = async (req, res, next) => {
-  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
+  const { userEmail } = req.body
 
   try {
     // Get an array with all organization's groups
     const groups = await groupsService.listGroups({
       userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
     })
 
     // Return the list of all organization's groups
     res.locals.data = groups
     next()
-    // res.status(200).json(groups)
   } catch (error) {
     logger.error(`Error fetching groups:${error}`)
     res.status(500).json({ message: 'Error fetching groups' })
@@ -37,34 +31,31 @@ exports.listAllGroups = async (req, res, next) => {
 }
 
 /**
- * Retrieves a specific group's details.
+ * Retrieves the details of a single group by its email address.
  *
- * This function takes a group's email address and returns its details, such as its name, email address, and description.
+ * This function takes the email address of the user to impersonate and the email address of the group to retrieve.
+ * It uses these values to make a request to the Google Admin Directory API
+ * to retrieve the group's details.
  *
- * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `groupEmail` in the request body.
+ * @param {Object} req - The request object containing the `userEmail` and `groupEmail` in the request body.
  * @param {Object} res - The response object used to return the group's details or an error message.
+ * @param {Function} next - The next middleware function in the application's request-response cycle.
  * @returns {Promise<void>} - Responds with the group's details or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-
 exports.getGroup = async (req, res, next) => {
   logger.debug('Reached getGroup endpoint, now trying to decrypt...')
-  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body
+  const { userEmail, groupEmail } = req.body
 
   try {
     const response = await groupsService.getGroupByEmail({
       userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
       groupEmail,
     })
     res.locals.data = response
     next()
-    // Return the group's details
-    // res.status(200).json(response)
   } catch (error) {
-    logger.error(`Error fetching group: ${error.message} ${error.stack}`, {
+    logger.error(`Error fetching group: ${error}`, {
       storeLocation: 'file',
     })
     //the reason why 404 and 403 are grouped is:
@@ -83,29 +74,27 @@ exports.getGroup = async (req, res, next) => {
 /**
  * Retrieves the list of direct members of a group.
  *
- * This function takes a group's email address and returns its direct members.
+ * This function takes the `userEmail` and `groupEmail` from the request body.
+ * It uses these values to make a request to the Google Admin Directory API
+ * to retrieve the list of direct members of the group.
  *
- * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `groupEmail` in the request body.
+ * @param {Object} req - The request object containing the `userEmail` and `groupEmail` in the request body.
  * @param {Object} res - The response object used to return the list of direct members or an error message.
+ * @param {Function} next - The next middleware function in the application's request-response cycle.
  * @returns {Promise<void>} - Responds with the list of direct members or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.listDirectMembers = async (req, res, next) => {
-  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body
+  const { userEmail, groupEmail } = req.body
 
   try {
     const response = await groupsService.listGroupMembers({
       userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
       groupEmail,
       includeDerivedMembership: false, //set derived membership to false
     }) // Get the list of direct members
     res.locals.data = response
     next()
-    // Return the list of direct members of the group
-    // res.status(200).json(response)
   } catch (error) {
     logger.error(`Error fetching members:${error}`)
     if (error.status === 404 || error.status === 403) {
@@ -118,24 +107,24 @@ exports.listDirectMembers = async (req, res, next) => {
 }
 
 /**
- * Retrieves the list of all members of a group (direct and indirect).
+ * Retrieves the list of all members of a group, both direct and indirect.
  *
- * This function takes a group's email address and returns a list of its members, including both direct and indirect members.
+ * This function takes the `userEmail` and `groupEmail` from the request body.
+ * It uses these values to make a request to the Google Admin Directory API
+ * to retrieve the list of all members of the group.
  *
- * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `groupEmail` in the request body.
+ * @param {Object} req - The request object containing the `userEmail` and `groupEmail` in the request body.
  * @param {Object} res - The response object used to return the list of all members or an error message.
+ * @param {Function} next - The next middleware function in the application's request-response cycle.
  * @returns {Promise<void>} - Responds with the list of all members or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.listAllMembers = async (req, res, next) => {
-  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body
+  const { userEmail, groupEmail } = req.body
 
   try {
     const response = await groupsService.listGroupMembers({
       userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
       groupEmail,
       includeDerivedMembership: true, //set derived membership to true
     }) // Get the list of direct members
@@ -143,7 +132,6 @@ exports.listAllMembers = async (req, res, next) => {
     // Return the list of direct members of the group
     res.locals.data = response
     next()
-    // res.status(200).json(response)
   } catch (error) {
     logger.error(`Error fetching members: ${error}`)
     if (error.status === 404 || error.status === 403) {
@@ -156,64 +144,57 @@ exports.listAllMembers = async (req, res, next) => {
 }
 
 /**
- * Retrieves a list of all activities in the organization related to groups.
+ * Retrieves the list of all activities in the organization related to groups.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
- * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * This function takes the `userEmail` from the request body.
+ * It uses this value to make a request to the Google Admin Directory API
  * to list all activities related to groups in the organization.
  *
- * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` in the request body.
+ * @param {Object} req - The request object containing the `userEmail` in the request body.
  * @param {Object} res - The response object used to return the list of activities or an error message.
+ * @param {Function} next - The next middleware function in the application's request-response cycle.
  * @returns {Promise<void>} - Responds with the list of activities or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getGroupActivity = async (req, res, next) => {
-  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
+  const { userEmail } = req.body
 
   try {
     // Get the list of group activity
     const response = await groupsService.getAllGroupsLogs({
       userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
     })
     res.locals.data = response
     next()
-    // Return the list of group activity in customer organization
-    // res.status(200).json(response)
   } catch (error) {
-    logger.error(`Error fetching group activity:${error.message}${error.stack}`)
+    logger.error(`Error fetching group activity:${error}`)
     res.status(500).json({ message: 'Error fetching group activity' })
   }
 }
 
 /**
- * Retrieves a list of all activities in the organization related to joining groups.
+ * Retrieves the list of all activities related to joining groups in the organization.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` from the request body.
- * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * This function takes the `userEmail` from the request body.
+ * It uses this value to make a request to the Google Admin Directory API
  * to list all activities related to joining groups in the organization.
  *
- * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, and `serviceAccountPrivateKey` in the request body.
+ * @param {Object} req - The request object containing the `userEmail` in the request body.
  * @param {Object} res - The response object used to return the list of activities or an error message.
+ * @param {Function} next - The next middleware function in the application's request-response cycle.
  * @returns {Promise<void>} - Responds with the list of activities or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getGroupJoinedActivity = async (req, res, next) => {
-  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
+  const { userEmail } = req.body
 
   try {
     //Return the list of group joined activity in customer organization
     const allActivities = await groupsService.getJoinGroupsLogs({
       userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
     })
     res.locals.data = allActivities
     next()
-    // res.status(200).json(allActivities)
   } catch (error) {
     logger.error(`Error fetching group joined activity:${error}`)
     res.status(500).json({ message: 'Error fetching group joined activity' })
@@ -221,32 +202,29 @@ exports.getGroupJoinedActivity = async (req, res, next) => {
 }
 
 /**
- * Retrieves a list of nested groups that the group or user with the given email address is a member of.
+ * Retrieves a table of all groups that a given group or user is a member of, either directly or indirectly.
+ * The table contains columns for the group email, the type of membership (direct or indirect), and the timestamp
+ * of when the membership was created.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `queryEmail` from the request body.
- * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
- * to list all nested groups that the group with the given email address is a member of.
- *
- * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey`, and `queryEmail` in the request body.
- * @param {Object} res - The response object used to return the list of nested groups or an error message.
- * @returns {Promise<void>} - Responds with the list of nested groups or an error message.
+ * @param {Object} req - The request object containing the `userEmail` and `queryEmail` in the request body.
+ * @param {Object} res - The response object used to return the table of nested membership or an error message.
+ * @returns {Promise<void>} - Responds with the table of nested membership or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-exports.getNestedMembership = async (req, res) => {
-  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, queryEmail } = req.body
+exports.getNestedMembership = async (req, res, next) => {
+  const { userEmail, queryEmail } = req.body
+
   try {
     const nestedTable = await getNestedTable({
       userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
       queryEmail,
     })
     //Return the data with group membership details
-    res.status(200).json(nestedTable)
+    //res.status(200).json(nestedTable)
+    res.locals.data = nestedTable
+    next()
   } catch (error) {
     logger.error(`Error fetching nested membership:${error}`)
-
     res.status(500).json({ message: 'Error fetching nested membership' })
   }
 }
@@ -292,32 +270,29 @@ exports.getGroupHierarchy = async (req, res, next) => {
 }
 
 /**
- * Retrieves the list of lists of members of specified groups in exportable format.
+ * Retrieves lists of members for specified groups in an exportable format.
  *
- * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the request body.
- * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
- * to create a list of lists of members of the groups specified by `groups` in exportable format.
+ * This function takes the `userEmail` and `groups` from the request body.
+ * It uses these values to make a request to the Google Admin Directory API
+ * to generate lists of members for the given groups in a format suitable for export.
  *
- * @param {Object} req - The request object containing the `userEmail`, `projectId`, `serviceAccountEmail`, `serviceAccountPrivateKey` and `groups` in the request body.
- * @param {Object} res - The response object used to return the list of lists of members of the specified groups in exportable format, or an error message.
- * @returns {Promise<void>} - Responds with the list of lists of members of the specified groups in exportable format, or an error message.
- * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ * @param {Object} req - The request object containing the `userEmail` and an array of `groups` in the request body.
+ * @param {Object} res - The response object used to return the lists of members or an error message.
+ * @param {Function} next - The next middleware function in the application's request-response cycle.
+ * @returns {Promise<void>} - Responds with the lists of members or an error message.
+ * @throws {Error} - Throws an error if there is an issue with the API call.
  */
 exports.listGroupsMembersInExportFormat = async (req, res, next) => {
-  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groups } = req.body
+  const { userEmail, groups } = req.body
 
   try {
     const members = await groupsService.listMembersInExportFormat({
       userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
       groups,
     })
 
     res.locals.data = members
     next()
-    // res.status(200).json(members)
   } catch (error) {
     logger.error(`Error creating member lists in CSV format:${error}`)
     res.status(500).json({ message: 'Error creating member lists in CSV format' })
@@ -338,7 +313,7 @@ exports.listGroupsMembersInExportFormat = async (req, res, next) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.updateWhoCanLeaveGroup = async (req, res) => {
-  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail, whoCanLeaveGroup } = req.body
+  const { userEmail, groupEmail, whoCanLeaveGroup } = req.body
 
   if (
     whoCanLeaveGroup !== 'ALL_MEMBERS_CAN_LEAVE' &&
@@ -354,9 +329,6 @@ exports.updateWhoCanLeaveGroup = async (req, res) => {
   try {
     const response = await groupsService.updateGroup({
       userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
       groupEmail,
       resource: { whoCanLeaveGroup },
     })
@@ -391,7 +363,7 @@ exports.updateWhoCanLeaveGroup = async (req, res) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.deleteMembers = async (req, res) => {
-  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail, memberEmails } = req.body
+  const { userEmail, groupEmail, memberEmails } = req.body
 
   // Returns Bad Request if the target group is not specified.
   if (!groupEmail) {
@@ -409,9 +381,6 @@ exports.deleteMembers = async (req, res) => {
   try {
     const response = await groupsService.deleteMembersWithRateLimit({
       userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
       groupEmail,
       memberEmails: uniqueMembers,
     })
@@ -460,7 +429,7 @@ exports.deleteMembers = async (req, res) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.deleteMemberFromGroups = async (req, res) => {
-  const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmails, memberEmail } = req.body
+  const { userEmail, groupEmails, memberEmail } = req.body
 
   // Returns Bad Request if the target groups are not specified.
   if (!groupEmails || groupEmails.length === 0) {
@@ -478,9 +447,6 @@ exports.deleteMemberFromGroups = async (req, res) => {
   try {
     const response = await groupsService.deleteMemberFromGroupsWithRateLimit({
       userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
       groupEmails: uniqueGroups,
       memberEmail,
     })
