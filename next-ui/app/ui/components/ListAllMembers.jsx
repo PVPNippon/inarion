@@ -1,43 +1,44 @@
 'use client'
 import React, { useState, useEffect, useContext } from 'react'
-import axios from 'axios'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
-import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { apiCall } from '@/utils/securePayload'
 import { apiClient } from '@/utils/apiClient'
-import { serviceAccountPrivateKey } from '@/utils/keys'
 
 /**
- * Component that allows the user to enter a group email address and fetch the list of all its members,
- * both direct and indirect.
+ * Component for listing all members of a group, both direct and nested.
  *
- * The component fetches the list of members when the user clicks the "Go" button.
+ * This component allows the user to enter a group's email address and fetches
+ * the list of all members when the "Go" button is clicked. The members are
+ * displayed in a div, and any errors encountered during the fetch operation
+ * are also displayed.
  *
- * The component displays the list of members in a JSON format.
+ * Contexts:
+ * - Utilizes `LoggedInUserContext` to access the user's email.
  *
- * The component uses the `groups/list-all-members` API endpoint to fetch the list of members.
+ * States:
+ * - `inputValue`: Stores the group email address entered by the user.
+ * - `members`: Stores the fetched list of members or error messages.
+ * - `clickCount`: A counter to trigger the fetch operation.
  *
- * The component expects the following props:
- * - `email`: the email address of the user to impersonate
- * - `projectData`: the project data, including the project ID, service account email and private key
+ * Side Effects:
+ * - Uses `useEffect` to trigger the fetch of members whenever `clickCount` changes.
  *
- * The component uses the `LoggedInUserContext` and `ProjectDataContext` contexts to access the user's email
- * and project data.
+ * API:
+ * - Sends a POST request to `/api/groups/list-all-members` with the user's email
+ *   and the group email to retrieve the list of members.
  *
- * The component uses the `useState` hook to store the input value, the list of members and a click count.
- *
- * The component uses the `useEffect` hook to fetch the list of members when the user clicks the "Go" button.
+ * @returns {JSX.Element} The rendered component for listing all group members.
  */
-//a temporary component for dev purposes.
-//on click of button, fetch  all group's members and display in div(error or member list)
 function ListAllMembers() {
+  //a temporary component for dev purposes.
+  //on click of button, fetch  all group's members and display in div(error or member list)
   const { email } = useContext(LoggedInUserContext)
-  const { projectData } = useContext(ProjectDataContext)
   const [inputValue, setInputValue] = useState('')
   const [members, setMembers] = useState([])
   const [clickCount, setClickCount] = useState(0)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchMembers = async (req, res) => {
@@ -46,49 +47,25 @@ function ListAllMembers() {
           return
         }
 
-        // const response = await axios.post(
-        //   'http://localhost:4000/api/groups/list-all-members',
-        //   {
-        //     userEmail: email,
-        //     projectId: projectData.projectData.projectId,
-        //     serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-        //     serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
-        //     groupEmail: inputValue,
-        //   },
-        //   { withCredentials: true }
-        // )
-
         const response = await apiClient(
           '/api/groups/list-all-members', // Endpoint path relative to API_BASE_URL
           'POST', // HTTP method
-          // {
-          //   userEmail: email,
-          //   projectId: projectData.projectData.projectId,
-          //   serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-          //   serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
-          // },
           {
-            userEmail: 'testadmin@pvp-test-domain2.com',
-            projectId: '',
-            serviceAccountEmail: 'testadmin-pvp-test12-work@project-1725519589587.iam.gserviceaccount.com',
-            // serviceAccountPrivateKey:
-            //   '***REMOVED***E5FbmtDZ1lFQXQwVHR5R2NVSEVmWmhDWmt0TGhlRDh1UHIvNnYvWGFvajRiMlxuaEdPZVRrNnF3MjlFcFRJUkhHd3RKVUhkN1FmS1R1dlNSOG95OVJRWk1uYzQxSkR1bElOQ2NBcmhxUUM1cEI3cVxuNU5XSnhkc0NYcWtrTjB6ZFk2d2xCK0g3U3FTNW13dVNNMEUrTXZiUVJXN3lPbC9rK1p5YUxIR0NVaitlb0k5alxuRkpncjQxa0NnWUEzMGMwUG5zaFhkT2Vzb3ZxT2JlY05tRkF3ZFlYODAzZ25idXlyWm5wRi9MNDhMWTBGVUhRL1xuam1RQkUrM1p6MkM4UzJsb0ZNTGV0dDJhYis5dWdXbXl3TFZYVkdzMFRjOVIvWG5GY2lQeWFTVWtnWENQZTAxb1xuRUtBM2s3bi8vdlF1c0krZXJOeTVkQ2wvR2hWWGlESzN6dS9JeXJ2U251YTcrQWtqckwyNzJRS0JnUUNiUjZQUVxuOE1WeFVNOVQwTlB5NjJPSExvcUlLOXNoZnJCREs2OGpiT1JzcE9xNnZFUUZVKzU3am95UnpNVWtXRDFwc1JWeVxuRGpndXZ1QzZpWmwxUVhka0RmTDB5OE4zVmszMGFOM05GY0N1QzJwdW1oRTlhYnNMQUlnL3JaRWxKWHk5aVloT1xuTlRGbUxRazZTMDZoZHk2aTc3VVJndnRRaE9iNlU0TTNwOWRId1FLQmdIZG1mNkt4RXdMcFhLUjhENWlIeklZdlxuUHducm93VTdMdjJSYzdPKzBFWUlKU21FQy8vQTJwK0N4NmlUbnk1Z1pRZ2hKem5sVHMvc01oNkU0MzFrVGdQSFxuOVdUU3BHOU8rclhlNWNoZWw2Q1EvV2VBUWNtV0M2RTBlSWt3bXFEeTlkTFpaTTYxNEZ5YkFBdGdZTURpRUl0blxubTM4UGFaendIendaZlpyT2NHQVJcbi0tLS0tRU5EIFBSSVZBVEUgS0VZLS0tLS1cbiIsCiAgImNsaWVudF9lbWFpbCI6ICJ0ZXN0YWRtaW4tcHZwLXRlc3QxMi13b3JrQHByb2plY3QtMTcyNTUxOTU4OTU4Ny5pYW0uZ3NlcnZpY2VhY2NvdW50LmNvbSIsCiAgImNsaWVudF9pZCI6ICIxMDUzNTQ2MzA5MTU3MDIzODUxODIiLAogICJhdXRoX3VyaSI6ICJodHRwczovL2FjY291bnRzLmdvb2dsZS5jb20vby9vYXV0aDIvYXV0aCIsCiAgInRva2VuX3VyaSI6ICJodHRwczovL29hdXRoMi5nb29nbGVhcGlzLmNvbS90b2tlbiIsCiAgImF1dGhfcHJvdmlkZXJfeDUwOV9jZXJ0X3VybCI6ICJodHRwczovL3d3dy5nb29nbGVhcGlzLmNvbS9vYXV0aDIvdjEvY2VydHMiLAogICJjbGllbnRfeDUwOV9jZXJ0X3VybCI6ICJodHRwczovL3d3dy5nb29nbGVhcGlzLmNvbS9yb2JvdC92MS9tZXRhZGF0YS94NTA5L3Rlc3RhZG1pbi1wdnAtdGVzdDEyLXdvcmslNDBwcm9qZWN0LTE3MjU1MTk1ODk1ODcuaWFtLmdzZXJ2aWNlYWNjb3VudC5jb20iLAogICJ1bml2ZXJzZV9kb21haW4iOiAiZ29vZ2xlYXBpcy5jb20iCn0K',
-            serviceAccountPrivateKey: serviceAccountPrivateKey,
+            userEmail: email,
             groupEmail: inputValue,
           },
           {}, // Additional headers, if any
           true // withCredentials flag
         )
+        //WARNING:if you need to use the response data as an array or object, you need to parse it with JSON.parse()
+        //I'm not doing it here because I only display the response data as is for now.
         setMembers(response)
-
-        // if (response.status === 200) {
-        //   setMembers(response.data)
-        // }
       } catch (error) {
         console.error(error)
-        setMembers([{ error: error.message }])
+        setError(error)
       }
     }
+    setError(null)
     setMembers([])
     fetchMembers()
   }, [clickCount])
@@ -109,6 +86,7 @@ function ListAllMembers() {
         </Button>
       </div>
       {/* <div>{members && JSON.stringify(members)}</div> */}
+      <p>{error && error.message}</p>
       <div>{members && members}</div>
     </div>
   )

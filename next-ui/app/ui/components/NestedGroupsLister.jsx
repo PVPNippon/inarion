@@ -1,11 +1,10 @@
 'use client'
 import React, { useState, useEffect, useContext } from 'react'
-import axios from 'axios'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
-import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { apiClient } from '@/utils/apiClient'
 
 /**
  * Component that displays a list of all groups that a given group or user is a
@@ -23,8 +22,9 @@ import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, Tabl
 //a temporary component for dev purposes.
 //displays a list of groups that a given group or user is a member of
 function NestedGroupsLister() {
+  //a temporary component for dev purposes.
+  //displays a list of groups that a given group or user is a member of
   const { email } = useContext(LoggedInUserContext)
-  const { projectData } = useContext(ProjectDataContext)
   const [inputValue, setInputValue] = useState('')
   const [groupList, setGroupList] = useState([])
   const [clickCount, setClickCount] = useState(0)
@@ -37,22 +37,23 @@ function NestedGroupsLister() {
         if (inputValue === '') {
           return
         }
-        const response = await axios.post(
-          'http://localhost:4000/api/groups/get-nested-membership',
+
+        const response = await apiClient(
+          '/api/groups/get-nested-membership', // Endpoint path relative to API_BASE_URL
+          'POST', // HTTP method
           {
             userEmail: email,
-            projectId: projectData.projectData.projectId,
-            serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-            serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
             queryEmail: inputValue,
           },
-          { withCredentials: true }
+          {}, // Additional headers, if any
+          true // withCredentials flag
         )
         // if emtpy table is returned, set error 'No memberships found', otherwise set groupList
-        if (response.status === 200) {
-          response.data.length === 0
+        if (response) {
+          const responseData = JSON.parse(response)
+          responseData.length === 0
             ? setError({ message: 'No memberships found. Please check if the email address is correct and try again.' })
-            : setGroupList(response.data)
+            : setGroupList(responseData)
         }
       } catch (error) {
         setError(error)

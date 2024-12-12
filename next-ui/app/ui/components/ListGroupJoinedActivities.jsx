@@ -1,30 +1,19 @@
 'use client'
 import React, { useState, useEffect, useContext } from 'react'
-import axios from 'axios'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
-import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
-import { serviceAccountPrivateKey } from '@/utils/keys'
 import { apiClient } from '@/utils/apiClient'
 
 /**
- * Component that fetches the list of groups joined by users in the organization for the past 6 months.
- *
- * The component renders a button labeled "Check" and a div to display the fetched data as JSON.
- *
- * The component uses the `LoggedInUserContext` and the `ProjectDataContext` to get the user's email and the project data.
- *
- * The component uses the `useState` hook to store the list of activities and a counter to trigger the API call.
- *
- * The component uses the `useEffect` hook to fetch the list of activities when the user clicks the button.
+ * A temporary component for dev purposes.
+ * On click of button, fetch group's joined activities and display in div(error or activity list)
+ * @returns {JSX.Element} - A JSX element containing a button and a div to display the activities.
  */
-//a temporary component for dev purposes
-//on click of button, fetch group's joinedactivities and display in div(error or activity list)
 function ListGroupJoinedActivities() {
   const { email } = useContext(LoggedInUserContext)
-  const { projectData } = useContext(ProjectDataContext)
   const [activityList, setActivityList] = useState([])
   const [clickCount, setClickCount] = useState(0)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchActivities = async (req, res) => {
@@ -32,42 +21,25 @@ function ListGroupJoinedActivities() {
         return
       }
       try {
-        // const response = await axios.post(
-        //   'http://localhost:4000/api/groups/get-joined-activity',
-        //   // {
-        //   //   userEmail: email,
-        //   //   projectId: projectData.projectData.projectId,
-        //   //   serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-        //   //   serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
-        //   // },
-        //   {
-        //     userEmail: 'testadmin@pvp-test-domain2.com',
-        //     projectId: '',
-        //     serviceAccountEmail: 'testadmin-pvp-test12-work@project-1725519589587.iam.gserviceaccount.com',
-        //     serviceAccountPrivateKey: serviceAccountPrivateKey,
-        //   },
-        //   { withCredentials: true }
-        // )
-
         const response = await apiClient(
           '/api/groups/get-joined-activity', // Endpoint path relative to API_BASE_URL
           'POST', // HTTP method
-
           {
-            userEmail: 'testadmin@pvp-test-domain2.com',
-            projectId: '',
-            serviceAccountEmail: 'testadmin-pvp-test12-work@project-1725519589587.iam.gserviceaccount.com',
-            serviceAccountPrivateKey: serviceAccountPrivateKey,
+            userEmail: email,
           },
           {}, // Additional headers, if any
           true // withCredentials flag
         )
+        //WARNING:if you need to use the response data as an array or object, you need to parse it with JSON.parse()
+        //I'm not doing it here because I only display the response data as is for now.
         setActivityList(response)
       } catch (error) {
         console.error(error)
-        setActivityList([{ error: error.message }])
+        setError(error)
       }
     }
+    setError(null)
+    setActivityList([])
     fetchActivities()
   }, [clickCount])
   return (
@@ -79,6 +51,7 @@ function ListGroupJoinedActivities() {
         </Button>
       </div>
       {/* <div>{activityList && JSON.stringify(activityList)}</div> */}
+      <p>{error && error.message}</p>
       <div>{activityList && activityList}</div>
     </div>
   )

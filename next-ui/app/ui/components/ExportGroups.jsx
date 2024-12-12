@@ -1,21 +1,17 @@
 'use client'
 import React, { useState, useEffect, useContext } from 'react'
-import axios from 'axios'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
-import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import CsvDownloadButton from 'react-json-to-csv'
 import { Checkbox } from '@/components/ui/checkbox'
 import { apiClient } from '@/utils/apiClient'
-import { serviceAccountPrivateKey } from '@/utils/keys'
 
 //temporary component for dev purposes
 //it supports 4 types of csv export, and files for separate groups are downloaded separately with group email being the csv file name
 //However, the implementation is kinda roundabout, there should be an easier way to achieve that
 function ExportGroups() {
   const { email } = useContext(LoggedInUserContext)
-  const { projectData } = useContext(ProjectDataContext)
   const [inputValue, setInputValue] = useState('')
   const [error, setError] = useState(null)
   const [data, setData] = useState([])
@@ -124,41 +120,19 @@ function ExportGroups() {
           includeAllColumns: allColumns,
         }))
 
-        //post the groups array to the backend
-        // const response = await axios.post(
-        //   'http://localhost:4000/api/groups/bulk-export',
-        //   {
-        //     userEmail: email,
-        //     projectId: projectData.projectData.projectId,
-        //     serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-        //     serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
-        //     groups: groupsArray,
-        //   },
-        //   { withCredentials: true }
-        // )
-
         const response = await apiClient(
           '/api/groups/bulk-export', // Endpoint path relative to API_BASE_URL
           'POST', // HTTP method
-          // {
-          //   userEmail: email,
-          //   projectId: projectData.projectData.projectId,
-          //   serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-          //   serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
-          // },
           {
-            userEmail: 'testadmin@pvp-test-domain2.com',
-            projectId: '',
-            serviceAccountEmail: 'testadmin-pvp-test12-work@project-1725519589587.iam.gserviceaccount.com',
-            serviceAccountPrivateKey: serviceAccountPrivateKey,
+            userEmail: email,
             groups: groupsArray,
           },
           {}, // Additional headers, if any
           true // withCredentials flag
         )
-        const tableData = response
 
-        // const tableData = response.data
+        const tableData = JSON.parse(response)
+
         //create an array of objects, each containing a row to be written in the csv
         if (tableData) {
           //create headers based on derivedMembership and allColumn values taken from the first group in the list
@@ -166,6 +140,7 @@ function ExportGroups() {
           setHeaders(createHeaders(tableData[0]))
           const csvData = []
           const groupNames = []
+
           tableData.forEach((group, index) => {
             groupNames.push(group.group)
             const fileData = []
