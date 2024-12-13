@@ -69,8 +69,6 @@ const fetchFilesFromDrive = async (drive, driveId = null) => {
         includePermissionsForView: 'published',
       }
 
-
-
       // Add driveId only if it is a shared drive
       if (driveId) {
         listOptions.driveId = driveId
@@ -90,7 +88,7 @@ const fetchFilesFromDrive = async (drive, driveId = null) => {
       // Update nextPageToken for pagination
       nextPageToken = filesResponse.data.nextPageToken
     } catch (error) {
-      logger.error(`Error fetching files:${error.message}`)
+      logger.error(error)
       throw error
     }
   } while (nextPageToken) // Continue fetching files while there are more pages
@@ -310,7 +308,7 @@ const fetchSharedDrivesFiles = async (
     return sharedDrivesWithFiles // Return the array of shared drives with their file structures
   } catch (error) {
     // Log any errors that occur while fetching shared drives
-    logger.error(`Error fetching shared drives and their file metadata:${error.message}`)
+    logger.error(error)
     throw error
   }
 }
@@ -356,7 +354,7 @@ const fetchPersonalDriveFiles = async (adminEmail, serviceAccountEmail, serviceA
         personalDrivesWithFiles.push(driveFiles) // Add the built hierarchy to the array
       } catch (error) {
         // Log any errors that occur while processing a specific user's drive
-        logger.error(`Failed to process email ${email}: ${error.message}`)
+        logger.error(error)
       }
     }
     // logger.debug(JSON.stringify(personalDrivesWithFiles, null, 2), {
@@ -365,7 +363,7 @@ const fetchPersonalDriveFiles = async (adminEmail, serviceAccountEmail, serviceA
     return personalDrivesWithFiles // Return the array of personal drives with their file structures
   } catch (error) {
     // Log any errors that occur while fetching personal drives
-    logger.error(`Error fetching personal drive files and their metadata:${error.message}`)
+    logger.error(error)
     throw error
   }
 }
@@ -430,7 +428,7 @@ const fetchItemsSharedWithUser = async (userEmail, emailToImpersonate, serviceAc
 
     return filesSharedWithUser
   } catch (error) {
-    logger.error(`Error fetching items shared with user:${error}`)
+    logger.error(error)
     throw error
   }
 }

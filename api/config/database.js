@@ -28,7 +28,8 @@ sequelize
     logger.info(`Connection has been established successfully. ${env} mode`)
   })
   .catch((err) => {
-    logger.error(`Unable to connect to the database:${err}`)
+    // logger.error(`Unable to connect to the database:${err}`)
+    logger.error(err)
   })
 
 module.exports = sequelize

@@ -47,7 +47,7 @@ exports.getFileDetails = async (req, res) => {
 
     res.status(200).json(fileData)
   } catch (error) {
-    logger.error(`Error fetching file details:${error}`)
+    logger.error(error)
     res.status(500).json({ message: 'Error fetching file details' })
   }
 }

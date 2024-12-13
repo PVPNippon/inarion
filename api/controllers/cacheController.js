@@ -19,7 +19,7 @@ const setValueInRedis = async (key, value, ttl) => {
     const storedData = await getDataFromRedis(key)
     // logger.info(JSON.stringify(storedData, null, 2), { storeLocation: 'file' })
   } catch (err) {
-    logger.error(`Error setting value in Redis for key "${key}":${err}`)
+    logger.error(err)
     throw err
   }
 }
@@ -29,7 +29,7 @@ const getDataFromRedis = async (key) => {
     const data = await redisClient.get(key)
     return data ? JSON.parse(data) : null
   } catch (error) {
-    logger.error(`Error retrieving data from Redis:${error}`)
+    logger.error(error)
   }
 }
 
@@ -40,7 +40,7 @@ const storeDataInRedis = async (key, data) => {
     const storedData = await getDataFromRedis(key)
     logger.info(storedData)
   } catch (error) {
-    logger.error(`Error storing data in Redis:${error}`)
+    logger.error(error)
   }
 }
 
@@ -66,7 +66,7 @@ const getValueFromRedis = async (key) => {
       return jsonString // If it's not JSON, return the raw string
     }
   } catch (err) {
-    logger.error(`Error fetching data from Redis for key "${key}": ${err}`)
+    logger.error(err)
     throw err
   }
 }
@@ -107,7 +107,7 @@ const scanKeys = async (req, res) => {
 
     res.status(200).json(result.keys.length !== 0 ? result.keys : `No key exists`)
   } catch (err) {
-    logger.error(`Failed to complete the scan operation:${err}`)
+    logger.error(err)
     return res.status(500).json({ error: 'Failed to complete the scan operation.' })
   }
 }
@@ -121,7 +121,7 @@ const storeJsonData = async (jsonData) => {
 
     await setValueInRedis(jsonData.driveName, jsonData, config.TTL)
   } catch (err) {
-    logger.error(`Error storing JSON in Redis:${err}`)
+    logger.error(err)
     throw err
   }
 }
@@ -154,7 +154,7 @@ const storeDriveList = async (key, driveList) => {
 
     await setValueInRedis(key, driveList, config.TTL)
   } catch (err) {
-    logger.error(`Error storing drive list for key "${key}":${err}`)
+    logger.error(err)
     throw err
   }
 }
@@ -168,7 +168,7 @@ const storeDriveData = async (key, driveData) => {
 
     await setValueInRedis(key, driveData, config.TTL)
   } catch (err) {
-    logger.error(`Error storing drive data for key "${key}":${err}`)
+    logger.error(err)
     throw err
   }
 }
@@ -227,7 +227,7 @@ const deleteCacheInRedis = async (key) => {
 
     return result
   } catch (err) {
-    logger.error(`Error deleting key "${key}" from Redis:${err}`)
+    logger.error(err)
     throw err
   }
 }

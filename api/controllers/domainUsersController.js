@@ -95,7 +95,7 @@ exports.listAllDriveFiles = async (req, res) => {
     // Return the result in the response
     res.status(200).json(allUserDriveFiles)
   } catch (error) {
-    logger.error(`Error listing Drive files for all users:${error}`)
+    logger.error(error)
     res.status(500).json({ message: 'Error listing Drive files for users' })
   }
 }

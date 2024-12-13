@@ -82,7 +82,7 @@ exports.logout = async (req, res) => {
     // Send a success response
     res.status(200).send({ message: 'Logged out successfully' })
   } catch (error) {
-    logger.error(`Error during logout: ${error}`)
+    logger.error(error)
     res.status(500).send({ message: 'Failed to logout' })
   }
 }

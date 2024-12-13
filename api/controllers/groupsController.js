@@ -25,7 +25,7 @@ exports.listAllGroups = async (req, res, next) => {
     res.locals.data = groups
     next()
   } catch (error) {
-    logger.error(`Error fetching groups:${error}`)
+    logger.error(error)
     res.status(500).json({ message: 'Error fetching groups' })
   }
 }
@@ -55,9 +55,7 @@ exports.getGroup = async (req, res, next) => {
     res.locals.data = response
     next()
   } catch (error) {
-    logger.error(`Error fetching group: ${error}`, {
-      storeLocation: 'file',
-    })
+    logger.error(error)
     //the reason why 404 and 403 are grouped is:
     //by try and error method I found out that error 404 is returned when query email is not a proper email address(missing @ symbol etc)
     //and error 403 is returned when query email address doesn't exist but looks like a proper email address
@@ -96,7 +94,7 @@ exports.listDirectMembers = async (req, res, next) => {
     res.locals.data = response
     next()
   } catch (error) {
-    logger.error(`Error fetching members:${error}`)
+    logger.error(error)
     if (error.status === 404 || error.status === 403) {
       return res
         .status(404)
@@ -133,7 +131,7 @@ exports.listAllMembers = async (req, res, next) => {
     res.locals.data = response
     next()
   } catch (error) {
-    logger.error(`Error fetching members: ${error}`)
+    logger.error(error)
     if (error.status === 404 || error.status === 403) {
       return res
         .status(404)
@@ -167,7 +165,7 @@ exports.getGroupActivity = async (req, res, next) => {
     res.locals.data = response
     next()
   } catch (error) {
-    logger.error(`Error fetching group activity:${error}`)
+    logger.error(error)
     res.status(500).json({ message: 'Error fetching group activity' })
   }
 }
@@ -196,7 +194,7 @@ exports.getGroupJoinedActivity = async (req, res, next) => {
     res.locals.data = allActivities
     next()
   } catch (error) {
-    logger.error(`Error fetching group joined activity:${error}`)
+    logger.error(error)
     res.status(500).json({ message: 'Error fetching group joined activity' })
   }
 }
@@ -224,7 +222,7 @@ exports.getNestedMembership = async (req, res, next) => {
     res.locals.data = nestedTable
     next()
   } catch (error) {
-    logger.error(`Error fetching nested membership:${error}`)
+    logger.error(error)
     res.status(500).json({ message: 'Error fetching nested membership' })
   }
 }
@@ -264,7 +262,7 @@ exports.getGroupHierarchy = async (req, res, next) => {
     }
     next()
   } catch (error) {
-    logger.error(`Error fetching hierarchy:${error}`)
+    logger.error(error)
     res.status(500).json({ message: 'Error fetching hierarchy' })
   }
 }
@@ -294,7 +292,7 @@ exports.listGroupsMembersInExportFormat = async (req, res, next) => {
     res.locals.data = members
     next()
   } catch (error) {
-    logger.error(`Error creating member lists in CSV format:${error}`)
+    logger.error(error)
     res.status(500).json({ message: 'Error creating member lists in CSV format' })
   }
 }
@@ -340,7 +338,7 @@ exports.updateWhoCanLeaveGroup = async (req, res) => {
       // logger.debug(JSON.stringify(response, null, 2))
     }
   } catch (error) {
-    logger.error(`Error updating the specified group's 'whoCanLeaveGroup' setting:${error}`)
+    logger.error(error)
     res.status(500).json({ message: "Error updating the specified group's 'whoCanLeaveGroup' setting" })
   }
 }
@@ -406,7 +404,7 @@ exports.deleteMembers = async (req, res) => {
       res.status(statusCode).json(response)
     }
   } catch (error) {
-    logger.error(`Error deleting members:${error}`)
+    logger.error(error)
     res.status(500).json({ message: `Error deleting members from ${groupEmail}` })
   }
 }
@@ -472,7 +470,7 @@ exports.deleteMemberFromGroups = async (req, res) => {
       res.status(statusCode).json(response)
     }
   } catch (error) {
-    logger.error(`Error deleting member:${error}`)
+    logger.error(error)
     res.status(500).json({ message: `Error deleting ${memberEmail} from the requested group(s)` })
   }
 }

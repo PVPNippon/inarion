@@ -54,7 +54,7 @@ async function decryptPayload(encryptedAESKey, encryptedIV, payload) {
     return decryptedPayload
   } catch (error) {
     // Log error and rethrow
-    logger.error('Error decrypting payload:', error.message)
+    logger.error(error)
     throw error
   }
 }
@@ -120,7 +120,7 @@ async function encryptPayload(data) {
     }
   } catch (error) {
     // Log the error and return a generic error message
-    logger.error('Error encrypting payload:', error.message)
+    logger.error(error)
     throw new Error('Encryption failed. Please try again.')
   }
 }
@@ -161,7 +161,7 @@ const decryptRequestMiddleware = async (req, res, next) => {
     next()
   } catch (error) {
     // Log error and return a standardized error response
-    logger.error('Error decrypting payload:', error.message)
+    logger.error(error)
     res.status(400).json({
       error: 'INVALID_ENCRYPTED_PAYLOAD',
       message: 'Invalid encrypted payload.',
@@ -202,7 +202,7 @@ const encryptResponseMiddleware = async (req, res) => {
     return res.json(encryptedResponse)
   } catch (error) {
     // Log error and return a standardized error response
-    logger.error('Error encrypting response for client:', error.message)
+    logger.error(error)
     return res.status(500).json({
       error: 'ENCRYPTION_FAILED',
       message: 'Failed to encrypt response.',

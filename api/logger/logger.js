@@ -44,6 +44,15 @@ const logger = (fileName, moduleName = 'N/A') => {
           level: logLevel,
           format: customFormat(fileName, moduleName),
           transports: createTransport(storeLocation),
+          // handleExceptions: true,
+          // handleRejections: true,
+          exitOnError: false,
+          // transports: [new winston.transports.Console()],
+          // Exception handlers must be an array of transports
+          exceptionHandlers: [new winston.transports.File({ filename: './logs/exceptions.log' })],
+
+          // Rejection handlers must be an array of transports
+          rejectionHandlers: [new winston.transports.File({ filename: './logs/rejections.log' })],
         })
 
         const callerInfo = getCallerInfo()
@@ -55,17 +64,27 @@ const logger = (fileName, moduleName = 'N/A') => {
 
         const loggerWithContext = Object.keys(logContext).length ? dynamicLogger.child(logContext) : dynamicLogger
 
-        /**
-         * Logs a message with the specified level and metadata.
-         * @param {Object} info - An object with the log level, message, and metadata.
-         */
-        loggerWithContext.log({
-          level,
-          message,
-          functionName: callerInfo.functionName,
-          lineNumber: callerInfo.lineNumber,
-          module,
-        })
+        // If the message is an instance of Error, ensure the stack trace is included
+        if (message instanceof Error) {
+          // If it's an error object, explicitly pass the stack trace
+          loggerWithContext.log({
+            level,
+            message: message.message, // Only include message in the log
+            stack: message.stack, // Include stack for error logs
+            functionName: callerInfo.functionName,
+            lineNumber: callerInfo.lineNumber,
+            module,
+          })
+        } else {
+          // For other log levels, we log normally without stack
+          loggerWithContext.log({
+            level,
+            message,
+            functionName: callerInfo.functionName,
+            lineNumber: callerInfo.lineNumber,
+            module,
+          })
+        }
       }
     }
   }

@@ -1,5 +1,6 @@
+const { stack } = require('sequelize/lib/utils')
 const winston = require('winston')
-const { combine, timestamp, printf, label, align } = winston.format
+const { combine, timestamp, printf, label, align, errors } = winston.format
 
 // Define custom colors for log levels and metadata
 const customColors = {
@@ -56,7 +57,7 @@ const customFormat = (fileName, moduleName) => {
     align(),
 
     // Include the stack trace for error logs
-    winston.format.errors({ stack: true }),
+    errors({ stack: true }),
 
     // Define a printf function to customize the log message
     printf((info) => {
@@ -66,6 +67,12 @@ const customFormat = (fileName, moduleName) => {
       // Format metadata if it exists
       const metadataString = info.metadata ? ` | ${JSON.stringify(info.metadata)}` : ''
       const miscString = info.misc ? ` | ${JSON.stringify(info.misc)}` : ''
+      const stackString = info.stack
+        ? info.stack
+            .split('\n') // Split stack trace into lines
+            .map((line) => applyColor(line, 'red')) // Apply color to each line
+            .join('\n') // Join the lines back together with newlines
+        : ''
 
       // Format and return the log message with color and information
       return (
@@ -75,9 +82,9 @@ const customFormat = (fileName, moduleName) => {
         `${applyColor(`[Function: ${info.functionName || 'N/A'}]`, 'magenta')} ` +
         `${applyColor(info.level.toUpperCase() + ':', levelColor)} ` +
         `${applyColor(info.message, 'white')} ` +
+        stackString +
         metadataString + // Append metadata string if it exists
-        miscString + // Append misc string if it exists
-        (info.stack ? `\n${applyColor(info.stack, 'red')}` : '') // Include stack trace if available
+        miscString // Append misc string if it exists
       )
     })
   )

@@ -14,7 +14,7 @@ const flushLogsToConsole = async () => {
 
   try {
     // Simulate flushing logs to the console
-    console.log('Flushing logs to console:', [...logBuffer])
+    console.log(` Flushing logs to console:`, [...logBuffer])
 
     // Clear the buffer after flushing
     logBuffer.length = 0

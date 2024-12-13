@@ -109,7 +109,7 @@ async function getCredentials(userEmail) {
         privateKeyData: serviceAccountKeyInDB.privateKeyData,
       })
     } catch (error) {
-      logger.error(`Unable to store Service Account Email and Key in Redis: ${error.message} ${error.stack}`)
+      logger.error(error)
     }
   }
 
@@ -121,7 +121,7 @@ async function getCredentials(userEmail) {
       `Service Account Private Key updated successfully: ${JSON.stringify(serviceAccountPrivateKey, null, 2)}`
     )
   } catch (error) {
-    logger.error(`Unable to update Service Account Private Key: ${error.message} ${error.stack}`)
+    logger.error(error)
     throw new Error('Unable to update Service Account Private Key')
   }
 
@@ -131,7 +131,7 @@ async function getCredentials(userEmail) {
     decodedCredentials = Buffer.from(serviceAccountPrivateKey, 'base64').toString('utf8')
     logger.debug(`Private key data decoded successfully.`)
   } catch (error) {
-    logger.error(`Unable to decode private key data: ${error.message} ${error.stack}`)
+    logger.error(error)
     throw new Error('Unable to decode private key data')
   }
 
@@ -142,7 +142,7 @@ async function getCredentials(userEmail) {
     logger.debug(`Credentials JSON parsed successfully.`)
   } catch (error) {
     // If there is an error in parsing, log the error and throw a new error indicating invalid credentials format.
-    logger.error(`Error parsing the credentials JSON: ${error.message} ${error.stack}`)
+    logger.error(error)
     throw new Error('Invalid credentials format')
   }
 
@@ -186,7 +186,7 @@ async function initializeGoogleAuth(credentials) {
     })
     logger.debug(`GoogleAuth client initialized successfully.`)
   } catch (error) {
-    logger.error(`Error initializing the GoogleAuth client: ${error.message} ${error.stack}`)
+    logger.error(error)
     throw new Error('Error initializing the GoogleAuth clients')
   }
 
@@ -331,7 +331,7 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
       }
     })
   } catch (error) {
-    logger.error(`Error retrieving an impersonated client: ${error.message} ${error.stack}`)
+    logger.error(error)
     throw new Error(`Error retrieving an impersonated client: ${error.message} ${error.stack}`)
   }
 

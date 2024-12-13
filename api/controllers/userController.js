@@ -49,7 +49,7 @@ exports.getAdmins = async (req, res) => {
     // Return user details
     res.status(200).json(user)
   } catch (error) {
-    logger.error(`Error fetching user:${error}`)
+    logger.error(error)
     // Return 500 if there's an error
     res.status(500).json({ message: 'Error fetching user' })
   }
@@ -113,7 +113,7 @@ exports.registerUser = async (req, res) => {
     logger.info(`Returning authUrl:${authUrl}`) // Log the authentication URL
     return res.status(200).json({ authUrl }) // Return the authentication URL
   } catch (error) {
-    logger.error(`Error during registration:${error}`)
+    logger.error(error)
     return res.status(500).json({ error: 'An error occurred while registering the user' })
   }
 }

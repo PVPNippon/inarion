@@ -33,7 +33,7 @@ async function getCredentials(serviceAccountEmail, serviceAccountPrivateKey) {
     credentials = JSON.parse(decodedCredentials)
   } catch (error) {
     // If there is an error in parsing, log the error and throw a new error indicating invalid credentials format.
-    logger.error(`Error parsing the credentials JSON:${error}`)
+    logger.error(error)
     throw new Error('Invalid credentials format')
   }
 

@@ -220,7 +220,7 @@ exports.getAllProjects = async (req, res) => {
     const projects = await Project.findAll()
     res.status(200).json(projects)
   } catch (error) {
-    logger.error(`Error fetching projects:${error}`)
+    logger.error(error)
     res.status(500).json({ error: 'An error occurred while fetching projects.' })
   }
 }
