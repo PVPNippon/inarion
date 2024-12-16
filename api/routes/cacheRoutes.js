@@ -1,32 +1,29 @@
-const express = require('express');
-const router = express.Router();
-const cacheController = require('../controllers/cacheController');
+const express = require('express')
+const router = express.Router()
+const redisCacheService = require('../services/redisCacheService.js')
 
-// Route to store values in Redis
-router.post('/set', cacheController.setCache);
-router.post('/store-json', cacheController.storeJsonData);
-router.post('/store-drive-data', cacheController.storeDriveList);
-router.post('/store-drive-list', cacheController.storeDriveData);
+// // Routes for String data-type
+//router.get('/fetch/string/:key', cacheController.getValueFromRedis)
+//router.post('/set/string/:key', cacheController.setValueInRedis)
 
-// Route to fetch values in Redis
-router.get('/get', cacheController.getCache);
+// // Routes for Sets data-type
+router.get('/fetch/sets/:key', redisCacheService.getSetMembers)
+//router.post('/set/sets/:key', cacheController.setValueInRedis)
 
-// example - "localhost:4000/cache/fetch-json?driveName=shared-drive-drive-test"
-// key = driveName
-// value = shared-drive-drive-test
-router.get('/fetch-json', cacheController.fetchJsonData);
+// // Routes for Hashes data-type
+router.get('/fetch/hashes/:key', redisCacheService.getHashFromRedis)
+//router.post('/set/hashes/:key', cacheController.setValueInRedis)
 
-// example - "localhost:4000/cache/fetch-drive-data?key=shared-drive-drive-test"
-// key = key
-// value = shared-drive-drive-test
-router.get('/fetch-drive-data', cacheController.fetchDriveData);
+// // Routes for JSON data-type
+router.get('/fetch/json/:key', redisCacheService.getJsonFromRedis)
+//router.post('/set/json/:key', cacheController.setValueInRedis)
 
-// example - "localhost:4000/cache/fetch-drive-list?key=shared-drives"
-// key = key
-// value = shared-drives
-router.get('/fetch-drive-list', cacheController.fetchDriveList);
+//-----------
+router.get('/get/:key', redisCacheService.getStringFromRedis)
+//router.get('/get/:key', cacheController.getDataFromRedis)
+//router.post('/set/:key', cacheController.setStringInRedis)
 
-router.get('/scan', cacheController.scanKeys);
-router.get('/delete-cache', cacheController.deleteCache);
+router.get('/scan', redisCacheService.scanKeys)
+router.get('/delete-cache', redisCacheService.deleteKeyInRedis)
 
-module.exports = router; 
+module.exports = router

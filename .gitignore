@@ -9,3 +9,5 @@ keys/
 .env
 credentials/
 ./api/config/config.js
+.DS_Store
+api/.DS_Store

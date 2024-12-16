@@ -1,15 +1,7 @@
-const express = require('express')
 const oauth2Client = require('../models/googleAuth') // Google OAuth2 client setup
 const config = require('../config/config') // Configuration settings
-const { google } = require('googleapis') // Google APIs client library
 const User = require('../models/User') // User model for database operations
-const router = express.Router()
-const axios = require('axios') // Import axios
-const projectController = require('../controllers/projectController')
 const logger = require('../logger/logger')(__filename, 'Authentication')
-
-// Retrieve the API base URL from environment variables
-const API_BASE_URL = process.env.API_BASE_URL
 
 /**
  * Handle OAuth2 callback to process authentication and create a project.
@@ -51,15 +43,6 @@ exports.oauth2callback = async (req, res, next) => {
       // If the user does not exist, create a new user with the provided details
       await User.create({ email, projectName, refreshToken: tokens.refresh_token })
     }
-  }
-
-  // Construct a new request object for the createProject controller function
-  const createProjectReq = {
-    body: {
-      tokens,
-      email,
-      projectName,
-    },
   }
 
   next()

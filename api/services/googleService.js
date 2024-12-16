@@ -1,5 +1,4 @@
 const { google } = require('googleapis')
-const { ProjectsClient } = require('@google-cloud/resource-manager').v3
 const oauth2Client = require('../models/googleAuth')
 const logger = require('../logger/logger')(__filename, 'Google Service')
 
@@ -32,7 +31,7 @@ const setOauth2Credentials = (tokens) => {
  * @throws {Error} - Throws an error if the API request fails.
  */
 const listOrganizations = async (authClient) => {
-  // console.log(authClient);
+  // logger.debug(authClient);
   const cloudResourceManager = google.cloudresourcemanager('v3')
   try {
     // Make the API call to search for organizations using the authClient

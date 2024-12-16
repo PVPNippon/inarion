@@ -41,8 +41,9 @@ services:
       - test
 
   redis:
-    image: redis:latest
+    image: redis/redis-stack-server:latest
     container_name: redis_c
+    platform: linux/amd64  
     ports:
       - '6379:6379'
     networks:

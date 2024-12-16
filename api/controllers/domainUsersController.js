@@ -1,11 +1,5 @@
 // Function to decrypt the private key
-const oauth2Client = require('../models/googleAuth')
 const { google } = require('googleapis') // Google APIs client library
-const ServiceAccountKeys = require('../models/ServiceAccountKeys')
-const crypto = require('crypto')
-const dataController = require('../controllers/dataController')
-const encryptionKey = 'my-hardcoded-secret-key'
-const config = require('../config/config')
 const logger = require('../logger/logger')(__filename, 'Domain Users')
 require('dotenv').config()
 
@@ -28,28 +22,7 @@ function decodePrivateKeyData(privateKeyData) {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getDomainUsersList = async (req, res) => {
-  let { email, userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body // Extract the email and userEmail from the request body
-
-  logger.debug(`Type of projectData:${typeof serviceAccountEmail}`)
-  // Retrieve project data using the user email
-  // let projectData = await dataController.getProjectData(userEmail);
-  // if(projectId === undefined){
-  //   logger.info('Came in here');
-  //   projectId = projectData.projectId;
-  // }
-  // logger.info(`ProjectID: ${projectId}`);
-
-  // Retrieve service account data using the project ID
-  // let serviceAccountData = await dataController.getServiceAccountData(projectId);
-  // let serviceAccountEmail = serviceAccountData.serviceAccountEmail;
-
-  // Retrieve the service account key using the service account email
-  // let serviceAccountKey = await dataController.getServiceAccountKey(serviceAccountEmail);
-
-  // If the service account key is not found, return a 404 error
-  // if (!serviceAccountKey) {
-  //   return res.status(404).json({ message: 'Service account key not found' });
-  // }
+  let { userEmail, serviceAccountEmail, serviceAccountPrivateKey } = req.body
 
   // Extract the private key data
   // const privateKey = serviceAccountKey.privateKeyData;
@@ -57,9 +30,8 @@ exports.getDomainUsersList = async (req, res) => {
 
   // Decode the private key data for the service account
   // const keyData = decodePrivateKeyData(serviceAccountKey.privateKeyData);
-  logger.debug(`Privvvv key: ${serviceAccountPrivateKey}`, { storeLocation: 'file' })
+  // logger.debug(`Privvvv key: ${serviceAccountPrivateKey}`, { storeLocation: 'file' })
   const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
-  logger.debug(JSON.stringify(keyData, null, 2))
   const privateKey = keyData.private_key
 
   // Create a new JWT client, specifying the user to impersonate

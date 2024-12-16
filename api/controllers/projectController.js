@@ -1,17 +1,12 @@
 const googleService = require('../services/googleService') // Import Google service functions
 const oauth2Client = require('../models/googleAuth') // Import OAuth2 client for authentication
 const Project = require('../models/Project') // Import Project model
-const url = require('url') // Import URL module
 const User = require('../models/User') // Import User model
 const ServiceAccount = require('../models/ServiceAccount') // Import ServiceAccount model
 const ServiceAccountKeys = require('../models/ServiceAccountKeys') // Import ServiceAccountKeys model
-
-const express = require('express')
-const session = require('express-session')
-const cors = require('cors')
-const app = express()
 const dataController = require('../controllers/dataController')
-const logger = require('../logger/logger')(__filename, 'Projects')
+const logger = require('../logger/logger')(__filename, 'Project Controller')
+
 // Utility function to retry an async function on failure
 async function retryAsync(fn, retries = 5, delay = 2000) {
   for (let i = 0; i < retries; i++) {
