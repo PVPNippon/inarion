@@ -18,7 +18,7 @@ const executeTransaction = (redisTransaction) => {
 const getClient = (redisTransaction) => (redisTransaction ? redisTransaction : redisClient)
 
 // Function to scan all keys with enhanced error handling
-const scanKeys = async (req, res, redisTransaction = null) => {
+const scanKeys = async (redisTransaction = null) => {
   try {
     const client = getClient(redisTransaction)
 
@@ -27,13 +27,12 @@ const scanKeys = async (req, res, redisTransaction = null) => {
 
     if (result.keys.length == 0) {
       logger.debug(`No key exists`)
-      return res.status(404).json({ message: 'No key exists' })
+      return
     }
     logger.debug('result.keys.length = ', result.keys.length)
-    res.status(200).json(result.keys)
-  } catch (err) {
-    logger.error('Failed to complete the scan operation:', err)
-    return res.status(500).json({ error: 'Failed to complete the scan operation.' })
+    return result.keys
+  } catch (error) {
+    logger.error('Failed to complete the scan operation:', error)
   }
 }
 

@@ -134,7 +134,7 @@ async function checkIfMemberExistsInCache(key, id, dataType, redisTransaction = 
         result = await isMemberOfSet(key, id, redisTransaction)
         break
       default:
-        throw new Error(`Unsupported data type: ${dataType}`)
+        logger.error(`Unsupported data type: ${dataType}`)
     }
 
     if (!result) {
@@ -144,7 +144,6 @@ async function checkIfMemberExistsInCache(key, id, dataType, redisTransaction = 
     return result
   } catch (error) {
     logger.error(`Error fetching data from cache for key: ${key}`, error)
-    throw new Error(`Failed to fetch data from cache: ${error.message}`)
   }
 }
 

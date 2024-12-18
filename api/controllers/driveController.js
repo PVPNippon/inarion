@@ -4,10 +4,10 @@ const { fetchDataFromCache, storeDataInCache } = require('../controllers/cacheCo
 const { structureDriveFiles } = require('../helper/drive/driveHierarchyHelper')
 const { createOrUpdateFiltersForFile } = require('../helper/redis/redisFiltersHelper')
 const populateDataModel = require('../models/redisDriveItem')
-const { fetchUsersList } = require('../services/adminService')
+const { getOrganizationUsersList } = require('../services/adminService')
 const { fetchFilesDetailsData, fetchAllSharedDrives, fetchFilesFromDrive } = require('../services/driveService')
 const { generateTransaction, executeTransaction } = require('../services/redisCacheService')
-const { createRedisKey } = require('../utility/utilityFunctions')
+const { createRedisKey, extractEmails } = require('../utility/utilityFunctions')
 const logger = require('../logger/logger')(__filename, 'Drive Controller')
 
 // Function to decrypt the private key
@@ -215,7 +215,8 @@ const fetchSharedDrivesFiles = async (adminEmail, serviceAccountEmail, serviceAc
  */
 const fetchPersonalDriveFiles = async (adminEmail, serviceAccountEmail, serviceAccountPrivateKey) => {
   try {
-    const emailList = await fetchUsersList(adminEmail, serviceAccountEmail, serviceAccountPrivateKey)
+    const emailList = extractEmails(await getOrganizationUsersList({ userEmail: adminEmail }))
+
     const personalDrivesWithFiles = []
 
     for (const email of emailList) {
