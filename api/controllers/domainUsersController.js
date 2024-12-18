@@ -1,73 +1,31 @@
-// Function to decrypt the private key
-const { google } = require('googleapis') // Google APIs client library
-const logger = require('../logger/logger')(__filename, 'Domain Users')
+const logger = require('../logger/logger')(__filename, 'Domain Users Controller')
+const { getOrganizationUsersList } = require('../services/adminService')
 require('dotenv').config()
-
-function decodePrivateKeyData(privateKeyData) {
-  const decodedData = Buffer.from(privateKeyData, 'base64').toString('utf8')
-  return JSON.parse(decodedData)
-}
 
 /**
  * Retrieves a list of users from the specified domain using Google Admin SDK.
  *
- * This function interacts with the Google Admin Directory API to list all users within a specified domain.
- * It retrieves the service account data and key for the domain, uses JWT authentication to impersonate a user,
- * and makes the API request to list the domain users. The function requires the service account email, private key,
- * and the email of the user to impersonate.
+ * This function takes the `userEmail` from the request body and uses it to impersonate a user
+ * when making the API call to list the domain users. The function requires the
+ * service account email and private key to be stored in environment variables.
  *
- * @param {Object} req - The request object containing the `email` and `userEmail` in the request body.
+ * @param {Object} req - The request object containing the `userEmail` in the request body.
  * @param {Object} res - The response object used to return the list of users or an error.
  * @returns {Promise<void>} - Responds with the list of users in the domain or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getDomainUsersList = async (req, res) => {
-  let { userEmail, serviceAccountEmail, serviceAccountPrivateKey } = req.body
-
-  // Extract the private key data
-  // const privateKey = serviceAccountKey.privateKeyData;
-  // logger.info(privateKey);
-
-  // Decode the private key data for the service account
-  // const keyData = decodePrivateKeyData(serviceAccountKey.privateKeyData);
-  // logger.debug(`Privvvv key: ${serviceAccountPrivateKey}`, { storeLocation: 'file' })
-  const keyData = decodePrivateKeyData(serviceAccountPrivateKey)
-  const privateKey = keyData.private_key
-
-  // Create a new JWT client, specifying the user to impersonate
-  const jwtClient = new google.auth.JWT({
-    email: serviceAccountEmail,
-    key: privateKey,
-    scopes: ['https://www.googleapis.com/auth/admin.directory.user.readonly'],
-    subject: userEmail, // Impersonating this user
-  })
-
-  // Authorize the client
-  await jwtClient.authorize()
-
-  const admin = google.admin({ version: 'directory_v1', auth: jwtClient })
-
-  const response = await admin.users.list({
-    // customer: 'my_customer', // Use 'my_customer' to list users in the entire domain
-    // domain: 'pvp-test-domain2.com',
-    domain: process.env.DOMAIN_TEST,
-  })
-
-  // Return the list of users as the response
-  res.status(200).json(response.data.users)
-}
-
-exports.listAllDriveFiles = async (req, res) => {
-  const { userEmail } = req.body // The admin user's email for impersonation
+  // Deleted "client" here since client is too large to pass in the request (axios error 413)
+  const { userEmail } = req.body // Extract the email and userEmail from the request body
 
   try {
-    // Fetch all the Drive files for all users
-    const allUserDriveFiles = await getDriveFilesForAllUsers(userEmail)
-
-    // Return the result in the response
-    res.status(200).json(allUserDriveFiles)
+    // Try to retrieve all users in the organization
+    const users = await getOrganizationUsersList({ userEmail })
+    logger.debug(`Fetched ${users.length} users from the domain.`)
+    // Return the list of users as the response
+    res.status(200).json(users)
   } catch (error) {
-    logger.error(error)
-    res.status(500).json({ message: 'Error listing Drive files for users' })
+    logger.error(`Error fetching users:${error}`)
+    res.status(500).json({ message: 'Error fetching users' })
   }
 }

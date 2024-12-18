@@ -1,5 +1,5 @@
 const { google } = require('googleapis')
-const cacheService = require('../controllers/cacheController')
+const redisCacheService = require('../services/redisCacheService')
 const ServiceAccountKeys = require('../models/ServiceAccountKeys')
 const Users = require('../models/User')
 const Projects = require('../models/Project')
@@ -65,7 +65,7 @@ async function getCredentials(userEmail) {
   let serviceAccountPrivateKey // Variable to store the service account private key
 
   //First try fetching the service account key from redis
-  serviceAccountKeyInDB = (await cacheService.getValueFromRedis(serviceAccountCredentialsKey)) || null
+  serviceAccountKeyInDB = (await redisCacheService.getJsonFromRedis(serviceAccountCredentialsKey)) || null
   if (serviceAccountKeyInDB) {
     logger.debug(`Service Account Credentials retrieved from Redis successfully: ${serviceAccountCredentialsKey}`)
   }
@@ -99,12 +99,20 @@ async function getCredentials(userEmail) {
     }
 
     logger.debug(
-      `Service account credentials Key fetched from DB successfully: ${JSON.stringify(serviceAccountKeyInDB, null, 2)}`
+      `Service account credentials Key fetched from DB successfully.\nID: ${JSON.stringify(
+        serviceAccountKeyInDB.id,
+        null,
+        2
+      )}\nPrivate key ID: ${JSON.stringify(
+        serviceAccountKeyInDB.privateKeyId,
+        null,
+        2
+      )}\nService account email: ${JSON.stringify(serviceAccountKeyInDB.serviceAccountEmail, null, 2)}`
     )
 
     try {
       // Store the service account email and key in Redis
-      cacheService.storeDataInRedis(serviceAccountCredentialsKey, {
+      redisCacheService.setJsonInRedis(serviceAccountCredentialsKey, {
         serviceAccountEmail: serviceAccountKeyInDB.serviceAccountEmail,
         privateKeyData: serviceAccountKeyInDB.privateKeyData,
       })
@@ -117,9 +125,7 @@ async function getCredentials(userEmail) {
     // Update the serviceAccountPrivateKey with the fetched service account key
     //this try and catch block is for cases when there is a service account key record in DB, but the privateKeyData is null for some reason
     serviceAccountPrivateKey = serviceAccountKeyInDB.privateKeyData
-    logger.debug(
-      `Service Account Private Key updated successfully: ${JSON.stringify(serviceAccountPrivateKey, null, 2)}`
-    )
+    logger.debug(`Service Account Private Key updated successfully.`)
   } catch (error) {
     logger.error(error)
     throw new Error('Unable to update Service Account Private Key')
@@ -281,7 +287,17 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
     // Retrieve the client from the auth instance.
     //the variable is named jwtClient is because actually Google returns a JWT client in our case
     jwtClient = await auth.getClient()
-    logger.debug(`JWT client retrieved successfully: ${JSON.stringify(jwtClient, null, 2)}`)
+    logger.debug(
+      `JWT client retrieved successfully.\nProject ID: ${JSON.stringify(
+        jwtClient.projectId,
+        null,
+        2
+      )}\nEmail: ${JSON.stringify(jwtClient.email, null, 2)}\nKey ID: ${JSON.stringify(
+        jwtClient.keyId,
+        null,
+        2
+      )}\nScopes: ${JSON.stringify(jwtClient.scopes, null, 2)}`
+    )
 
     // Set the subject (user to impersonate) for the auth client.
     jwtClient.subject = impersonatedUser
@@ -418,7 +434,17 @@ async function getImpersonatedClientInstanceForAdmin(impersonatedUser, typeOfIns
   // If the instance doesn't exist in the store or the expiry time is less than 5 minutes, create the new instance
   // Get the service account credentials
   const credentials = await getCredentials(impersonatedUser)
-  logger.debug(`Credentials retrieved successfully: ${JSON.stringify(credentials, null, 2)}`)
+  logger.debug(
+    `Credentials retrieved successfully.\nProject ID: ${JSON.stringify(
+      credentials.project_id,
+      null,
+      2
+    )}\nPrivate key ID: ${JSON.stringify(credentials.private_key_id, null, 2)}\nClient ID: ${JSON.stringify(
+      credentials.client_id,
+      null,
+      2
+    )}`
+  )
 
   // Initialize the Google Auth client
   const authClient = await initializeGoogleAuth(credentials)
