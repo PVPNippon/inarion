@@ -1,7 +1,6 @@
 const { google } = require('googleapis')
-const { ProjectsClient } = require('@google-cloud/resource-manager').v3
 const oauth2Client = require('../models/googleAuth')
-const logger = require('../logger')(__filename)
+const logger = require('../logger/logger')(__filename, 'Google Service')
 
 /**
  * Sets OAuth2 credentials for the OAuth2 client using the provided tokens.
@@ -32,7 +31,7 @@ const setOauth2Credentials = (tokens) => {
  * @throws {Error} - Throws an error if the API request fails.
  */
 const listOrganizations = async (authClient) => {
-  // console.log(authClient);
+  // logger.debug(authClient);
   const cloudResourceManager = google.cloudresourcemanager('v3')
   try {
     // Make the API call to search for organizations using the authClient
@@ -43,7 +42,7 @@ const listOrganizations = async (authClient) => {
     return response.data.organizations
   } catch (error) {
     // Log and throw the error if the API request fails
-    console.error('Error listing organizations:', error.response?.data || error.message)
+    logger.error(error)
     throw error
   }
 }
@@ -100,7 +99,7 @@ const listProjects = async (authClient, organizationId) => {
     return response.data.projects
   } catch (error) {
     // Log and throw the error if the API request fails
-    console.error('Error listing projects:', error.response?.data || error.message)
+    logger.error(error)
     throw error
   }
 }
@@ -246,10 +245,7 @@ const listServiceAccounts = async (authClient, projectId) => {
   })
 
   // Log the list of service accounts (for debugging)
-  logger.debug(`Service accounts: ${JSON.stringify(res.data.accounts, null, 2)}`, {
-    functionName: 'listServiceAccounts',
-    module: 'Projects',
-  })
+  // logger.debug(`Service accounts: ${JSON.stringify(res.data.accounts, null, 2)}`)
   // Return the list of service accounts, or an empty array if none are found
   return res.data.accounts
 }

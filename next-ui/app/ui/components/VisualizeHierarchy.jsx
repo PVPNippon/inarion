@@ -1,34 +1,31 @@
 'use client'
 import React, { useState, useEffect, useContext } from 'react'
-import axios from 'axios'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
-import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import Graph from 'react-graph-vis'
+import { apiClient } from '@/utils/apiClient'
 
 /**
- * Component that visualizes the hierarchical structure of a group or user's memberships.
+ * VisualizeHierarchy is a temporary React component for development purposes.
+ * It is used to test the groups hierarchy visualizer backend code.
  *
- * The component renders an input field for entering a group or user email address, a button
- * to trigger the API call, and a graph to display the hierarchical data. The graph uses
- * a hierarchical layout to represent nodes and edges.
+ * The component allows users to input an email address and fetches
+ * the hierarchy of groups associated with that address. The hierarchy
+ * is displayed as a graph, which can be opened in a new window.
  *
- * The component leverages the `LoggedInUserContext` and `ProjectDataContext` contexts
- * to access the user's email and project information.
+ * The component utilizes the LoggedInUserContext to access the email
+ * of the logged-in user and maintains state for the input value,
+ * group list, click count, and error messages.
  *
- * The component fetches the group hierarchy from the backend API when the user clicks
- * the "Go" button. It uses the `useState` hook to manage input values, group hierarchy
- * data, click count, and errors. The `useEffect` hook is utilized to make the API call
- * when the click count changes.
+ * Graph visualization options are defined within the component,
+ * including layout, physics, and edge configurations.
  *
- * If no memberships are found, or if there is an error, an appropriate error message is displayed.
+ * @component
  */
-//temporary component for dev purposes
-//used to test the groups hierarchy visualiser backend code
 function VisualizeHierarchy() {
+  //temporary component for dev purposes
+  //used to test the groups hierarchy visualiser backend code
   const { email } = useContext(LoggedInUserContext)
-  const { projectData } = useContext(ProjectDataContext)
   const [inputValue, setInputValue] = useState('')
   const [groupList, setGroupList] = useState({
     nodes: [],
@@ -43,24 +40,34 @@ function VisualizeHierarchy() {
       hierarchical: {
         enabled: true,
         levelSeparation: 150,
-        nodeSpacing: 200,
-        treeSpacing: 200,
+        //levelSeparation: 100,
+        // nodeSpacing: 200,
+        // treeSpacing: 200,
         blockShifting: true,
         edgeMinimization: true,
         parentCentralization: true,
         direction: 'UD', // UD, DU, LR, RL
         sortMethod: 'directed', // hubsize, directed
+        //  shakeTowards: 'roots',
+        //shakeTowards: 'leaves', //default
       },
     },
     physics: {
       enabled: true,
       hierarchicalRepulsion: {
-        nodeDistance: 200, // Put more distance between the nodes.
+        //nodeDistance: 200, // Put more distance between the nodes.
+        nodeDistance: 250,
       },
       stabilization: true,
     },
     edges: {
+      width: 2,
       color: 'blue',
+      smooth: {
+        // type: 'vertical',
+        type: 'discrete',
+        roundness: 1,
+      },
     },
     height: '1000px',
   }
@@ -76,36 +83,51 @@ function VisualizeHierarchy() {
      * @throws {Error} - Throws an error if there is an issue with the API call or if the hierarchy cannot be fetched.
      */
     const fetchHierarchy = async (req, res) => {
+      const oldGraph = localStorage.getItem('graph')
+      if (oldGraph) localStorage.removeItem('graph')
       try {
         if (inputValue === '') {
           return
         }
-        const response = await axios.post(
-          'http://localhost:4000/api/groups/get-hierarchy',
+
+        const response = await apiClient(
+          '/api/groups/get-hierarchy', // Endpoint path relative to API_BASE_URL
+          'POST', // HTTP method
           {
             userEmail: email,
-            projectId: projectData.projectData.projectId,
-            serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-            serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
             queryEmail: inputValue,
           },
-          { withCredentials: true }
+          {}, // Additional headers, if any
+          true // withCredentials flag
         )
+        // if emtpy data is returned, set error 'No memberships found', otherwise set groupList
+        if (response) {
+          //I parse the response data to JSON because I need to do some manipulation with it before storing it in local storage
+          //if in the future there is no need to manipulate the data anymore, you can omit this step and just store it as a string in the local storage
+          const responseData = JSON.parse(response)
 
-        // if emtpy table is returned, set error 'No memberships found', otherwise set groupList
-        if (response.status === 200) {
-          response.data.length === 0
-            ? setError({ message: 'No memberships found. Please check if the email address is correct and try again.' })
-            : setGroupList(response.data)
+          if (responseData.length === 0) {
+            setError({ message: 'No memberships found. Please check if the email address is correct and try again.' })
+          } else {
+            setGroupList(responseData)
+            if (responseData.nodes && responseData.nodes.length > 0) {
+              //temporary logic to wrap labels
+              const nodes = responseData.nodes
+              nodes.forEach((node) => {
+                const label = node.label.split('@').join(`@\n`)
+                node.label = label
+              })
+              const graph = {
+                graph: responseData,
+                options: options, //I pass options from this page because in the future we might need to alter options dynamically based on the graph type
+              }
+              localStorage.setItem('graph', JSON.stringify(graph))
+              window.open('/groups/hierarchy/graph', '_blank')
+            }
+          }
         }
       } catch (error) {
-        //if error is 404, set error 'Incorrect email address or you do not have access to this resource.',
-        //otherwise set error returned by the server
-        if (typeof error.response !== 'undefined' && error.response.status === 404) {
-          setError({ message: 'Incorrect email address or you do not have access to this resource.' })
-        } else {
-          setError(error)
-        }
+        setError(error)
       }
     }
     setError(null)
@@ -133,7 +155,6 @@ function VisualizeHierarchy() {
       </div>
       <p>{error && error.message}</p>
       <div>{groupList && JSON.stringify(groupList)}</div>
-      <Graph graph={groupList} options={options} />
     </div>
   )
 }

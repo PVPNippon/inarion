@@ -1,30 +1,35 @@
 'use client'
 import React, { useState, useEffect, useContext } from 'react'
-import axios from 'axios'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
-import { ProjectDataContext } from '../contexts/ProjectDataContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { apiClient } from '@/utils/apiClient'
 
 /**
- * Component that allows the user to enter a group email address and fetch the list of its direct members.
+ * A temporary component for dev purposes.
+ * On click of button, fetch group's direct members and display in div(error or member list)
  *
- * The component displays the list of direct members as a JSON object.
+ * States:
+ * - `inputValue`: Stores the group email address entered by the user.
+ * - `members`: Stores the fetched list of direct members or error messages.
+ * - `clickCount`: A counter to trigger the fetch operation.
  *
- * The component uses the `LoggedInUserContext` and `ProjectDataContext` contexts to access the user's email and project data.
+ * Side Effects:
+ * - Uses `useEffect` to trigger the fetch of direct members whenever `clickCount` changes.
  *
- * The component uses the `useState` hook to store the input value, the list of direct members, and a counter to trigger the API call.
+ * API:
+ * - Sends a POST request to `/api/groups/list-direct-members` with the user's email and the group email to retrieve the list of direct members.
  *
- * The component uses the `useEffect` hook to fetch the list of direct members when the user clicks the "Go" button.
+ * @returns {JSX.Element} The rendered component for listing direct members.
  */
-//a temporary component for dev purposes.
-//on click of button, fetch group's direct members and display in div(error or member list)
 function ListDirectMembers() {
+  //a temporary component for dev purposes.
+  //on click of button, fetch group's direct members and display in div(error or member list)
   const { email } = useContext(LoggedInUserContext)
-  const { projectData } = useContext(ProjectDataContext)
   const [inputValue, setInputValue] = useState('')
   const [members, setMembers] = useState([])
   const [clickCount, setClickCount] = useState(0)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchMembers = async (req, res) => {
@@ -33,25 +38,25 @@ function ListDirectMembers() {
           return
         }
 
-        const response = await axios.post(
-          'http://localhost:4000/api/groups/list-direct-members',
+        const response = await apiClient(
+          '/api/groups/list-direct-members', // Endpoint path relative to API_BASE_URL
+          'POST', // HTTP method
           {
             userEmail: email,
-            projectId: projectData.projectData.projectId,
-            serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-            serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
             groupEmail: inputValue,
           },
-          { withCredentials: true }
+          {}, // Additional headers, if any
+          true // withCredentials flag
         )
-        if (response.status === 200) {
-          setMembers(response.data)
-        }
+        //WARNING:if you need to use the response data as an array or object, you need to parse it with JSON.parse()
+        //I'm not doing it here because I only display the response data as is for now.
+        setMembers(response)
       } catch (error) {
         console.error(error)
-        setMembers([{ error: error.message }])
+        setError(error)
       }
     }
+    setError(null)
     setMembers([])
     fetchMembers()
   }, [clickCount])
@@ -71,7 +76,9 @@ function ListDirectMembers() {
           Go
         </Button>
       </div>
-      <div>{members && JSON.stringify(members)}</div>
+      {/* <div>{members && JSON.stringify(members)}</div> */}
+      <p>{error && error.message}</p>
+      <div>{members && members}</div>
     </div>
   )
 }

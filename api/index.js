@@ -1,8 +1,13 @@
+//global in-memory storage
+const instanceStore = new Map()
+exports.instanceStore = instanceStore
+
 // server file
 const express = require('express')
 const session = require('express-session')
-const logger = require('./logger')(__filename)
+const logger = require('./logger/logger')(__filename, 'Main')
 const config = require('./config/config')
+const cronJob = require('node-cron')
 const cacheRoutes = require('./routes/cacheRoutes')
 const authRoutes = require('./routes/authRoutes')
 const projectRoutes = require('./routes/projectRoutes')
@@ -11,6 +16,7 @@ const userRoutes = require('./routes/userRoutes')
 const driveRoutes = require('./routes/driveRoutes')
 const domainUsersRoutes = require('./routes/domainUsersRoutes')
 const groupsRoutes = require('./routes/groupsRoutes')
+const encryptionRoutes = require('./routes/cryptoRoutes')
 // const sequelize = require('./config/database');
 const cors = require('cors') // Import the CORS package
 const path = require('path')
@@ -60,6 +66,7 @@ app.use('/api/drive', driveRoutes)
 app.use('/users', domainUsersRoutes)
 app.use('/api/groups', groupsRoutes)
 app.use('/cache', cacheRoutes)
+app.use('/encryption', encryptionRoutes)
 
 app.get('/', (req, res) => {
   res.send('<h1>Home Page</h1>')
@@ -78,6 +85,30 @@ app.get('/', (req, res) => {
 // });
 
 const port = config.PORT
-app.listen(port, () =>
-  logger.info(`Listening on port ${port}`, { functionName: 'app.listen', module: 'hosting connection' })
+app.listen(port, () => logger.info(`Listening on port ${port}`))
+
+// Schedule a cron job to clear the instance store once a day at midnight(might change later)
+cronJob.schedule(
+  '0 0 * * *',
+  () => {
+    // Check if the instance store is empty
+    if (instanceStore.size === 0) {
+      logger.info('Instance store is empty. No need to clear it.')
+      return // Exit the cron job
+    }
+    logger.info('Running cron job')
+
+    // Clear the instance store
+    instanceStore.clear()
+
+    // Log the result
+    if (instanceStore.size === 0) {
+      logger.info('Instance store cleared successfully.')
+    } else {
+      logger.error(`Failed to clear ${instanceStore.size} items from the instance store.`)
+    }
+  },
+  {
+    timezone: 'Asia/Tokyo', // Set the timezone to Tokyo
+  }
 )

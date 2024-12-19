@@ -1,12 +1,12 @@
 const { Sequelize } = require('sequelize')
 require('dotenv').config()
-const logger = require('../logger')(__filename)
+const logger = require('../logger/logger')(__filename, 'Database Connection')
 
 const sequelize = new Sequelize(process.env.POSTGRES_DB, process.env.POSTGRES_USER, process.env.POSTGRES_PASSWORD, {
   host: process.env.POSTGRES_HOST,
   port: process.env.POSTGRES_PORT,
   dialect: 'postgres',
-  logging: (msg) => logger.debug(msg, { functionName: 'sequelize', module: 'database connection' }), // Set to true if we wanna see the SQL queries
+  logging: (msg) => logger.debug(msg), // Set to true if we wanna see the SQL queries
 })
 
 const env = process.env.NODE_ENV
@@ -25,16 +25,11 @@ const env = process.env.NODE_ENV
 sequelize
   .authenticate()
   .then(() => {
-    logger.info(`Connection has been established successfully. ${env} mode`, {
-      functionName: 'sequelize',
-      module: 'database connection',
-    })
+    logger.info(`Connection has been established successfully. ${env} mode`)
   })
   .catch((err) => {
-    logger.error(`Unable to connect to the database:${err}`, {
-      functionName: 'sequelize',
-      module: 'database connection',
-    })
+    // logger.error(`Unable to connect to the database:${err}`)
+    logger.error(err)
   })
 
 module.exports = sequelize

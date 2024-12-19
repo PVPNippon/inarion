@@ -1,24 +1,22 @@
-version: "3.8"
+version: '3.8'
 services:
- api:
-   build: ./api
-   container_name: api_c
-   ports:
-     - '4000:4000'
-   networks:
-
-
-     - mynetwork
-     - test
-   # environment:
-   #   - POSTGRES_HOST=192.168.1.7
-   #   - POSTGRES_USER=postgres
-   #   - POSTGRES_PASSWORD=***REMOVED***
-
-
-   depends_on:
-     - frontend
-     - redis
+  api:
+    build: ./api
+    container_name: api_c
+    ports:
+      - '4000:4000'
+    networks:
+      - mynetwork
+      - test
+    # environment:
+    #   - POSTGRES_HOST=192.168.1.7
+    #   - POSTGRES_USER=postgres
+    #   - POSTGRES_PASSWORD=***REMOVED***
+    volumes:
+      - ./api/logs:/usr/src/app/logs # Map host directory to container directory
+    depends_on:
+      - frontend
+      - redis
 
 
  frontend:
@@ -32,29 +30,27 @@ services:
 
    stdin_open: true
 
+  ui:
+    build: ./next-ui
+    container_name: ui
+    ports:
+      - '3000:3000'
+    # environment:
+    #   - PORT=3000
+    #   - HOST=0.0.0.0
+    stdin_open: true
+    networks:
+      - test
 
- ui:
-   build: ./next-ui
-   container_name: ui
-   ports:
-     - '3000:3000'
-   # environment:
-   #   - PORT=3000    
-   #   - HOST=0.0.0.0
-   stdin_open: true
-   networks:
-     - test
-
-
- redis:
-   image: redis/redis-stack
-   container_name: redis_c
-   platform: linux/amd64
-   ports:
-     - '6379:6379'
-   networks:
-     - mynetwork
-     - test
+  redis:
+    image: redis/redis-stack-server:latest
+    container_name: redis_c
+    platform: linux/amd64  
+    ports:
+      - '6379:6379'
+    networks:
+      - mynetwork
+      - test
 
 
 networks:
