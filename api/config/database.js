@@ -6,7 +6,9 @@ const sequelize = new Sequelize(process.env.POSTGRES_DB, process.env.POSTGRES_US
   host: process.env.POSTGRES_HOST,
   port: process.env.POSTGRES_PORT,
   dialect: 'postgres',
-  logging: (msg) => logger.debug(msg), // Set to true if we wanna see the SQL queries
+  logging: console.log, // Logs raw SQL queries
+
+  // logging: (msg) => logger.debug(msg), // Set to true if we wanna see the SQL queries
 })
 
 const env = process.env.NODE_ENV
@@ -24,6 +26,7 @@ const env = process.env.NODE_ENV
 // Testing database connection
 sequelize
   .authenticate()
+  // .sync()
   .then(() => {
     logger.info(`Connection has been established successfully. ${env} mode`)
   })
@@ -31,5 +34,7 @@ sequelize
     // logger.error(`Unable to connect to the database:${err}`)
     logger.error(err)
   })
+
+// sequelize.sync({ alter: true })
 
 module.exports = sequelize

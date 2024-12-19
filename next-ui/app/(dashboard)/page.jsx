@@ -1,5 +1,6 @@
 'use client'
 
+import GoogleLoginButton from '../ui/components/GoogleAuth/googleLogin'
 import RegisteOrLogin from '../ui/components/RegisterOrLoginForm'
 import { LoggedInUserProvider } from '../ui/contexts/LoggedInUserContext'
 import { ValueProvider } from '../ui/contexts/ValueContext'
@@ -17,6 +18,7 @@ export default function Home() {
   return (
     <div>
       <RegisteOrLogin></RegisteOrLogin>
+      <GoogleLoginButton></GoogleLoginButton>
     </div>
   )
 }

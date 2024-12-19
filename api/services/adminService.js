@@ -47,6 +47,5 @@ async function getOrganizationUsersList({ userEmail, client }) {
 }
 
 module.exports = {
-  fetchUsersList,
   getOrganizationUsersList,
 }

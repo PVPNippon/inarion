@@ -1,48 +1,54 @@
-const { Model, DataTypes } = require('sequelize');
-const sequelize = require('../config/database');
-const ServiceAccount = require('./ServiceAccount');
+const { Model, DataTypes } = require('sequelize')
+const sequelize = require('../config/database')
+const User = require('./User')
 
-class ServiceAccountKeys extends Model {}
+class Token extends Model {}
 
-ServiceAccountKeys.init({
-  privateKeyId: {
-    type: DataTypes.STRING,
-    allowNull: true
+Token.init(
+  {
+    id: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+    },
+    accessToken: {
+      type: DataTypes.TEXT,
+      allowNull: false,
+    },
+    refreshToken: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    scope: {
+      type: DataTypes.STRING,
+    },
+    tokenType: {
+      type: DataTypes.STRING,
+    },
+    expiryDate: {
+      type: DataTypes.BIGINT,
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'Users', // Table name
+        key: 'id',
+      },
+    },
   },
-  privateKeyData: {
-    type: DataTypes.TEXT,
-    allowNull: true
-  },
-  validAfterTime: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  validBeforeTime: {
-    type: DataTypes.DATE,
-    allowNull: true
-  },
-  createdAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW
-  },
-  updatedAt: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW
-  },
-  serviceAccountEmail: {  // Changed this from serviceAccountId to serviceAccountEmail
-    type: DataTypes.STRING,
-    allowNull: false,
-    references: {
-      model: 'ServiceAccounts',
-      key: 'serviceAccountEmail'
-    }
+  {
+    sequelize,
+    modelName: 'Token',
+    tableName: 'Tokens',
+    timestamps: false, // Only 'createdAt' is used
   }
-}, {
-  sequelize,
-  modelName: 'ServiceAccountKeys',
-  tableName: 'ServiceAccountKeys',
-});
+)
 
-ServiceAccountKeys.belongsTo(ServiceAccount, { foreignKey: 'serviceAccountEmail', targetKey: 'serviceAccountEmail', onDelete: 'CASCADE' });
+Token.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' })
 
-module.exports = ServiceAccountKeys;
+module.exports = Token

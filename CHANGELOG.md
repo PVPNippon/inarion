@@ -15,6 +15,22 @@ Ensure the following files are up-to-date:
 
 ## Breaking Changes
 
+### December 19, 2024 - Model Changes
+
+**Summary**: Added new columns to User Model
+
+**Impact**:
+
+- The JWT Secret will be created and stored in the database, againsgt a user's Google Id, everytime a user logs in using Google.
+
+**Steps to Resolve**:
+
+- N/A
+
+---
+
+## Breaking Changes
+
 ### December 13, 2024 - Logging Standards
 
 **Summary**: A new logging standard has been implemented to improve log consistency and debugging efficiency.
