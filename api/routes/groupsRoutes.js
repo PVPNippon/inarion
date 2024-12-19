@@ -14,33 +14,38 @@ router.post('/list',
 )
 
 //route to get group by its email
-router.post('/get', decryptRequestMiddleware,
+router.post('/get',
+  decryptRequestMiddleware,
   cacheMiddleware.getGroupInfoFromCache,
-  groupsController.getGroup, encryptResponseMiddleware,
+  groupsController.getGroup,
+  encryptResponseMiddleware,
   cacheMiddleware.setGroupInfoInCache
 )
 
 //route to list direct members of a group
-router.post(
-  '/list-direct-members',
+router.post('/list-direct-members',
   decryptRequestMiddleware,
-  
   cacheMiddleware.getGroupMembersFromCache,
   groupsController.listDirectMembers,
-  encryptResponseMiddleware
-,
+  encryptResponseMiddleware,
   cacheMiddleware.setGroupMembersInCache
 )
 
 //route to list all members of a group(both direct and indirect)
-router.post('/list-all-members', decryptRequestMiddleware,
+router.post('/list-all-members',
+  decryptRequestMiddleware,
   cacheMiddleware.getGroupDescendantsFromCache,
-  groupsController.listAllMembers, encryptResponseMiddleware,
+  groupsController.listAllMembers,
+  encryptResponseMiddleware,
   cacheMiddleware.setGroupDescendantsInCache
 )
 
 //route to get group activity logs(all group logs for all groups in cx domain)
-router.post('/get-activity', decryptRequestMiddleware, groupsController.getGroupActivity, encryptResponseMiddleware)
+router.post('/get-activity',
+  decryptRequestMiddleware,
+  groupsController.getGroupActivity,
+  encryptResponseMiddleware
+)
 
 //route to get group joined activity(all "add_member" and "accept_invitation" logs for all groups in cx domain)
 router.post(
@@ -60,7 +65,11 @@ router.post(
 )
 
 //route to get group hierarchy relative to a group(or potentially in the future a user)
-router.post('/get-hierarchy', decryptRequestMiddleware, groupsController.getGroupHierarchy, encryptResponseMiddleware)
+router.post('/get-hierarchy',
+  decryptRequestMiddleware,
+  groupsController.getGroupHierarchy,
+  encryptResponseMiddleware
+)
 
 //route to list members of groups in CSV format
 router.post(
