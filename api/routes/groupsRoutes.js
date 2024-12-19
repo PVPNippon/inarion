@@ -1,18 +1,35 @@
 const express = require('express')
 const router = express.Router()
 const groupsController = require('../controllers/groupsController')
+const cacheMiddleware = require('../middleware/cacheMiddleware.js')
 
 //route to list all groups in customer organization
-router.post('/list', groupsController.listAllGroups)
+router.post('/list',
+  cacheMiddleware.getAllGroupInfosFromCache,
+  groupsController.listAllGroups,
+  cacheMiddleware.setAllGroupInfosInCache
+)
 
 //route to get group by its email
-router.post('/get', groupsController.getGroup)
+router.post('/get',
+  cacheMiddleware.getGroupInfoFromCache,
+  groupsController.getGroup,
+  cacheMiddleware.setGroupInfoInCache
+)
 
 //route to list direct members of a group
-router.post('/list-direct-members', groupsController.listDirectMembers)
+router.post('/list-direct-members', 
+  cacheMiddleware.getGroupMembersFromCache,
+  groupsController.listDirectMembers,
+  cacheMiddleware.setGroupMembersInCache
+)
 
 //route to list all members of a group(both direct and indirect)
-router.post('/list-all-members', groupsController.listAllMembers)
+router.post('/list-all-members',
+  cacheMiddleware.getGroupDescendantsFromCache,
+  groupsController.listAllMembers,
+  cacheMiddleware.setGroupDescendantsInCache
+)
 
 //route to get group activity logs(all group logs for all groups in cx domain)
 router.post('/get-activity', groupsController.getGroupActivity)
@@ -30,7 +47,10 @@ router.post('/get-hierarchy', groupsController.getGroupHierarchy)
 router.post('/bulk-export', groupsController.listGroupsMembersInExportFormat)
 
 //route to update the 'whoCanLeaveGroup' setting of the specified group
-router.put('/update-whocanleave', groupsController.updateWhoCanLeaveGroup)
+router.put('/update-whocanleave',
+  groupsController.updateWhoCanLeaveGroup,
+  cacheMiddleware.setGroupSettingsInCache
+)
 
 //route to delete multiple members from a group
 router.delete('/delete-members', groupsController.deleteMembers)

@@ -1,6 +1,6 @@
-const logger = require('../logger')
-const groupsService = require('../services/groupsService')
-const { getNestedTable, getHierarchy } = require('../services/nestedGroupsService')
+const logger = require('../logger.js')
+const groupsService = require('../services/groupsService.js')
+const { getNestedTable, getHierarchy } = require('../services/nestedGroupsService.js')
 
 /**
  * Retrieves the list of all groups in the organization.
@@ -14,8 +14,9 @@ const { getNestedTable, getHierarchy } = require('../services/nestedGroupsServic
  * @returns {Promise<void>} - Responds with the list of groups or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-exports.listAllGroups = async (req, res) => {
+exports.listAllGroups = async (req, res, next) => {
   const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
+
   try {
     // Get an array with all organization's groups
     const groups = await groupsService.listGroups({
@@ -27,9 +28,13 @@ exports.listAllGroups = async (req, res) => {
 
     // Return the list of all organization's groups
     res.status(200).json(groups)
+
+    // A middleware will store groupInfo in cache
+    res.locals.groupInfos = groups
+    next()
   } catch (error) {
     console.error('Error fetching groups:', error)
-    res.status(500).json({ message: 'Error fetching groups' })
+    return res.status(500).json({ message: 'Error fetching groups' })
   }
 }
 
@@ -43,11 +48,11 @@ exports.listAllGroups = async (req, res) => {
  * @returns {Promise<void>} - Responds with the group's details or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-exports.getGroup = async (req, res) => {
+exports.getGroup = async (req, res, next) => {
   const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body
 
   try {
-    const response = await groupsService.getGroupByEmail({
+    const groupInfo = await groupsService.getGroupByEmail({
       userEmail,
       projectId,
       serviceAccountEmail,
@@ -55,8 +60,11 @@ exports.getGroup = async (req, res) => {
       groupEmail,
     })
 
-    // Return the group's details
-    res.status(200).json(response)
+    res.status(200).json(groupInfo)
+
+    // A middleware will store groupInfo in cache
+    res.locals.groupInfo = groupInfo
+    next()
   } catch (error) {
     console.error('Error fetching group:', error)
     //the reason why 404 and 403 are grouped is:
@@ -82,11 +90,11 @@ exports.getGroup = async (req, res) => {
  * @returns {Promise<void>} - Responds with the list of direct members or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-exports.listDirectMembers = async (req, res) => {
+exports.listDirectMembers = async (req, res, next) => {
   const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body
 
   try {
-    const response = await groupsService.listGroupMembers({
+    const groupMembers = await groupsService.listGroupMembers({
       userEmail,
       projectId,
       serviceAccountEmail,
@@ -96,7 +104,13 @@ exports.listDirectMembers = async (req, res) => {
     }) // Get the list of direct members
 
     // Return the list of direct members of the group
-    res.status(200).json(response)
+    res.status(200).json(groupMembers)
+    res.locals = { groupMembers }
+    console.log('res.locals in listDirectMembers():', res.locals)
+
+    // A middleware will store groupMembers in cache
+    req.groupMembers = groupMembers
+    next()
   } catch (error) {
     console.error('Error fetching members:', error)
     if (error.status === 404 || error.status === 403) {
@@ -118,11 +132,11 @@ exports.listDirectMembers = async (req, res) => {
  * @returns {Promise<void>} - Responds with the list of all members or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-exports.listAllMembers = async (req, res) => {
+exports.listAllMembers = async (req, res, next) => {
   const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail } = req.body
 
   try {
-    const response = await groupsService.listGroupMembers({
+    const groupDescendants = await groupsService.listGroupMembers({
       userEmail,
       projectId,
       serviceAccountEmail,
@@ -132,7 +146,9 @@ exports.listAllMembers = async (req, res) => {
     }) // Get the list of direct members
 
     // Return the list of direct members of the group
-    res.status(200).json(response)
+    res.status(200).json(groupDescendants)
+    res.locals = { groupDescendants }
+    next()
   } catch (error) {
     console.error('Error fetching members:', error)
     if (error.status === 404 || error.status === 403) {
@@ -320,7 +336,7 @@ exports.listGroupsMembersInExportFormat = async (req, res) => {
  * @returns {Promise<void>} - Responds with the response of the API call, or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-exports.updateWhoCanLeaveGroup = async (req, res) => {
+exports.updateWhoCanLeaveGroup = async (req, res, next) => {
   const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey, groupEmail, whoCanLeaveGroup } = req.body
 
   if (
@@ -346,6 +362,8 @@ exports.updateWhoCanLeaveGroup = async (req, res) => {
 
     if (response.status === 200) {
       res.status(200).json({ message: `Set the 'whoCanLeaveGroup' of ${groupEmail} to ${whoCanLeaveGroup}` })
+      res.locals.groupSettings = response.data
+      next()
     } else {
       res.status(500).json({ message: 'The request could not be handled for some reason' })
       logger.debug(JSON.stringify(response, null, 2))

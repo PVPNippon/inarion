@@ -1038,5 +1038,5 @@ module.exports = {
   listMembersInExportFormat,
   updateGroup,
   deleteMembersWithRateLimit,
-  deleteMemberFromGroupsWithRateLimit
+  deleteMemberFromGroupsWithRateLimit,
 }
