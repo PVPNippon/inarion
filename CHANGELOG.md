@@ -29,8 +29,6 @@ Ensure the following files are up-to-date:
 
 ---
 
-## Breaking Changes
-
 ### December 13, 2024 - Logging Standards
 
 **Summary**: A new logging standard has been implemented to improve log consistency and debugging efficiency.
