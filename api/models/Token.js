@@ -1,9 +1,6 @@
 const { Model, DataTypes } = require('sequelize')
 const sequelize = require('../config/database')
 const User = require('./User')
-const { Model, DataTypes } = require('sequelize')
-const sequelize = require('../config/database')
-const User = require('./User')
 
 class Token extends Model {}
 
@@ -46,7 +43,5 @@ Token.init(
 )
 
 Token.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' })
-Token.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' })
 
-module.exports = Token
 module.exports = Token

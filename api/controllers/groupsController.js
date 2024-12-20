@@ -22,6 +22,7 @@ exports.listAllGroups = async (req, res, next) => {
 
     // Return the list of all organization's groups
     res.locals.data = groups
+    logger.debug('Returning list of groups', { storeLocation: 'both' })
     next()
   } catch (error) {
     logger.error(error)

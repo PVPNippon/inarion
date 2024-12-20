@@ -1,9 +1,6 @@
 const { Model, DataTypes } = require('sequelize')
 const sequelize = require('../config/database')
 const User = require('./User')
-const { Model, DataTypes } = require('sequelize')
-const sequelize = require('../config/database')
-const User = require('./User')
 
 class Project extends Model {}
 
@@ -41,5 +38,4 @@ Project.init(
 // Define foreign key relationship
 Project.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' })
 
-module.exports = Project
 module.exports = Project

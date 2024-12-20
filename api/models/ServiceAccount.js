@@ -1,9 +1,6 @@
 const { Model, DataTypes } = require('sequelize')
 const sequelize = require('../config/database')
 const Project = require('./Project')
-const { Model, DataTypes } = require('sequelize')
-const sequelize = require('../config/database')
-const Project = require('./Project')
 
 class ServiceAccount extends Model {}
 
@@ -49,5 +46,4 @@ ServiceAccount.init(
 
 ServiceAccount.belongsTo(Project, { foreignKey: 'projectId', onDelete: 'CASCADE' })
 
-module.exports = ServiceAccount
 module.exports = ServiceAccount
