@@ -1,16 +1,14 @@
 const { Model, DataTypes } = require('sequelize')
 const sequelize = require('../config/database')
 const User = require('./User')
+const { Model, DataTypes } = require('sequelize')
+const sequelize = require('../config/database')
+const User = require('./User')
 
 class Project extends Model {}
 
 Project.init(
   {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
     projectId: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -36,11 +34,12 @@ Project.init(
     sequelize,
     modelName: 'Project',
     tableName: 'Projects',
-    timestamps: true, // Enables automatic createdAt and updatedAt
+    timestamps: true,
   }
 )
 
 // Define foreign key relationship
 Project.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' })
 
+module.exports = Project
 module.exports = Project

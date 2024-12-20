@@ -1,25 +1,21 @@
 const { Model, DataTypes } = require('sequelize')
 const sequelize = require('../config/database')
 const Project = require('./Project')
+const { Model, DataTypes } = require('sequelize')
+const sequelize = require('../config/database')
+const Project = require('./Project')
 
 class ServiceAccount extends Model {}
 
 ServiceAccount.init(
   {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
     projectId: {
-      type: DataTypes.STRING, // Matches "Projects"."projectId"
+      type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'Projects', // Explicit table name
+        model: 'projects', // 'projects' refers to table name
         key: 'projectId',
       },
-      onDelete: 'CASCADE',
-      onUpdate: 'CASCADE',
     },
     serviceAccountEmail: {
       type: DataTypes.STRING,
@@ -48,15 +44,10 @@ ServiceAccount.init(
     sequelize,
     modelName: 'ServiceAccount',
     tableName: 'ServiceAccounts',
-    timestamps: true, // Enable automatic createdAt and updatedAt
   }
 )
 
-ServiceAccount.belongsTo(Project, {
-  foreignKey: 'projectId',
-  targetKey: 'projectId',
-  onDelete: 'CASCADE',
-  onUpdate: 'CASCADE',
-})
+ServiceAccount.belongsTo(Project, { foreignKey: 'projectId', onDelete: 'CASCADE' })
 
+module.exports = ServiceAccount
 module.exports = ServiceAccount

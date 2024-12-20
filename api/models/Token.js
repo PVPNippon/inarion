@@ -1,16 +1,14 @@
 const { Model, DataTypes } = require('sequelize')
 const sequelize = require('../config/database')
 const User = require('./User')
+const { Model, DataTypes } = require('sequelize')
+const sequelize = require('../config/database')
+const User = require('./User')
 
 class Token extends Model {}
 
 Token.init(
   {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
     accessToken: {
       type: DataTypes.TEXT,
       allowNull: false,
@@ -36,7 +34,7 @@ Token.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'Users', // Table name
+        model: 'Users', // 'Users' refers to the table name
         key: 'id',
       },
     },
@@ -44,11 +42,11 @@ Token.init(
   {
     sequelize,
     modelName: 'Token',
-    tableName: 'Tokens',
-    timestamps: false, // Only 'createdAt' is used
   }
 )
 
 Token.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' })
+Token.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' })
 
+module.exports = Token
 module.exports = Token

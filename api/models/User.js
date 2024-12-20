@@ -1,15 +1,12 @@
 const { Model, DataTypes } = require('sequelize')
 const sequelize = require('../config/database')
+const { Model, DataTypes } = require('sequelize')
+const sequelize = require('../config/database')
 
 class User extends Model {}
 
 User.init(
   {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
     googleId: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -43,8 +40,8 @@ User.init(
     sequelize,
     modelName: 'User',
     tableName: 'Users', // Match SQL table name explicitly
-    timestamps: true, // Enables automatic updatedAt and createdAt management
   }
 )
 
+module.exports = User
 module.exports = User

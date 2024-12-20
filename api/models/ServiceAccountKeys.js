@@ -1,54 +1,56 @@
 const { Model, DataTypes } = require('sequelize')
 const sequelize = require('../config/database')
-const User = require('./User')
+const ServiceAccount = require('./ServiceAccount')
 
-class Token extends Model {}
+class ServiceAccountKeys extends Model {}
 
-Token.init(
+ServiceAccountKeys.init(
   {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
+    privateKeyId: {
+      type: DataTypes.STRING,
+      allowNull: true,
     },
-    accessToken: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    },
-    refreshToken: {
+    privateKeyData: {
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    scope: {
-      type: DataTypes.STRING,
+    validAfterTime: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
-    tokenType: {
-      type: DataTypes.STRING,
-    },
-    expiryDate: {
-      type: DataTypes.BIGINT,
+    validBeforeTime: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
     createdAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
     },
-    userId: {
-      type: DataTypes.INTEGER,
+    updatedAt: {
+      type: DataTypes.DATE,
+      defaultValue: DataTypes.NOW,
+    },
+    serviceAccountEmail: {
+      // Changed this from serviceAccountId to serviceAccountEmail
+      type: DataTypes.STRING,
       allowNull: false,
       references: {
-        model: 'Users', // Table name
-        key: 'id',
+        model: 'ServiceAccounts',
+        key: 'serviceAccountEmail',
       },
     },
   },
   {
     sequelize,
-    modelName: 'Token',
-    tableName: 'Tokens',
-    timestamps: false, // Only 'createdAt' is used
+    modelName: 'ServiceAccountKeys',
+    tableName: 'ServiceAccountKeys',
   }
 )
 
-Token.belongsTo(User, { foreignKey: 'userId', onDelete: 'CASCADE' })
+ServiceAccountKeys.belongsTo(ServiceAccount, {
+  foreignKey: 'serviceAccountEmail',
+  targetKey: 'serviceAccountEmail',
+  onDelete: 'CASCADE',
+})
 
-module.exports = Token
+module.exports = ServiceAccountKeys
