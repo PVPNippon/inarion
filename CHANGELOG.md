@@ -15,6 +15,35 @@ Ensure the following files are up-to-date:
 
 ## Breaking Changes
 
+### December 20, 2024 - Login Changes
+
+**Summary**:
+
+- The login system has changed due to the new model and the new JWT Authentication system.
+- So for now, temporarily, there need to be 2 logins, while attempting to login for the first time.
+- PS: This measure is temporary, as the two separate logins will be combined in the next task
+
+**Impact**:
+
+- The new Model requires the User Model to have a non nullable field googleId
+- The old login system, where we click the Login button and click on the Authorize link, does not
+- create this googleId
+- So trying to insert a row in the Users table without the google Id will give an error
+- To resolve this, we can't directly use 'Login' at the moment, we have to do 'Login with Google' first
+- This measure is temporary, as the two separate logins will be combined in the next task
+
+**Steps to Resolve**:
+
+- When loggin in for the first time, click on Login With Google
+- When you login with Google, it creates a row in the Users table
+- This step creates the necessary and non nullable field googleId, and also the jwtSecret
+- Then go back to the Homepage and click on Login again, entering the desired Project name
+- For now, we are using proj-9-5-issue-31
+- This step creates the project details, i.e. the service account and the keys etc
+- Now you can do everything normally as before
+
+---
+
 ### December 19, 2024 - Model Changes
 
 **Summary**: Added new columns to User Model
