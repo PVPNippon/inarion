@@ -34,44 +34,6 @@ function VisualizeHierarchy() {
   const [clickCount, setClickCount] = useState(0)
   const [error, setError] = useState(null)
 
-  const options = {
-    layout: {
-      improvedLayout: true,
-      hierarchical: {
-        enabled: true,
-        levelSeparation: 150,
-        //levelSeparation: 100,
-        // nodeSpacing: 200,
-        // treeSpacing: 200,
-        blockShifting: true,
-        edgeMinimization: true,
-        parentCentralization: true,
-        direction: 'UD', // UD, DU, LR, RL
-        sortMethod: 'directed', // hubsize, directed
-        //  shakeTowards: 'roots',
-        //shakeTowards: 'leaves', //default
-      },
-    },
-    physics: {
-      enabled: true,
-      hierarchicalRepulsion: {
-        //nodeDistance: 200, // Put more distance between the nodes.
-        nodeDistance: 250,
-      },
-      stabilization: true,
-    },
-    edges: {
-      width: 2,
-      color: 'blue',
-      smooth: {
-        // type: 'vertical',
-        type: 'discrete',
-        roundness: 1,
-      },
-    },
-    height: '1000px',
-  }
-
   useEffect(() => {
     /**
      * Fetches the hierarchy of groups for the given email address.
@@ -112,14 +74,14 @@ function VisualizeHierarchy() {
             setGroupList(responseData)
             if (responseData.nodes && responseData.nodes.length > 0) {
               //temporary logic to wrap labels
-              const nodes = responseData.nodes
-              nodes.forEach((node) => {
-                const label = node.label.split('@').join(`@\n`)
-                node.label = label
-              })
+              // const nodes = responseData.nodes
+              // nodes.forEach((node) => {
+              //   const label = node.label.split('@').join(`@\n`)
+              //   node.label = label
+              // })
               const graph = {
                 graph: responseData,
-                options: options, //I pass options from this page because in the future we might need to alter options dynamically based on the graph type
+                star: inputValue,
               }
               localStorage.setItem('graph', JSON.stringify(graph))
               window.open('/groups/hierarchy/graph', '_blank')
