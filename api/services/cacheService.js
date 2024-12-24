@@ -259,9 +259,25 @@ function setJSON(key, jsonObj, ttl, ttlMode) {
   return multi.exec()
 }
 
+// function setJSONs(keysToJsonsObj, keyTtl, keyTtlMode) {
+//   const multi = redisClient.multi()
 
+//   const keys = Object.keys(keysToJsonsObj)
+//   const items = keys.map(key => ({
+//     key: key,
+//     path: '$',
+//     value: keysToJsonsObj[key]
+//   }))
 
+//   multi.json.mSet(items)
 
+//   if (Number.isInteger(keyTtl)) {
+//     const formattedTtlMode = formatTtlMode(keyTtlMode)
+//     keys.forEach(key => multi.expire(key, keyTtl, formattedTtlMode))
+//   }
+
+//   return multi.exec()
+// }
 
 // DONE
 // Delete keys in cache.

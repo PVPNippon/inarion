@@ -1,19 +1,14 @@
 const groupsCacheService = require('../services/groupsCacheService.js')
 const groupsUtilityFunctions = require('../utility/groupsUtilityFunctions.js')
 const groupsService = require('../services/groupsService.js')
-const { groupssettings } = require('googleapis/build/src/apis/groupssettings/index.js')
 
 async function getAllGroupInfosFromCache(req, res, next) {
   try {
-    const groupInfos = await groupsCacheService.getAllGroupInfos()
-    if (groupInfos.length > 0) {
-      groupsUtilityFunctions.sortGroupInfosByEmail(groupInfos)
-
-      // testing
-      return res.status(200).json({
-        type: 'cache',
-        groups: groupInfos
-      })
+    const groups = await groupsCacheService.getAllGroupInfos(true)
+    if (groups) {
+      groupsUtilityFunctions.sortGroupInfosByEmail(groups)
+      res.locals.data = groups
+      res.locals.cached = true
     }
   } catch (error) {
     console.log('Error fetching all groups\' info from cache:', error)
@@ -23,11 +18,17 @@ async function getAllGroupInfosFromCache(req, res, next) {
 }
 
 async function setAllGroupInfosInCache(req, res, next) {
+  next()
+
+  if (res.locals.cached) {
+    return
+  }
+
   try {
-    const { groupInfos } = res.locals
+    const groupInfos = res.locals.data
 
     const emailsToIdsObj = groupsUtilityFunctions.getGroupEmailsToIdsObj(groupInfos)
-    emailsToIdsObj['list'] = 'list'
+    emailsToIdsObj['hasAllGroups'] = 'hasAllGroups'
 
     const result = await Promise.all([
       groupsCacheService.overwriteGroupIds(emailsToIdsObj),
@@ -38,8 +39,6 @@ async function setAllGroupInfosInCache(req, res, next) {
   } catch (error) {
     console.log('Error storing all groups\' info in cache:', error)
   }
-
-  next()
 }
 
 async function getGroupInfoFromCache(req, res, next) {
@@ -48,7 +47,8 @@ async function getGroupInfoFromCache(req, res, next) {
   try {
     const groupInfo = await groupsCacheService.getGroupInfo(groupEmail)
     if (groupInfo) {
-      return res.status(200).json(groupInfo)
+      res.locals.data = groupInfo
+      res.locals.cached = true
     }
   } catch (error) {
     console.log('Error fetching groupInfo from cache:', error)
@@ -59,7 +59,13 @@ async function getGroupInfoFromCache(req, res, next) {
 }
 
 async function setGroupInfoInCache(req, res, next) {
-  const { groupInfo } = res.locals
+  next()
+
+  if (res.locals.cached) {
+    return
+  }
+
+  const groupInfo = res.locals.data
   const emailsToIdsObj = groupsUtilityFunctions.getGroupEmailsToIdsObj(groupInfo)
 
   try {
@@ -71,22 +77,16 @@ async function setGroupInfoInCache(req, res, next) {
   } catch (error) {
     console.log('Error storing groupInfo in cache:', error)
   }
-
-  next()
 }
-
-
-
-
-
 
 async function getGroupMembersFromCache(req, res, next) {
   const { groupEmail } = req.body
 
   try {
-    const groupMembers = await groupsCacheService.getMembers(groupEmail)
-    if (groupMembers) {
-      return res.status(200).json(groupMembers)
+    const members = await groupsCacheService.getMembers(groupEmail)
+    if (members) {
+      res.locals.data = members
+      res.locals.cached = true
     }
   } catch (error) {
     console.log('Error fetching groupInfo from cache:', error)
@@ -96,44 +96,62 @@ async function getGroupMembersFromCache(req, res, next) {
   next()
 }
 
-async function setGroupMembersInCache(req, res) {
-  const { groupEmail } = req.body
-  const { groupMembers } = res.locals
-  
-  try {
-    let groupId = await groupsCacheService.getGroupId(groupEmail)
+async function setGroupMembersInCache(req, res, next) {
+  next()
 
-    if (groupId !== null) {
-      const result = await groupsCacheService.overwriteMembersById(groupId, groupMembers)
-      console.log('Stored members in cache:', result)
+  if (res.locals.cached) {
+    return
+  }
+
+  const { groupEmail } = req.body
+  const members = res.locals.data
+
+  try {
+    // グループ ID をキャッシュから取得
+    const cachedGroupId = await groupsCacheService.getGroupId(groupEmail)
+
+    // グループ ID がキャッシュから取得できれば, グループ ID をキーにしてメンバー情報をキャッシュに保存して処理を終える
+    // グループ ID がキャッシュにない（cachedGroupId === null）場合は Google API でグループ情報を取得する必要がある
+    // グループ ID がネガティブキャッシュされている（cachedGroupId === 'negativeCache'）場合, このミドルウェアまで処理が到達している時点でグループは存在するはずなのでやはり Google API でグループ情報を取得
+    if (cachedGroupId !== null && cachedGroupId !== 'negativeCache') {
+      const result = await groupsCacheService.overwriteMembersById(groupId, members)
+      console.log('Stored members in cache:', result);
       return
     }
+  } catch (error) {
+    // グループ ID をキャッシュから取得する際に何らかのエラーが発生した場合はログを表示して処理を継続
+    console.log('Error fetching groupId from cache and storing members in cache:', error)
+  }
 
-    const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
+  // グループ ID がキャッシュから取得できなければ, Google API をコール
+  // この時ついでにグループ情報も取得
+  try {
+    const { userEmail } = req.body
     const groupInfo = await groupsService.getGroupByEmail({
       userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
       groupEmail,
     })
 
-    groupId = groupInfo.id
+    const groupId = groupInfo.id
 
     const emailsToIdsObj = groupsUtilityFunctions.getGroupEmailsToIdsObj(groupInfo)
 
-    const result = await Promise.all([
+    const result = await Promise.allSettled([
         groupsCacheService.setGroupIds(emailsToIdsObj),
         groupsCacheService.setGroupInfo(groupInfo),
-        groupsCacheService.overwriteMembersById(groupId, groupMembers)
+        groupsCacheService.overwriteMembersById(groupId, members)
     ])
 
-    console.log('Stored id, info and members in cache:', result)
+    console.log('Stored the group\'s id, info and members in cache:', result)
     
   } catch (error) {
-    console.log('Error storing groupInfo in cache:', error)
+    console.log('Error storing the group\'s id, info and members in cache:', error)
   }
 }
+
+
+
+
 
 async function getGroupDescendantsFromCache(req, res, next) {
   const { groupEmail } = req.body
@@ -195,7 +213,7 @@ async function getGroupSettingsFromCache(req, res, next) {
 
   try {
     const groupSettings = await groupsCacheService.getGroupSettings(groupEmail)
-    if (groupssettings) {
+    if (groupSettings) {
       return res.status(200).json(groupSettings)
     }
   } catch (error) {

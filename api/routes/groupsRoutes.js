@@ -9,8 +9,8 @@ router.post('/list',
   decryptRequestMiddleware,
   cacheMiddleware.getAllGroupInfosFromCache,
   groupsController.listAllGroups,
+  cacheMiddleware.setAllGroupInfosInCache,
   encryptResponseMiddleware,
-  cacheMiddleware.setAllGroupInfosInCache
 )
 
 //route to get group by its email
@@ -18,8 +18,8 @@ router.post('/get',
   decryptRequestMiddleware,
   cacheMiddleware.getGroupInfoFromCache,
   groupsController.getGroup,
+  cacheMiddleware.setGroupInfoInCache,
   encryptResponseMiddleware,
-  cacheMiddleware.setGroupInfoInCache
 )
 
 //route to list direct members of a group
@@ -27,9 +27,12 @@ router.post('/list-direct-members',
   decryptRequestMiddleware,
   cacheMiddleware.getGroupMembersFromCache,
   groupsController.listDirectMembers,
+  cacheMiddleware.setGroupMembersInCache,
   encryptResponseMiddleware,
-  cacheMiddleware.setGroupMembersInCache
 )
+
+
+
 
 //route to list all members of a group(both direct and indirect)
 router.post('/list-all-members',

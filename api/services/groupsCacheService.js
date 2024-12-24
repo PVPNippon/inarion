@@ -43,15 +43,44 @@ function getGroupIds(groupEmails) {
   return cacheService.getHashValues(key, groupEmails)
 }
 
-// DONE
-// キャッシュに存在する全てのグループ ID を重複なしで配列で返す.
-// key がキャッシュに存在しなければ [] を返す.
-async function getAllGroupIds() {
+// - isStrict が true のとき
+//   - キャッシュに存在する全てのグループ ID を重複なしで配列で返す.
+//   - キャッシュがないか, キャッシュが groupsService.listGroups() によって得られたものでなければ null を返す.
+// - isStrict が false のとき（デフォルト）
+//   - キャッシュに存在する全てのグループ ID を重複なしで配列で返す.
+//   - キャッシュがなければ null を返す.
+async function getAllGroupIds(isStrict) {
   const key = `${process.env.DOMAIN}:groups:id`
-  const groupIds = await cacheService.getHashValues(key)
-  const uniqueGroupIds = [...new Set(groupIds)]
+  const groupEmailsToIdsObj = await cacheService.getHash(key)
 
-  return uniqueGroupIds
+  // キャッシュがなければ null を返す
+  if (groupEmailsToIdsObj === null) {
+    return null
+  }
+
+  // groupsService.listGroups() で全てのグループ情報を得, キャッシュに保存しているか
+  // ※ 'hasAllGroups' は仮決め
+  const hasAllGroups = 'hasAllGroups' in groupEmailsToIdsObj
+  if (hasAllGroups) {
+    delete groupEmailsToIdsObj['hasAllGroups']
+  } else if (isStrict) {
+    return null
+  }
+
+  // 重複する ID を削除
+  const uniqueGroupIdsSet = new Set(Object.values(groupEmailsToIdsObj))
+
+  // ネガティブキャッシュを取り除く
+  // ※ 'negativeCache' は仮決め
+  uniqueGroupIdsSet.delete('negativeCache')
+
+  // groupsService.listGroups() を呼んだ上でネガティブキャッシュしかないのであれば, 組織にグループが存在しないということなので, この場合は [] を返す
+  // groupsService.listGroups() を呼んでおらずネガティブキャッシュしかないのであれば, 実質的にキャッシュは存在しないということなので, この場合は null を返す
+  if (uniqueGroupIdsSet.size === 0) {
+    return hasAllGroups ? [] : null
+  }
+
+  return [...uniqueGroupIdsSet]
 }
 
 // DONE
@@ -68,9 +97,9 @@ function setGroupInfo(groupInfo) {
 // <DOMAIN>:groups:info:<groupId> をキーとしてグループ情報を JSON で複数保存
 // キーに TTL も追加
 // ※キーがすでに存在する場合, JSON はハッシュと違って overwrite される
-// json.mSet() を使う必要はない（逆に使わないほうがパフォーマンス的に良さそう?）
+// json.mSet() を使う必要はないと思うが検討の余地あり
 function setGroupInfos(groupInfos) {
-  return Promise.all(groupInfos.map(groupInfo => setGroupInfo(groupInfo)))
+  return Promise.allSettled(groupInfos.map(groupInfo => setGroupInfo(groupInfo)))
 }
 
 // グループ ID から対応するグループの情報を得る
@@ -92,34 +121,21 @@ function getGroupInfosByIds(groupIds) {
   return cacheService.getJSONs(keys)
 }
 
-// 全てのグループの情報の配列を得る
-// <'list' : 'list'> がグループ ID のハッシュに含まれていなければ, キャッシュでは情報を得られないとして Google API を呼ぶ動作にする
-// ちょっとその場しのぎ感あるが動くからとりあえずこのままにしておく
-async function getAllGroupInfos() {
-  const groupIds = await getAllGroupIds()
-
-  const idx = groupIds.indexOf('list')
-  if (idx === -1) {
-    return []
-  }
-  groupIds.splice(idx, 1)
-
-  const groupInfos = await getGroupInfosByIds(groupIds)
-
-  // この時点で groupInfos には null が含まれる可能性があるのでそれらを取り除く
-  const groupInfosWithoutNull = groupInfos.filter(groupInfo => groupInfo !== null)
-  
-  return groupInfosWithoutNull
-}
-
 // グループのメールアドレスから対応するグループの情報を得る
 // キャッシュに情報がなければ null を返す
+// ID のネガティブキャッシュがあれば（とりあえず） {} を返す
 async function getGroupInfo(groupEmail) {
   // VALIDATION: groupEmail should be a string.
 
   const groupId = await getGroupId(groupEmail)
+
   if (groupId === null) {
     return null
+  }
+
+  // ここは何を返すのがベストだ？
+  if (groupId === 'negativeCache') {
+    return {}
   }
 
   const groupInfo = await getGroupInfoById(groupId)
@@ -128,23 +144,47 @@ async function getGroupInfo(groupEmail) {
 }
 
 // グループのメールアドレスの配列から対応するグループの情報の配列を得る
-// キャッシュに情報がないグループについては null を返す
+// キャッシュに ID or info がないグループについては null を返す
+// ID のネガティブキャッシュがあれば（とりあえず） {} を返す
 async function getGroupInfos(groupEmails) {
   // VALIDATION: groupEmails should be an array.
   // VALIDATION: Every element of groupEmails should be a string.
 
-  const groupIds = await getGroupIds(groupEmails)
+  const rawGroupIds = await getGroupIds(groupEmails)
 
-  const groupIdsWithoutNull = groupIds.filter(groupId => groupId !== null)
+  const groupIds = rawGroupIds.filter(rawGroupId => rawGroupId !== null && rawGroupId !== 'negativeCache')
 
-  const rawGroupInfos = await getGroupInfosByIds(groupIdsWithoutNull)
+  const rawGroupInfos = await getGroupInfosByIds(groupIds)
 
   let idx = 0
-  const groupInfos = groupIds.map(groupId => (groupId === null) ? null : rawGroupInfos[idx++])
+  const groupInfos = rawGroupIds.map(rawGroupId => {
+    if (rawGroupId ===  null) {
+      return null
+    }
+
+    if (rawGroupId === 'negativeCache') {
+      return {}
+    }
+
+    return rawGroupInfos[idx++]
+  })
 
   return groupInfos
 }
 
+// 全てのグループの情報の配列を得る
+async function getAllGroupInfos(isStrict) {
+  const groupIds = await getAllGroupIds(isStrict)
+
+  if (groupIds === null) {
+    return null
+  }
+
+  const groupInfos = await getGroupInfosByIds(groupIds)
+
+  // groupInfos には null が含まれる可能性があるのでそれらを取り除く
+  return groupInfos.filter(groupInfo => groupInfo !== null)
+}
 
 // <DOMAIN>:groups:members:<groupId> をキーとしてグループメンバーをハッシュで保存
 // ハッシュ内の field はメンバー ID, value は JSON.stringify() で文字列化したメンバー情報とする
@@ -152,17 +192,16 @@ async function getGroupInfos(groupEmails) {
 function setMembersById(groupId, members) {
   const key = `${process.env.DOMAIN}:groups:${groupId}:members`
 
-  const membersObj = {}
-  members.forEach(member => membersObj[member.id] = JSON.stringify(member))
+  const idsToMembersObj = {}
+  members.forEach(member => idsToMembersObj[member.id] = JSON.stringify(member))
 
   const ttl = Number(process.env.TTL)
 
-  return cacheService.setHash(key, membersObj, ttl, 'NX')
+  return cacheService.setHash(key, idsToMembersObj, ttl, 'NX')
 }
 
 // setGroupMembersById() と同様だが, まず古いメンバー情報のハッシュを削除する
 // キーに TTL も追加
-// groupsController.listAllGroups() の際に使用
 function overwriteMembersById(groupId, members) {
   const key = `${process.env.DOMAIN}:groups:${groupId}:members`
 
@@ -175,7 +214,6 @@ function overwriteMembersById(groupId, members) {
   return cacheService.overwriteHash(key, idsToMembersObj, ttl)
 }
 
-// グループメンバーをハッシュで保存するが, 与えられるのが groupId ではなく groupEmail という点で setGroupMembersById() と異なる.
 function setMembersByEmail(groupEmail, members) {}
 
 function overwriteMembersByEmail(groupEmail, groupMembers) {}
@@ -200,6 +238,10 @@ async function getMembers(groupEmail) {
   const groupId = await getGroupId(groupEmail)
   if (groupId === null) {
     return null
+  }
+
+  if (groupId === 'negativeCache') {
+    return []
   }
 
   const members = await getMembersById(groupId)
@@ -315,127 +357,14 @@ async function getGroupSettings(groupEmail) {
     return null
   }
 
+  if (groupId === 'negativeCache') {
+    return {}
+  }
+
   const settings = await getGroupSettingsById(groupId)
 
   return settings
 }
-
-// // <DOMAIN>:groups:id -> Hash {
-// //   group1@example.com: "id1",
-// //   group2@example.com: "id2",
-// //   ...
-// // }
-// // Returns a Promise object varying depending on `groupEmails`:
-// //
-// // (A) undefined:
-// //       The returned Promise object resolves to an array of IDs of all groups in the organization.
-// //       The array is empty if there are no groups in the organization or no group IDs are cached.
-// //
-// // (B) array:
-// //       The returned Promise object resolves to an array of corresponding group IDs (let's call it `groupIds`).
-// //       If `groupEmails` is empty ([]), `groupIds` is also empty.
-// //       If `groupEmails` is not empty, for each 0 <= i < groupEmails.length, groupIds[i] is:
-// //         - The group ID of the group which has groupEmails[i] as one of its email addresses.
-// //         - null if groupEmails[i] does not exist in the cache.
-// //
-// // (C) Neither undefined nor array:
-// //       This function assumes that `groupEmails` is a single group email (string), and returns a Promise object which resolves to:
-// //       - The group ID of the group which has the group email as one of its email addresses.
-// //       - null if the group email does not exist in the cache.
-// //
-// // (A) `groupEmails` が undefined ならば, 全てのグループの ID の配列を返す
-// // (B) `groupEmails` が配列ならば, 対応するグループ ID (グループ ID がキャッシュになければ null）の配列を返す
-// // (C) `groupEmails` が undefined でも配列でもなければ, これを１つのアドレスとみなし, 対応するグループの ID を返す
-// async function getGroupIds(groupEmails) {
-//   const key = `${process.env.DOMAIN}:groups:id`
-
-//   const groupIds = await cacheService.getHashValues(key, groupEmails)
-
-//   return isUndefined(groupEmails) ? [...new Set(groupIds)] : groupIds
-// }
-
-// // <DOMAIN>:groups:id -> Hash {
-// //   group1@example.com: "id1",
-// //   group2@example.com: "id2",
-// //   ...
-// // }
-// function setGroupIds(emailsToIdsObj) {
-//   const key = `${process.env.DOMAIN}:groups:id`
-
-//   return cacheService.setHash(key, emailsToIdsObj)
-// }
-
-// function overwriteGroupIds(emailsToIdsObj, ttl) {
-//   const key = `${process.env.DOMAIN}:groups:id`
-
-//   return cacheService.overwriteHash(key, emailsToIdsObj, ttl)
-// }
-
-// // (A) `groupEmails` が undefined ならば, 全てのグループの情報の配列を返す
-// // (B) `groupEmails` が配列ならば, 対応するグループ情報 (グループ情報がキャッシュになければ null）の配列を返す
-// // (C) `groupEmails` が undefined でも配列でもなければ, これを１つのアドレスとみなし, 対応するグループの情報を返す
-// async function getGroupInfos(groupEmails) {
-//   const groupIds = await getGroupIds(groupEmails)
-
-//   if (Array.isArray(groupIds)) {
-//     const keys = groupIds.map(groupId => `${process.env.DOMAIN}:groups:info:${groupId}`)
-//     const groupInfos = await cacheService.getJSONs(keys)
-//     return groupInfos
-
-//   }
-
-//   const key = `${process.env.DOMAIN}:groups:info:${groupIds}`
-//   const groupInfo = await cacheService.getJSON(key)
-//   return groupInfo
-// }
-
-// function setGroupInfos(groupInfos, ttl) {
-//   if (Array.isArray(groupInfos)) {
-//     return Promise.all(groupInfos.map(groupInfo => cacheService.setJSON(`${process.env.DOMAIN}:groups:info:${groupInfo.id}`, groupInfo)))
-//   }
-
-//   return cacheService.setJSON(`${process.env.DOMAIN}:groups:info:${groupInfos.id}`, groupInfos)
-// }
-
-// async function getGroupMembers(groupEmail) {
-//   const groupId = await getGroupIds(groupEmail)
-//   if (groupId === null) {
-//     return null
-//   }
-
-//   const key = `${process.env.DOMAIN}:groups:members:${groupId}`
-//   const rawGroupMembers = await cacheService.getHashValues(key)
-
-//   if (rawGroupMembers.length === 0) {
-//     return null
-//   }
-
-//   if (rawGroupMembers[0] === 'noMembers') {
-//     return []
-//   }
-
-//   const groupMembers = rawGroupMembers.map(rawGroupMember => JSON.parse(rawGroupMember))
-
-//   return groupMembers
-// }
-
-// async function setGroupMembers(groupEmail, groupMembers) {
-//   const groupId = await getGroupIds(groupEmail)
-//   if (groupId === null) {
-//     return null
-//   }
-
-//   const key = `${process.env.DOMAIN}:groups:members:${groupId}`
-
-//   if (groupMembers.length === 0) {
-//     await cacheService.setHash(key, { noMembers: 'noMembers' })
-//     return null
-//   }
-
-//   const groupMembersObj = {}
-//   groupMembers.forEach(member => groupMembersObj[member.id] = JSON.stringify(member))
-//   return await cacheService.overwriteHash(key, groupMembersObj)
-// }
 
 module.exports = {
   setGroupIds,

@@ -12,6 +12,10 @@ const { getNestedTable, getHierarchy } = require('../services/nestedGroupsServic
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.listAllGroups = async (req, res, next) => {
+  if (res.locals.cached) {
+    return next()
+  }
+
   const { userEmail } = req.body
 
   try {
@@ -22,10 +26,6 @@ exports.listAllGroups = async (req, res, next) => {
 
     // Return the list of all organization's groups
     res.locals.data = groups
-    next()
-
-    // A middleware will store groupInfo in cache
-    res.locals.groupInfos = groups
     next()
   } catch (error) {
     logger.error(error)
@@ -47,15 +47,19 @@ exports.listAllGroups = async (req, res, next) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getGroup = async (req, res, next) => {
-  logger.debug('Reached getGroup endpoint, now trying to decrypt...')
+  if (res.locals.cached) {
+    return next()
+  }
+
   const { userEmail, groupEmail } = req.body
 
   try {
-    const groupInfo = await groupsService.getGroupByEmail({
+    const group = await groupsService.getGroupByEmail({
       userEmail,
       groupEmail,
     })
-    res.locals.data = response
+
+    res.locals.data = group
     next()
   } catch (error) {
     logger.error(error)
@@ -64,9 +68,7 @@ exports.getGroup = async (req, res, next) => {
     //and error 403 is returned when query email address doesn't exist but looks like a proper email address
     //Probably this is Google's measure to prevent guessing of email addresses by probing
     if (error.status === 404 || error.status === 403) {
-      return res
-        .status(404)
-        .json({ message: 'Group does not exist or you do not have necessary permissions to see this group' })
+      return res.status(404).json({ message: 'Group does not exist or you do not have necessary permissions to see this group' })
     }
     res.status(500).json({ message: 'Error fetching group' })
   }
@@ -86,15 +88,20 @@ exports.getGroup = async (req, res, next) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.listDirectMembers = async (req, res, next) => {
+  if (res.locals.cached) {
+    return next()
+  }
+  
   const { userEmail, groupEmail } = req.body
 
   try {
-    const groupMembers = await groupsService.listGroupMembers({
+    const members = await groupsService.listGroupMembers({
       userEmail,
       groupEmail,
       includeDerivedMembership: false, //set derived membership to false
     }) // Get the list of direct members
-    res.locals.data = response
+
+    res.locals.data = members
     next()
   } catch (error) {
     logger.error(error)

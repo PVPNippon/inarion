@@ -181,7 +181,6 @@ const decryptRequestMiddleware = async (req, res, next) => {
  * @throws {Error} - Throws an error if encryption fails.
  */
 const encryptResponseMiddleware = async (req, res) => {
-  logger
   try {
     // Input validation
     if (!res.locals.data) {
