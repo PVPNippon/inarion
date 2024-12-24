@@ -40,6 +40,7 @@ async function getOrganizationUsersList({ userEmail, client }) {
       users.push(...response.data.users)
     } catch (error) {
       logger.error(`API call failed:${error}`)
+      throw error
     }
   } while ((requestObj.pageToken = response.data.nextPageToken)) // Continue fetching users while there are more pages
 
