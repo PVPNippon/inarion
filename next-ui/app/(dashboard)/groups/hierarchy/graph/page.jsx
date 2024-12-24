@@ -76,12 +76,10 @@ export default function GraphPage() {
           width: 2,
           color: 'black',
           smooth: {
-            // type: 'vertical',
             type: 'discrete',
             roundness: 1,
           },
         },
-        //height: '1000px',
         height: height,
         width: width,
         // groups: {
@@ -264,45 +262,36 @@ export default function GraphPage() {
                 manageClustering(nodesToCluster, a)
               }
 
-              //     for (let i = 0; i < sameLevelNodes.length; i++) {
-              //       if (i === 0 || i % 2 === 0) {
-              //         const nodeId = sameLevelNodes[i]
-              //         // network.body.nodes[nodeId].options.color.background = purple[500]
-              //       }
-
-              //       if (i % 2 !== 0) {
-              //         const nodeId = sameLevelNodes[i]
-              //         // network.body.nodes[nodeId].options.color.background = orange[500]
-              //         if (element < 0) {
-              //           network.body.nodes[nodeId].y -= 100
-              //         } else {
-              //           network.body.nodes[nodeId].y += 100
-              //         }
-              //       }
-              //     }
-              //   })
-              // }
-
-              const viewport = network.getViewPosition()
-              //  console.log('VIEWPORT', viewport) //returns x and y coordinates of the center of the viewport, almost useless
-              const starNode = network.getPosition(star)
-              //  console.log('STAR NODE', starNode) //star node position for testing, will delete this part later
-
-              // if star node is close to top or whole graph fits into the screen, don't zoom on it
-              if (
-                Math.abs(highestNodeHeight - nodes[star].y) >= 300 ||
-                Math.abs(lowestNodeHeight - highestNodeHeight) > graph.height
-              ) {
-                //  Need to disable stabilization in physics for this to work↓
-                network.fit({
-                  nodes: star,
-                  animation: { duration: 1000 },
-                  //  minZoomLevel: 0.5,
-                  // maxZoomLevel: 2,
-                  // padding: 150,
-                })
+              for (let i = 0; i < sameLevelNodes.length; i++) {
+                if (i % 2 !== 0) {
+                  const nodeId = sameLevelNodes[i]
+                  if (repeatedArray[a - 1] < 0) {
+                    network.body.nodes[nodeId].y -= 100
+                  } else if (repeatedArray[a - 1] > 0) {
+                    network.body.nodes[nodeId].y += 100
+                  }
+                }
               }
             }
+          }
+          const viewport = network.getViewPosition()
+          //  console.log('VIEWPORT', viewport) //returns x and y coordinates of the center of the viewport, almost useless
+          const starNode = network.getPosition(star)
+          //  console.log('STAR NODE', starNode) //star node position for testing, will delete this part later
+
+          // if star node is close to top or whole graph fits into the screen, don't zoom on it
+          if (
+            Math.abs(highestNodeHeight - nodes[star].y) >= 300 ||
+            Math.abs(lowestNodeHeight - highestNodeHeight) > graph.height
+          ) {
+            //Need to disable stabilization in physics for this to work↓
+            network.fit({
+              nodes: star,
+              animation: { duration: 1000 },
+              //  minZoomLevel: 0.5,
+              // maxZoomLevel: 2,
+              // padding: 150,
+            })
           }
         }}
       ></Graph>
