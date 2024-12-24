@@ -64,6 +64,7 @@ export default function GraphPage() {
             // nodeDistance: 200, // Put more distance between the nodes.
             nodeDistance: 250,
           },
+          stabilization: false,
           // stabilization: true, //N.B> this setting prevents the graph from zooming on the star if it is too low
         },
         nodes: {
@@ -113,6 +114,17 @@ export default function GraphPage() {
            * @param {number} a - The cluster id.
            * @returns {void}
            */
+
+          function manageZoom(zoomNodes) {
+            //IMPORTANT:Need to disable stabilization in physics for this to work↓
+            network.fit({
+              nodes: zoomNodes,
+              animation: { duration: 1000 },
+              //  minZoomLevel: 0.5,
+              // maxZoomLevel: 2,
+              // padding: 150,
+            })
+          }
           function manageClustering(nodesToCluster, a) {
             //if there are less than 3 nodes to cluster, return
             if (!nodesToCluster || nodesToCluster.length < 3) return
@@ -163,6 +175,7 @@ export default function GraphPage() {
                   allClusterNodes.forEach((node) => {
                     network.body.nodes[node].options.cid = ''
                   })
+                  manageZoom(allClusterNodes)
                   return
                 }
 
@@ -171,7 +184,6 @@ export default function GraphPage() {
                 console.log('NODES TO SHOW', nodesToShow)
 
                 //select remaining nodes
-                // const nodesToRecluster = new Map(Object.entries(clusterNodes).slice(10))
                 const nodesToRecluster = allClusterNodes.slice(10)
                 console.log('NODES TO RECLUSTER', nodesToRecluster)
 
@@ -182,6 +194,7 @@ export default function GraphPage() {
 
                 //recluster
                 manageClustering(nodesToRecluster, a)
+                manageZoom(nodesToShow)
               }
             })
           }
@@ -265,7 +278,9 @@ export default function GraphPage() {
               for (let i = 0; i < sameLevelNodes.length; i++) {
                 if (i % 2 !== 0) {
                   const nodeId = sameLevelNodes[i]
-                  if (repeatedArray[a - 1] < 0) {
+                  if (repeatedArray[a - 1] <= 0) {
+                    //TO DO: investigate why this part does not work(it does not workonly for negative y values)
+                    //the y value changes, but the node does not move
                     network.body.nodes[nodeId].y -= 100
                   } else if (repeatedArray[a - 1] > 0) {
                     network.body.nodes[nodeId].y += 100
@@ -284,14 +299,7 @@ export default function GraphPage() {
             Math.abs(highestNodeHeight - nodes[star].y) >= 300 ||
             Math.abs(lowestNodeHeight - highestNodeHeight) > graph.height
           ) {
-            //Need to disable stabilization in physics for this to work↓
-            network.fit({
-              nodes: star,
-              animation: { duration: 1000 },
-              //  minZoomLevel: 0.5,
-              // maxZoomLevel: 2,
-              // padding: 150,
-            })
+            manageZoom(star)
           }
         }}
       ></Graph>
