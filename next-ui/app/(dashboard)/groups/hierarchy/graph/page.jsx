@@ -36,8 +36,9 @@ export default function GraphPage() {
       console.log('CURRENT HEIGHT', currentWindowHeight)
 
       //I set default minheight to 1000px for smaller screens for now, need more testing
-      currentWindowHeight > 1000 ? (height = `${currentWindowHeight - 100}px`) : (height = '1000px')
+      //  currentWindowHeight > 1000 ? (height = `${currentWindowHeight - 100}px`) : (height = '1000px')
 
+      height = '500px'
       width = `${currentWindowWidth - 100}px`
 
       const options = {
@@ -258,6 +259,7 @@ export default function GraphPage() {
             return counters
           }, {})
 
+          const allNodes = []
           if (repeatedArray.length > 0) {
             for (let a = 1; a < repeatedArray.length + 1; a++) {
               let sameLevelNodes = []
@@ -267,26 +269,27 @@ export default function GraphPage() {
                 }
               }
 
+              allNodes.push(sameLevelNodes)
+
               //if there are more than 20 nodes at the same height, cluster them
               if (sameLevelNodes.length > 20) {
-                console.log('SAME LEVEL NODES', sameLevelNodes)
+                //  console.log('SAME LEVEL NODES', sameLevelNodes)
 
                 const nodesToCluster = sameLevelNodes.slice(20)
                 manageClustering(nodesToCluster, a)
               }
 
-              for (let i = 0; i < sameLevelNodes.length; i++) {
-                if (i % 2 !== 0) {
-                  const nodeId = sameLevelNodes[i]
-                  if (repeatedArray[a - 1] <= 0) {
-                    //TO DO: investigate why this part does not work(it does not workonly for negative y values)
-                    //the y value changes, but the node does not move
-                    network.body.nodes[nodeId].y -= 100
-                  } else if (repeatedArray[a - 1] > 0) {
-                    network.body.nodes[nodeId].y += 100
+              allNodes.forEach((nodeArray) => {
+                nodeArray.forEach((node) => {
+                  if (nodeArray.indexOf(node) % 2 !== 0) {
+                    if (network.body.nodes[node].y <= 0) {
+                      network.body.nodes[node].y -= 100
+                    } else {
+                      network.body.nodes[node].y += 100
+                    }
                   }
-                }
-              }
+                })
+              })
             }
           }
           const viewport = network.getViewPosition()
