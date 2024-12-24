@@ -15,6 +15,30 @@ Ensure the following files are up-to-date:
 
 ## Breaking Changes
 
+### December 24, 2024 - Crypto Changes
+
+**Summary**:
+
+- Updated encryption and decryption logic to support skipping crypto for specific tools like Postman.
+- Introduced a configurable `CRYPTO` flag to toggle encryption behavior.
+
+**Impact**:
+
+- There is a new flag `CRYPTO` in the .env
+- Requests during dev can bypass encryption/decryption based on this `CRYPTO` flag.
+- Maintains secure encryption/decryption workflow for production or front-end requests.
+- Simplifies development testing without compromising production security.
+
+**Steps to Resolve**:
+
+1. Set the `CRYPTO` environment variable in your `.env` file:
+   - Use `CRYPTO=DISABLE` to bypass encryption for Postman or Insomnia requests.
+   - Use `CRYPTO=ENABLE` to enforce encryption for front-end or production scenarios.
+2. Restart the server to apply the changes.
+3. Ensure you test both encrypted and bypassed scenarios before pushing code to production.
+
+---
+
 ### December 20, 2024 - Login Changes
 
 **Summary**:
