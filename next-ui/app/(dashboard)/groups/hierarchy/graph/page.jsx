@@ -48,7 +48,7 @@ export default function GraphPage() {
       //I set default minheight to 1000px for smaller screens for now, need more testing
       currentWindowHeight > 1000 ? (height = `${currentWindowHeight - 100}px`) : (height = '1000px')
 
-      width = `${currentWindowWidth - 100}px`
+      width = `${currentWindowWidth - 300}px`
 
       const options = {
         layout: {
@@ -124,13 +124,15 @@ export default function GraphPage() {
            * @returns {void}
            */
           function manageZoom(zoomNodes) {
+            console.log('zoomNodes', zoomNodes)
             //IMPORTANT:Need to disable stabilization in physics for this to work↓
             network.fit({
               nodes: zoomNodes,
               animation: { duration: 1000 },
               //  minZoomLevel: 0.5,
               // maxZoomLevel: 2,
-              // padding: 150,
+              maxZoomLevel: 0.9,
+              //  padding: 150,
             })
           }
 
@@ -244,9 +246,11 @@ export default function GraphPage() {
                 })
 
                 //recluster
-                manageClustering(nodesToRecluster, a)
+                manageClustering(nodesToRecluster, a, allNodes)
                 manageLayering(allNodes)
-                manageZoom(nodesToShow)
+                // manageZoom([clusterId, ...nodesToShow])
+                const nodesToZoom = [...nodesToShow, clusterId]
+                manageZoom(nodesToZoom)
               }
             })
           }
