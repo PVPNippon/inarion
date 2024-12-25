@@ -31,16 +31,13 @@ router.post('/list-direct-members',
   encryptResponseMiddleware,
 )
 
-
-
-
 //route to list all members of a group(both direct and indirect)
 router.post('/list-all-members',
   decryptRequestMiddleware,
   cacheMiddleware.getGroupDescendantsFromCache,
   groupsController.listAllMembers,
+  cacheMiddleware.setGroupDescendantsInCache,
   encryptResponseMiddleware,
-  cacheMiddleware.setGroupDescendantsInCache
 )
 
 //route to get group activity logs(all group logs for all groups in cx domain)

@@ -130,17 +130,21 @@ exports.listDirectMembers = async (req, res, next) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.listAllMembers = async (req, res, next) => {
+  if (res.locals.cached) {
+    return next()
+  }
+
   const { userEmail, groupEmail } = req.body
 
   try {
-    const groupDescendants = await groupsService.listGroupMembers({
+    const descendants = await groupsService.listGroupMembers({
       userEmail,
       groupEmail,
       includeDerivedMembership: true, //set derived membership to true
     }) // Get the list of direct members
 
     // Return the list of direct members of the group
-    res.locals.data = response
+    res.locals.data = descendants
     next()
   } catch (error) {
     logger.error(error)

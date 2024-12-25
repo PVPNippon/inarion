@@ -296,6 +296,10 @@ async function getDescendants(groupEmail) {
     return null
   }
 
+  if (groupId === 'negativeCache') {
+    return []
+  }
+
   const descendants = await getDescendantsById(groupId)
 
   return descendants

@@ -18,17 +18,15 @@ services:
       - frontend
       - redis
 
+  frontend:
+    build: ./frontend
+    container_name: frontend_react
+    ports:
+      - '3001:80'
+    environment:
+      - PORT=3001 # Set the environment variable to use port 3001
 
- frontend:
-   build: ./frontend
-   container_name: frontend_react
-   ports:
-     - '3001:80'
-   environment:
-     - PORT=3001 # Set the environment variable to use port 3001
-
-
-   stdin_open: true
+    stdin_open: true
 
   ui:
     build: ./next-ui
@@ -52,9 +50,8 @@ services:
       - mynetwork
       - test
 
-
 networks:
- test:
-   driver: bridge
- mynetwork:
-   driver: bridge
+  test:
+    driver: bridge
+  mynetwork:
+    driver: bridge

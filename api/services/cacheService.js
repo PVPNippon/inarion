@@ -1,5 +1,5 @@
 const redisClient = require('../config/redis.js')
-const logger = require('../logger.js')(__filename)
+const logger = require('../logger/logger.js')(__filename)
 const groupsUtilityFunctions = require('../utility/groupsUtilityFunctions.js')
 
 // Returns a Promise object which resolves to:

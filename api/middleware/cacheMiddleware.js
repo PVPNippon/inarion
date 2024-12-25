@@ -114,7 +114,7 @@ async function setGroupMembersInCache(req, res, next) {
     // グループ ID がキャッシュにない（cachedGroupId === null）場合は Google API でグループ情報を取得する必要がある
     // グループ ID がネガティブキャッシュされている（cachedGroupId === 'negativeCache'）場合, このミドルウェアまで処理が到達している時点でグループは存在するはずなのでやはり Google API でグループ情報を取得
     if (cachedGroupId !== null && cachedGroupId !== 'negativeCache') {
-      const result = await groupsCacheService.overwriteMembersById(groupId, members)
+      const result = await groupsCacheService.overwriteMembersById(cachedGroupId, members)
       console.log('Stored members in cache:', result);
       return
     }
@@ -149,17 +149,14 @@ async function setGroupMembersInCache(req, res, next) {
   }
 }
 
-
-
-
-
 async function getGroupDescendantsFromCache(req, res, next) {
   const { groupEmail } = req.body
 
   try {
-    const groupDescendants = await groupsCacheService.getDescendants(groupEmail)
-    if (groupDescendants) {
-      return res.status(200).json(groupDescendants)
+    const descendants = await groupsCacheService.getDescendants(groupEmail)
+    if (descendants) {
+      res.locals.data = descendants
+      res.locals.cached = true
     }
   } catch (error) {
     console.log('Error fetching descendants from cache:', error)
@@ -169,44 +166,60 @@ async function getGroupDescendantsFromCache(req, res, next) {
   next()
 }
 
-async function setGroupDescendantsInCache(req, res) {
-  const { groupEmail } = req.body
-  const { groupDescendants } = res.locals
-  
-  try {
-    let groupId = await groupsCacheService.getGroupId(groupEmail)
+async function setGroupDescendantsInCache(req, res, next) {
+  next()
 
-    if (groupId !== null) {
-      const result = await groupsCacheService.overwriteDescendantsById(groupId, groupDescendants)
-      console.log('Stored members in cache:', result)
+  if (res.locals.cached) {
+    return
+  }
+
+  const { groupEmail } = req.body
+  const descendants = res.locals.data
+
+  try {
+    // グループ ID をキャッシュから取得
+    const cachedGroupId = await groupsCacheService.getGroupId(groupEmail)
+
+    // グループ ID がキャッシュから取得できれば, グループ ID をキーにしてメンバー情報をキャッシュに保存して処理を終える
+    // グループ ID がキャッシュにない（cachedGroupId === null）場合は Google API でグループ情報を取得する必要がある
+    // グループ ID がネガティブキャッシュされている（cachedGroupId === 'negativeCache'）場合, このミドルウェアまで処理が到達している時点でグループは存在するはずなのでやはり Google API でグループ情報を取得
+    if (cachedGroupId !== null && cachedGroupId !== 'negativeCache') {
+      const result = await groupsCacheService.overwriteDescendantsById(cachedGroupId, descendants)
+      console.log('Stored descendants in cache:', result);
       return
     }
+  } catch (error) {
+    // グループ ID をキャッシュから取得する際に何らかのエラーが発生した場合はログを表示して処理を継続
+    console.log('Error fetching groupId from cache and storing descendants in cache:', error)
+  }
 
-    const { userEmail, projectId, serviceAccountEmail, serviceAccountPrivateKey } = req.body
+  // グループ ID がキャッシュから取得できなければ, Google API をコール
+  // この時ついでにグループ情報も取得
+  try {
+    const { userEmail } = req.body
     const groupInfo = await groupsService.getGroupByEmail({
       userEmail,
-      projectId,
-      serviceAccountEmail,
-      serviceAccountPrivateKey,
       groupEmail,
     })
 
-    groupId = groupInfo.id
+    const groupId = groupInfo.id
 
     const emailsToIdsObj = groupsUtilityFunctions.getGroupEmailsToIdsObj(groupInfo)
 
-    const result = await Promise.all([
+    const result = await Promise.allSettled([
         groupsCacheService.setGroupIds(emailsToIdsObj),
         groupsCacheService.setGroupInfo(groupInfo),
-        groupsCacheService.overwriteDescendantsById(groupId, groupDescendants)
+        groupsCacheService.overwriteDescendantsById(groupId, descendants)
     ])
 
-    console.log('Stored id, info and descendants in cache:', result)
+    console.log('Stored the group\'s id, info and descendants in cache:', result)
     
   } catch (error) {
-    console.log('Error storing groupInfo in cache:', error)
+    console.log('Error storing the group\'s id, info and descendants in cache:', error)
   }
 }
+
+
 
 async function getGroupSettingsFromCache(req, res, next) {
   const { groupEmail } = req.body
