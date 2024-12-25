@@ -5,6 +5,8 @@ const { clientPrivateKey } = require('../../utility/keys')
 const CryptoJS = require('crypto-js')
 const logger = require('../../logger/logger')(__filename, 'Crypto Middleware')
 
+const isCryptoEnabled = () => process.env.CRYPTO !== 'DISABLE'
+
 function generateAESKeyAndIV() {
   /**
    * Generates a random 256-bit AES key and a 16-byte IV.
@@ -136,29 +138,34 @@ async function encryptPayload(data) {
  */
 const decryptRequestMiddleware = async (req, res, next) => {
   try {
+    if (!isCryptoEnabled()) {
+      logger.debug('Crypto is disabled; bypassing decryption.')
+      next()
+    } else {
+      console.log('Incoming request is encrypted. Decrypting..')
+      if (!req.body || !req.body.encryptedAESKey || !req.body.encryptedIV || !req.body.payload) {
+        throw new Error('Invalid request body. Expected encryptedAESKey, encryptedIV, and payload.')
+      }
+
+      const { encryptedAESKey, encryptedIV, payload } = req.body
+
+      // Decrypt payload
+      const decryptedPayload = await decryptPayload(encryptedAESKey, encryptedIV, payload)
+
+      // Validate decrypted payload
+      if (!decryptedPayload || typeof decryptedPayload !== 'string') {
+        throw new Error('Invalid decrypted payload. Expected a string.')
+      }
+
+      // Parse decrypted payload
+      try {
+        req.body = JSON.parse(decryptedPayload)
+      } catch (jsonError) {
+        throw new Error('Invalid JSON payload.', jsonError)
+      }
+      next()
+    }
     // Input validation
-    if (!req.body || !req.body.encryptedAESKey || !req.body.encryptedIV || !req.body.payload) {
-      throw new Error('Invalid request body. Expected encryptedAESKey, encryptedIV, and payload.')
-    }
-
-    const { encryptedAESKey, encryptedIV, payload } = req.body
-
-    // Decrypt payload
-    const decryptedPayload = await decryptPayload(encryptedAESKey, encryptedIV, payload)
-
-    // Validate decrypted payload
-    if (!decryptedPayload || typeof decryptedPayload !== 'string') {
-      throw new Error('Invalid decrypted payload. Expected a string.')
-    }
-
-    // Parse decrypted payload
-    try {
-      req.body = JSON.parse(decryptedPayload)
-    } catch (jsonError) {
-      throw new Error('Invalid JSON payload.', jsonError)
-    }
-
-    next()
   } catch (error) {
     // Log error and return a standardized error response
     logger.error(error)
@@ -182,6 +189,11 @@ const decryptRequestMiddleware = async (req, res, next) => {
  */
 const encryptResponseMiddleware = async (req, res) => {
   try {
+    if (!isCryptoEnabled()) {
+      logger.debug('Crypto is set to disabled, sending plaintext response.')
+      // Send plaintext response when crypto is disabled
+      return res.json(res.locals.data)
+    }
     // Input validation
     if (!res.locals.data) {
       throw new Error('Invalid response data. Expected res.locals.data to be set.')

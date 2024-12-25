@@ -67,6 +67,8 @@ async function fetchFilesFromDrive(userEmail, serviceAccountEmail, serviceAccoun
         includePermissionsForView: 'published',
       }
 
+
+
       // Add driveId only if it is a shared drive
       if (driveId) {
         listOptions.driveId = driveId

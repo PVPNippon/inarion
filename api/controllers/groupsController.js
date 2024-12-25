@@ -1,6 +1,7 @@
 const logger = require('../logger/logger')(__filename, 'Groups')
 const groupsService = require('../services/groupsService')
 const { getNestedTable, getHierarchy } = require('../services/nestedGroupsService')
+const { decryptPayloadForServer, decryptPayloadFromClient } = require('./crypto/cryptoMiddleware')
 
 /**
  * Retrieves the list of all groups in the organization.
@@ -26,6 +27,7 @@ exports.listAllGroups = async (req, res, next) => {
 
     // Return the list of all organization's groups
     res.locals.data = groups
+    logger.debug('Returning list of groups', { storeLocation: 'both' })
     next()
   } catch (error) {
     logger.error(error)
@@ -166,12 +168,14 @@ exports.listAllMembers = async (req, res, next) => {
  */
 exports.getGroupActivity = async (req, res, next) => {
   const { userEmail } = req.body
+  console.log('retrieving group activity: ', userEmail)
 
   try {
     // Get the list of group activity
     const response = await groupsService.getAllGroupsLogs({
       userEmail,
     })
+
     res.locals.data = response
     next()
   } catch (error) {

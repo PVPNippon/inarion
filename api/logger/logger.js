@@ -1,8 +1,9 @@
 const winston = require('winston')
 const getCallerInfo = require('./callerInfo')
 const customFormat = require('./formatter')
-const createTransport = require('./transporter')
+// const createTransport = require('./transporter')
 const logToDatabaseWithBulk = require('./dbLogging')
+const { createTransport, getDailyLogFileName } = require('./transporter')
 
 // Determine log level based on environment
 const logLevel = process.env.NODE_ENV === 'production' ? 'info' : 'debug'
@@ -49,10 +50,10 @@ const logger = (fileName, moduleName = 'N/A') => {
           exitOnError: false,
           // transports: [new winston.transports.Console()],
           // Exception handlers must be an array of transports
-          exceptionHandlers: [new winston.transports.File({ filename: './logs/exceptions.log' })],
+          exceptionHandlers: [new winston.transports.File({ filename: getDailyLogFileName() })],
 
-          // Rejection handlers must be an array of transports
-          rejectionHandlers: [new winston.transports.File({ filename: './logs/rejections.log' })],
+          // // Rejection handlers must be an array of transports
+          rejectionHandlers: [new winston.transports.File({ filename: getDailyLogFileName() })],
         })
 
         const callerInfo = getCallerInfo()

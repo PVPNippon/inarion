@@ -17,6 +17,7 @@ const driveRoutes = require('./routes/driveRoutes')
 const domainUsersRoutes = require('./routes/domainUsersRoutes')
 const groupsRoutes = require('./routes/groupsRoutes')
 const encryptionRoutes = require('./routes/cryptoRoutes')
+const googleAuthRoutes = require('./routes/googleAuthRoutes')
 // const sequelize = require('./config/database');
 const cors = require('cors') // Import the CORS package
 const path = require('path')
@@ -67,6 +68,7 @@ app.use('/users', domainUsersRoutes)
 app.use('/api/groups', groupsRoutes)
 app.use('/cache', cacheRoutes)
 app.use('/encryption', encryptionRoutes)
+app.use('/google', googleAuthRoutes)
 
 app.get('/', (req, res) => {
   res.send('<h1>Home Page</h1>')
