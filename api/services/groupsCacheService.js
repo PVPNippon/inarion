@@ -124,20 +124,35 @@ function getGroupInfosByIds(groupIds) {
 // グループのメールアドレスから対応するグループの情報を得る
 // キャッシュに情報がなければ null を返す
 // ID のネガティブキャッシュがあれば（とりあえず） {} を返す
+/**
+ * Retrieves the details of a single group by its email address.
+ *
+ * This function first attempts to fetch the group ID associated with the provided group email.
+ * If the group ID is null, it indicates that the group is not found in the cache, and thus returns null.
+ * If the group ID is marked as 'negativeCache', it returns an empty object to signify the absence of valid data.
+ * Otherwise, it fetches the group details using the group ID and returns it.
+ *
+ * @param {string} groupEmail - The email address of the group to retrieve.
+ * @returns {Promise<Object|null>} - A promise that resolves to the group's details, an empty object if the group is in negative cache, or null if the group is not found.
+ * @throws {Error} - Throws an error if there is an issue with fetching the group details from the cache.
+ */
 async function getGroupInfo(groupEmail) {
   // VALIDATION: groupEmail should be a string.
 
+  // Attempt to fetch the group ID using the provided email
   const groupId = await getGroupId(groupEmail)
 
+  // Return null if the group ID is not found
   if (groupId === null) {
     return null
   }
 
-  // ここは何を返すのがベストだ？
+  // Return an empty object if the group is marked as negative cache
   if (groupId === 'negativeCache') {
     return {}
   }
 
+  // Fetch and return the group details using the group ID
   const groupInfo = await getGroupInfoById(groupId)
 
   return groupInfo

@@ -1,42 +1,42 @@
 const express = require('express')
 const router = express.Router()
-const groupsController = require('../controllers/groupsController')
-const { encryptResponseMiddleware, decryptRequestMiddleware } = require('../controllers/crypto/cryptoMiddleware')
-const cacheMiddleware = require('../middleware/cacheMiddleware.js')
+const groupsController = require('../controllers/groupsController.js')
+const { encryptResponseMiddleware, decryptRequestMiddleware } = require('../controllers/crypto/cryptoMiddleware.js')
+const groupsCacheMiddleware = require('../middleware/groupsCacheMiddleware.js')
 
 //route to list all groups in customer organization
 router.post('/list',
   decryptRequestMiddleware,
-  cacheMiddleware.getAllGroupInfosFromCache,
+  groupsCacheMiddleware.getAllGroupInfosFromCache,
   groupsController.listAllGroups,
-  cacheMiddleware.setAllGroupInfosInCache,
+  groupsCacheMiddleware.setAllGroupInfosInCache,
   encryptResponseMiddleware,
 )
 
 //route to get group by its email
 router.post('/get',
   decryptRequestMiddleware,
-  cacheMiddleware.getGroupInfoFromCache,
+  groupsCacheMiddleware.getGroupInfoFromCache,
   groupsController.getGroup,
-  cacheMiddleware.setGroupInfoInCache,
+  groupsCacheMiddleware.setGroupInfoInCache,
   encryptResponseMiddleware,
 )
 
 //route to list direct members of a group
 router.post('/list-direct-members',
   decryptRequestMiddleware,
-  cacheMiddleware.getGroupMembersFromCache,
+  groupsCacheMiddleware.getGroupMembersFromCache,
   groupsController.listDirectMembers,
-  cacheMiddleware.setGroupMembersInCache,
+  groupsCacheMiddleware.setGroupMembersInCache,
   encryptResponseMiddleware,
 )
 
 //route to list all members of a group(both direct and indirect)
 router.post('/list-all-members',
   decryptRequestMiddleware,
-  cacheMiddleware.getGroupDescendantsFromCache,
+  groupsCacheMiddleware.getGroupDescendantsFromCache,
   groupsController.listAllMembers,
-  cacheMiddleware.setGroupDescendantsInCache,
+  groupsCacheMiddleware.setGroupDescendantsInCache,
   encryptResponseMiddleware,
 )
 
@@ -56,7 +56,6 @@ router.post(
 )
 
 //route to get nested membership table for a member(group or user)
-
 router.post(
   '/get-nested-membership',
   decryptRequestMiddleware,
@@ -82,7 +81,7 @@ router.post(
 //route to update the 'whoCanLeaveGroup' setting of the specified group
 router.put('/update-whocanleave',
   groupsController.updateWhoCanLeaveGroup,
-  cacheMiddleware.setGroupSettingsInCache
+  groupsCacheMiddleware.setGroupSettingsInCache
 )
 
 //route to delete multiple members from a group
