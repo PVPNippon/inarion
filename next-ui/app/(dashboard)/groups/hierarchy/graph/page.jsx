@@ -3,6 +3,16 @@ import Graph from 'react-graph-vis'
 import { useEffect, useState } from 'react'
 import { green, blue, red, purple } from '@mui/material/colors'
 
+/**
+ * The GraphPage component renders a graph of the hierarchy of groups that the user is in.
+ * It is a temporary component for development purposes.
+ * It is used to test the groups hierarchy visualizer backend code.
+ * The component utilizes the LoggedInUserContext to access the email of the logged-in user and maintains state for the input value,
+ * group list, click count, and error messages.
+ * Graph visualization options are defined within the component,
+ * including layout, physics, and edge configurations.
+ * @returns {JSX.Element} - The rendered graph page component.
+ */
 export default function GraphPage() {
   const [graph, setGraph] = useState(null)
   const [options, setOptions] = useState(null)
@@ -36,9 +46,8 @@ export default function GraphPage() {
       console.log('CURRENT HEIGHT', currentWindowHeight)
 
       //I set default minheight to 1000px for smaller screens for now, need more testing
-      //  currentWindowHeight > 1000 ? (height = `${currentWindowHeight - 100}px`) : (height = '1000px')
+      currentWindowHeight > 1000 ? (height = `${currentWindowHeight - 100}px`) : (height = '1000px')
 
-      height = '500px'
       width = `${currentWindowWidth - 100}px`
 
       const options = {
@@ -110,12 +119,10 @@ export default function GraphPage() {
         options={options}
         getNetwork={(network) => {
           /**
-           * Recursively clusters nodes together based on the number of nodes to cluster.
-           * @param {array} nodesToCluster - The array of node keys to cluster.
-           * @param {number} a - The cluster id.
+           * Manages the zoom of the graph visualization by fitting the network to a specified set of nodes.
+           * @param {array} zoomNodes - The array of node keys to zoom to.
            * @returns {void}
            */
-
           function manageZoom(zoomNodes) {
             //IMPORTANT:Need to disable stabilization in physics for this to work↓
             network.fit({
@@ -126,7 +133,43 @@ export default function GraphPage() {
               // padding: 150,
             })
           }
-          function manageClustering(nodesToCluster, a) {
+
+          /**
+           * Adjusts the vertical position of nodes in alternating layers for better visual separation.
+           *
+           * This function iterates over an array of node arrays, checking the index of each node.
+           * If the node's index in its array is odd, the function adjusts its vertical position
+           * by adding or subtracting a fixed value, dependent on its current position.
+           * This creates an alternating layering effect in the graph visualization.
+           *
+           * @param {Array<Array<string>>} nodesToLayer - An array containing arrays of node identifiers to be layered.
+           */
+          function manageLayering(nodesToLayer) {
+            nodesToLayer.forEach((nodeArray) => {
+              nodeArray.forEach((node) => {
+                if (nodeArray.indexOf(node) % 2 !== 0) {
+                  if (network.body.nodes[node].y <= 0) {
+                    network.body.nodes[node].y -= 100
+                  } else {
+                    network.body.nodes[node].y += 100
+                  }
+                }
+              })
+            })
+          }
+
+          /**
+           * Recursively clusters nodes together based on the number of nodes to cluster.
+           * If a cluster is clicked, it will expand and show the first 10 nodes in the cluster,
+           * and recluster the remaining nodes.
+           * It will also layer the nodes so that nodes with odd indices are below
+           * the nodes with even indices, and zoom in on the cluster.
+           * @param {array} nodesToCluster - The array of node keys to cluster.
+           * @param {number} a - The cluster id.
+           * @param {array} allNodes - The array of all node keys.
+           * @returns {void}
+           */
+          function manageClustering(nodesToCluster, a, allNodes) {
             //if there are less than 3 nodes to cluster, return
             if (!nodesToCluster || nodesToCluster.length < 3) return
 
@@ -139,6 +182,12 @@ export default function GraphPage() {
             const clusterId = 'cluster' + a
 
             const clusterOptions = {
+              /**
+               * This function is used to determine which nodes to cluster together.
+               * It checks if the node's cid property matches the cluster id.
+               * @param {Object} nodeOptions - The options of the node to check.
+               * @returns {boolean} - True if the node should be clustered, false otherwise.
+               */
               joinCondition: function (nodeOptions) {
                 return nodeOptions.cid === a
               },
@@ -176,6 +225,7 @@ export default function GraphPage() {
                   allClusterNodes.forEach((node) => {
                     network.body.nodes[node].options.cid = ''
                   })
+                  manageLayering(allNodes)
                   manageZoom(allClusterNodes)
                   return
                 }
@@ -195,6 +245,7 @@ export default function GraphPage() {
 
                 //recluster
                 manageClustering(nodesToRecluster, a)
+                manageLayering(allNodes)
                 manageZoom(nodesToShow)
               }
             })
@@ -274,22 +325,11 @@ export default function GraphPage() {
               //if there are more than 20 nodes at the same height, cluster them
               if (sameLevelNodes.length > 20) {
                 //  console.log('SAME LEVEL NODES', sameLevelNodes)
-
                 const nodesToCluster = sameLevelNodes.slice(20)
-                manageClustering(nodesToCluster, a)
+                manageClustering(nodesToCluster, a, allNodes)
               }
 
-              allNodes.forEach((nodeArray) => {
-                nodeArray.forEach((node) => {
-                  if (nodeArray.indexOf(node) % 2 !== 0) {
-                    if (network.body.nodes[node].y <= 0) {
-                      network.body.nodes[node].y -= 100
-                    } else {
-                      network.body.nodes[node].y += 100
-                    }
-                  }
-                })
-              })
+              manageLayering(allNodes)
             }
           }
           const viewport = network.getViewPosition()
