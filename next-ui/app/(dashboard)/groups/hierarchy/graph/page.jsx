@@ -160,6 +160,7 @@ export default function GraphPage() {
             })
           }
 
+          let clusterClickListener
           /**
            * Recursively clusters nodes together based on the number of nodes to cluster.
            * If a cluster is clicked, it will expand and show the first 10 nodes in the cluster,
@@ -172,8 +173,11 @@ export default function GraphPage() {
            * @returns {void}
            */
           function manageClustering(nodesToCluster, a, allNodes) {
+            if (clusterClickListener) {
+              network.off('click', clusterClickListener)
+            }
             //if there are less than 3 nodes to cluster, return
-            if (!nodesToCluster || nodesToCluster.length < 3) return
+            // if (!nodesToCluster || nodesToCluster.length < 3) return
 
             //set cid for each node
             nodesToCluster.forEach((node) => {
@@ -209,18 +213,21 @@ export default function GraphPage() {
 
             network.clustering.cluster(clusterOptions)
 
-            network.on('click', (params) => {
+            clusterClickListener = (params) => {
               console.log('CLICK EVENT PARAMS', params)
 
-              if (params.nodes[0] === clusterId && network.body.nodes[clusterId]) {
+              if (params.nodes.length > 0 && params.nodes[0].startsWith('cluster') && !params.nodes[0].includes('@')) {
                 //get cluster nodes, get them from the actual network for safety
-                const clusterNodes = network.body.nodes[clusterId].containedNodes
-
+                const clickedClusterId = params.nodes[0]
+                console.log('CLICKED CLUSTER ID', clickedClusterId)
+                // const clusterNodes = network.body.nodes[clusterId].containedNodes
+                const clusterNodes = network.body.nodes[clickedClusterId].containedNodes
                 //get all cluster nodes array
                 const allClusterNodes = Object.keys(clusterNodes)
 
                 //release cluster
-                network.openCluster(clusterId)
+                // network.openCluster(clusterId)
+                network.openCluster(clickedClusterId)
 
                 //do not recluster less than 13 nodes
                 if (allClusterNodes.length < 13) {
@@ -228,7 +235,7 @@ export default function GraphPage() {
                     network.body.nodes[node].options.cid = ''
                   })
                   manageLayering(allNodes)
-                  manageZoom(allClusterNodes)
+                  // manageZoom(allClusterNodes)
                   return
                 }
 
@@ -246,13 +253,17 @@ export default function GraphPage() {
                 })
 
                 //recluster
-                manageClustering(nodesToRecluster, a, allNodes)
+                const cid = clickedClusterId.split('cluster')[1]
+                manageClustering(nodesToRecluster, cid, allNodes)
+                //manageClustering(nodesToRecluster, a, allNodes)
                 manageLayering(allNodes)
                 // manageZoom([clusterId, ...nodesToShow])
                 const nodesToZoom = [...nodesToShow, clusterId]
-                manageZoom(nodesToZoom)
+                //  manageZoom(nodesToZoom)
               }
-            })
+            }
+
+            network.on('click', clusterClickListener)
           }
 
           network.body.nodes[star].options.font.color = 'white'
