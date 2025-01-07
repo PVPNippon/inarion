@@ -70,6 +70,10 @@ app.use('/cache', cacheRoutes)
 app.use('/encryption', encryptionRoutes)
 app.use('/google', googleAuthRoutes)
 
+// あとで消す
+const testCacheRoutes = require('./routes/testCacheRoutes')
+app.use('/testCache', testCacheRoutes)
+
 app.get('/', (req, res) => {
   res.send('<h1>Home Page</h1>')
 })

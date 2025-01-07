@@ -91,7 +91,7 @@ function setGroupInfo(groupInfo) {
   const groupId = groupInfo.id
   const key = `${process.env.DOMAIN}:groups:${groupId}:info`
   const ttl = Number(process.env.TTL)
-  return cacheService.setJSON(key, groupInfo, ttl)
+  return cacheService.setJson(key, groupInfo, ttl)
 }
 
 // <DOMAIN>:groups:info:<groupId> をキーとしてグループ情報を JSON で複数保存
@@ -108,7 +108,7 @@ function getGroupInfoById(groupId) {
   // VALIDATION: groupId should be a string.
 
   const key = `${process.env.DOMAIN}:groups:${groupId}:info`
-  return cacheService.getJSONs(key)
+  return cacheService.getJsons(key)
 }
 
 // グループ ID の配列から対応するグループの情報の配列を得る
@@ -118,7 +118,7 @@ function getGroupInfosByIds(groupIds) {
   // VALIDATION: Every elements of groupIds should be a string.
 
   const keys = groupIds.map(groupId => `${process.env.DOMAIN}:groups:${groupId}:info`)
-  return cacheService.getJSONs(keys)
+  return cacheService.getJsons(keys)
 }
 
 // グループのメールアドレスから対応するグループの情報を得る
