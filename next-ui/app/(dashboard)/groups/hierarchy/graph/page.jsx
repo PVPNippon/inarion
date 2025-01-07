@@ -119,6 +119,27 @@ export default function GraphPage() {
         options={options}
         getNetwork={(network) => {
           /**
+           * Gets an array of nodes that are connected to 3 or more of the given nodes.
+           * @param {array} nodes - The array of node keys to check.
+           * @returns {array} - An array of node keys that are connected to 3 or more of the given nodes.
+           */
+          //TODO:needs more testing. Should the common nodes count be reduced to 2? Imagine a perfect tree where everyone has 2 children
+          //and there is a bigillion of children at the bottom o.O
+          function getRepeatedConnectedNodes(nodes) {
+            let connectedNodes = []
+            nodes.forEach((node) => {
+              connectedNodes.push(...network.getConnectedNodes(node))
+            })
+
+            const counts = connectedNodes.reduce((acc, val) => {
+              acc[val] = (acc[val] || 0) + 1
+              return acc
+            }, {})
+
+            return Object.keys(counts).filter((key) => counts[key] >= 3)
+          }
+
+          /**
            * Manages the zoom of the graph visualization by fitting the network to a specified set of nodes.
            * @param {array} zoomNodes - The array of node keys to zoom to.
            * @returns {void}
@@ -173,15 +194,24 @@ export default function GraphPage() {
            * @returns {void}
            */
           function manageClustering(nodesToCluster, a, allNodes) {
+            let clusteredNodeCount = 0
+
+            //remove cluster click listener if there is one
+            //needed to add this because my physical one click on a cluster node resulted in 2 click events
             if (clusterClickListener) {
               network.off('click', clusterClickListener)
             }
-            //if there are less than 3 nodes to cluster, return
-            // if (!nodesToCluster || nodesToCluster.length < 3) return
 
-            //set cid for each node
+            //get repeated connected node array(nodes which are connected to more than 3 nodes)
+            //this is done to prevent clustering of unrelated nodes which happen to be on the same height
+            const repeatedNodes = getRepeatedConnectedNodes(nodesToCluster)
+
+            //find nodes with common connections and set cid for each such node
             nodesToCluster.forEach((node) => {
-              network.body.nodes[node].options.cid = a
+              if (repeatedNodes.some((n) => network.getConnectedNodes(node).includes(n))) {
+                network.body.nodes[node].options.cid = a
+                clusteredNodeCount++
+              }
             })
 
             //set cluster id for the cluster node
@@ -207,7 +237,7 @@ export default function GraphPage() {
                 font: {
                   color: 'white',
                 },
-                label: nodesToCluster.length + ' member(s)',
+                label: clusteredNodeCount + ' member(s)',
               },
             }
 
@@ -216,17 +246,17 @@ export default function GraphPage() {
             clusterClickListener = (params) => {
               console.log('CLICK EVENT PARAMS', params)
 
+              //check if cluster is clicked
+              //its ID should start with "cluster", and not contain "@"(in case someone decides to name a group or user as "cluster")
               if (params.nodes.length > 0 && params.nodes[0].startsWith('cluster') && !params.nodes[0].includes('@')) {
-                //get cluster nodes, get them from the actual network for safety
                 const clickedClusterId = params.nodes[0]
-                console.log('CLICKED CLUSTER ID', clickedClusterId)
-                // const clusterNodes = network.body.nodes[clusterId].containedNodes
+
+                //get cluster nodes, get them from the actual network for safety
                 const clusterNodes = network.body.nodes[clickedClusterId].containedNodes
                 //get all cluster nodes array
                 const allClusterNodes = Object.keys(clusterNodes)
 
                 //release cluster
-                // network.openCluster(clusterId)
                 network.openCluster(clickedClusterId)
 
                 //do not recluster less than 13 nodes
@@ -235,7 +265,7 @@ export default function GraphPage() {
                     network.body.nodes[node].options.cid = ''
                   })
                   manageLayering(allNodes)
-                  // manageZoom(allClusterNodes)
+                  // manageZoom(allClusterNodes) //disabled rezooming for now because it looks too huge
                   return
                 }
 
@@ -255,11 +285,9 @@ export default function GraphPage() {
                 //recluster
                 const cid = clickedClusterId.split('cluster')[1]
                 manageClustering(nodesToRecluster, cid, allNodes)
-                //manageClustering(nodesToRecluster, a, allNodes)
+
                 manageLayering(allNodes)
-                // manageZoom([clusterId, ...nodesToShow])
-                const nodesToZoom = [...nodesToShow, clusterId]
-                //  manageZoom(nodesToZoom)
+                // manageZoom([clusterId, ...nodesToShow])//disabled rezooming for now because it looks too huge
               }
             }
 
