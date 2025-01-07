@@ -5,7 +5,7 @@ const logger = require('../logger/logger.js')(__filename)
  * Retrieves the entire hash associated with `key` from Redis.
  *
  * @param {string} key - The key associated with the hash to retrieve.
- * @returns {Promise<Object|null>} A Promise object which resolves to the hash associated with `key`.
+ * @returns {Promise<Object.<string, string>|null>} A Promise object which resolves to the hash associated with `key`.
  *   The hash is an object in the following format:
  * 
  *   {
@@ -105,7 +105,7 @@ function getHashValues(key, fields) {
  * (B) If the field already exists in the hash, the field is updated with its value.
  * 
  * @param {string} key - The key associated with the hash to set.
- * @param {Object} hashObj - An object containing the fields and values to set in the hash.
+ * @param {Object.<string, string>} hashObj - An object containing the fields and values to set in the hash.
  *   It is expected to be in the following format:
  * 
  *   {
@@ -158,7 +158,7 @@ function setHash(key, hashObj, ttl, ttlMode) {
  * Optionally sets a TTL to `key`.
  * 
  * @param {string} key - The key associated with the hash to set.
- * @param {Object} hashObj - An object containing the fields and values to set in the hash.
+ * @param {Object.<string, string>} hashObj - An object containing the fields and values to set in the hash.
  *   It is expected to be in the following format:
  * 
  *   {
@@ -244,7 +244,7 @@ function getJsons(keys) {
  * If `key` already has a TTL and `ttl` is not an integer, the existing TTL is not changed.
  * 
  * @param {string} key - The key associated with the JSON object to set.
- * @param {Object} jsonObj - An object to set with `key` (can be an empty object, null, a string or an array).
+ * @param {Object} jsonObj - An object to set with `key`.
  * 
  * // TODO (r.hidaka): Technically, even if `jsonObj` is an empty object, null, a string, a number or an array, this function can store it in Redis with no errors.
  * //                  Consider throwing an error if `jsonObj` is not a non-empty object to be consistent with {@link setHash} and {@link overwriteHash}.
@@ -294,7 +294,7 @@ function setJson(key, jsonObj, ttl, ttlMode) {
  * If `ttl` is given as an integer, a TTL represented by it is set to the keys with a mode represented by `ttlMode`.
  * If some of the keys already have TTLs and `ttl` is not an integer, the existing TTLs are not changed.
  * 
- * @param {Object} keysToJsonsObj - An object containing the keys and JSON objects to set in Redis.
+ * @param {Object.<string, Object>} keysToJsonsObj - An object containing the keys and JSON objects to set in Redis.
  *   It is expected to be in the following format:
  * 
  *   {

@@ -1,3 +1,4 @@
+// このファイルはテスト目的なのであとで消す
 const express = require('express')
 const router = express.Router()
 const cacheService = require('../services/cacheService.js')
