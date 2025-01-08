@@ -16,7 +16,7 @@ const logger = require('../logger/logger.js')(__filename)
  *   }
  * 
  *   If `key` does not exist, the returned Promise object resolves to null.
- * @throws {Error} - The returned Promise object resolves to an error if:
+ * @throws {Error} The returned Promise object resolves to an error if:
  *   - `key` is not a string.
  *   - `key` exists but the data associated with it is not a hash.
  * @see {@link https://redis.io/docs/latest/commands/hgetall/}
@@ -33,7 +33,7 @@ function getHash(key) {
  * @param {string} key - The key associated with the hash to retrieve fields from.
  * @returns {Promise<Array<string>>} A Promise object which resolves to an array of all fields in the hash associated with `key`.
  *   If `key` does not exist, the returned Promise object resolves to an empty array ([]).
- * @throws {Error} - The returned Promise object resolves to an error if:
+ * @throws {Error} The returned Promise object resolves to an error if:
  *   - `key` is not a string.
  *   - `key` exists but the data associated with it is not a hash.
  * @see {@link https://redis.io/docs/latest/commands/hkeys/}
@@ -65,7 +65,7 @@ function getAllHashFields(key) {
  *       - A string which `fields` holds in the hash associated with `key`.
  *       - null if `fields` is not present in the hash associated with `key`, or `key` does not exist.
  *       
- * @throws {Error} - The returned Promise object resolves to an error if:
+ * @throws {Error} The returned Promise object resolves to an error if:
  *   - `key` is not a string
  *     (note that the returned Promise object resolves to an empty array if `fields` is an empty array, even if `key` is not a string).
  *   - `key` exists but the data associated with it is not a hash.
@@ -131,7 +131,7 @@ function getHashValues(key, fields) {
  *   - The first element of the array is a number of fields which were newly added to the hash.
  *   - The second element, if applicable, is `true` if a TTL represented by `ttl` was set to `key` with a mode represented by `ttlMode`,
  *     or `false` if the TTL was not set to `key` for some reason (e.g. `key` already had an existing TTL and `ttlMode` was `NX`).
- * @throws {Error} - The returned Promise object resolves to an error if:
+ * @throws {Error} The returned Promise object resolves to an error if:
  *   - `key` is not a string.
  *   - `key` exists but the data associated with `key` is not a hash.
  *   - `hashObj` is not an object or is empty ({}).
@@ -174,7 +174,7 @@ function setHash(key, hashObj, ttl, ttlMode) {
  *   - The second element is a number of fields which were newly added to the hash.
  *   - The third element, if applicable, is `true` if a TTL represented by `ttl` was set to `key`,
  *     or `false` if the TTL was not set to `key` for some reason.
- * @throws {Error} - The returned Promise object resolves to an error if:
+ * @throws {Error} The returned Promise object resolves to an error if:
  *   - `key` is not a string.
  *   - `hashObj` is not an object or is empty ({}).
  * @see {@link https://redis.io/docs/latest/commands/multi/},
@@ -213,7 +213,7 @@ function overwriteHash(key, hashObj, ttl) {
  *   (B) This function assumes that `keys` is a string, and returns a Promise object which resolves to:
  *       - A JSON object associated with `keys`.
  *       - `null` if `keys` does not exist.
- * @throws {Error} - The returned Promise object resolves to an error if:
+ * @throws {Error} The returned Promise object resolves to an error if:
  *   - `keys` is an array which has a non-string element.
  *   - `keys` is a string and exists but the data associated with it is not a JSON.
  *   - `keys` is not an array or a string.
@@ -265,7 +265,7 @@ function getJsons(keys) {
  *   - The first element of the array is a string 'OK'.
  *   - The second element, if applicable, is `true` if a TTL represented by `ttl` was set to `key` with a mode represented by `ttlMode`,
  *     or `false` if the TTL was not set to `key` for some reason (e.g. `key` already had an existing TTL and `ttlMode` was `NX`).
- * @throws {Error} - The returned Promise object resolves to an error if:
+ * @throws {Error} The returned Promise object resolves to an error if:
  *   - `key` is not a string.
  *   - `key` exists but the data associated with `key` is not a JSON.
  * @see {@link https://redis.io/docs/latest/commands/multi/},
@@ -324,7 +324,7 @@ function setJson(key, jsonObj, ttl, ttlMode) {
  *   - The first element of the array is a string 'OK'.
  *   - The i+1-th element (1 <= i <= N), if applicable, is `true` if a TTL represented by `ttl` was set to `key_i` with a mode represented by `ttlMode`,
  *     or `false` if the TTL was not set to `key_i` for some reason (e.g. `key_i` already had an existing TTL and `ttlMode` was `NX`).
- * @throws {Error} - The returned Promise object resolves to an error if:
+ * @throws {Error} The returned Promise object resolves to an error if:
  *   - some of the keys are not a string.
  *   - some of the keys exist but the data associated with them are not a JSON.
  * @see {@link https://redis.io/docs/latest/commands/multi/},
@@ -356,7 +356,7 @@ function setJsons(keysToJsonsObj, ttl, ttlMode) {
  * 
  * @param {string|Array<string>} keys - A string which represents a key to be deleted in Redis, or an array of strings which represent keys to be deleted in Redis.
  * @returns {Promise<number>} A Promise object which resolves to the number of keys deleted by this operation (non-existent keys are ignored).
- * @throws {Error} - The returned Promise object resolves to an error if `keys` is not a string or an array.
+ * @throws {Error} The returned Promise object resolves to an error if `keys` is not a string or an array.
  * @see {@link https://redis.io/docs/latest/commands/del/}
  */
 function deleteKeys(keys) {
@@ -376,7 +376,7 @@ function deleteKeys(keys) {
  *   - The remaining TTL (seconds) of `key` if it has one.
  *   - `-2` if `key` does not exist.
  *   - `-1` if `key` exists but does not have a TTL.
- * @throws {Error} - The returned Promise object resolves to an error if `key` is not a string.
+ * @throws {Error} The returned Promise object resolves to an error if `key` is not a string.
  * @see {@link https://redis.io/docs/latest/commands/ttl/}
  */
 function getTtl(key) {
@@ -401,7 +401,7 @@ function getTtl(key) {
  *   See {@link formatTtlMode}.
  * @returns {Promise<boolean>} A Promise object which resolves to `true` if the TTL is set to `key`,
  *   or `false` if the TTL is not set to `key` for some reason (e.g. `key` does not exist).
- * @throws {Error} - The returned Promise object resolves to an error if `key` is not a string, or `ttl` is not an integer.
+ * @throws {Error} The returned Promise object resolves to an error if `key` is not a string, or `ttl` is not an integer.
  * @see {@link https://redis.io/docs/latest/commands/expire/}
  */
 function setTtl(key, ttl, ttlMode) {
