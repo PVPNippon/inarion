@@ -73,12 +73,6 @@ function VisualizeHierarchy() {
           } else {
             setGroupList(responseData)
             if (responseData.nodes && responseData.nodes.length > 0) {
-              //temporary logic to wrap labels
-              // const nodes = responseData.nodes
-              // nodes.forEach((node) => {
-              //   const label = node.label.split('@').join(`@\n`)
-              //   node.label = label
-              // })
               const graph = {
                 graph: responseData,
                 star: inputValue,

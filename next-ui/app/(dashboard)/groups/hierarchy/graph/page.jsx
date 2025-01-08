@@ -202,20 +202,23 @@ export default function GraphPage() {
               network.off('click', clusterClickListener)
             }
 
+            //set cluster id for the cluster node
+            const clusterId = 'cluster' + a
+
             //get repeated connected node array(nodes which are connected to more than 3 nodes)
             //this is done to prevent clustering of unrelated nodes which happen to be on the same height
             const repeatedNodes = getRepeatedConnectedNodes(nodesToCluster)
 
             //find nodes with common connections and set cid for each such node
-            nodesToCluster.forEach((node) => {
+            //don't cluster user nodes
+
+            for (const node of nodesToCluster) {
+              if (node === 'users' || node === 'all_users') continue
               if (repeatedNodes.some((n) => network.getConnectedNodes(node).includes(n))) {
                 network.body.nodes[node].options.cid = a
                 clusteredNodeCount++
               }
-            })
-
-            //set cluster id for the cluster node
-            const clusterId = 'cluster' + a
+            }
 
             const clusterOptions = {
               /**
