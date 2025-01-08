@@ -327,6 +327,7 @@ function setJson(key, jsonObj, ttl, ttlMode) {
  * @throws {Error} The returned Promise object resolves to an error if:
  *   - some of the keys are not a string.
  *   - some of the keys exist but the data associated with them are not a JSON.
+ *   - `keysToJsonsObj` is not an object or is empty ({}).
  * @see {@link https://redis.io/docs/latest/commands/multi/},
  *      {@link https://redis.io/docs/latest/commands/json.mset/},
  *      {@link https://redis.io/docs/latest/commands/expire/},
