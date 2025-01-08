@@ -118,6 +118,7 @@ export default function GraphPage() {
         graph={graph}
         options={options}
         getNetwork={(network) => {
+          const unclasteredClusters = []
           /**
            * Gets an array of nodes that are connected to 3 or more of the given nodes.
            * @param {array} nodes - The array of node keys to check.
@@ -205,18 +206,28 @@ export default function GraphPage() {
             //set cluster id for the cluster node
             const clusterId = 'cluster' + a
 
-            //get repeated connected node array(nodes which are connected to more than 3 nodes)
-            //this is done to prevent clustering of unrelated nodes which happen to be on the same height
-            const repeatedNodes = getRepeatedConnectedNodes(nodesToCluster)
-
-            //find nodes with common connections and set cid for each such node
-            //don't cluster user nodes
-
-            for (const node of nodesToCluster) {
-              if (node === 'users' || node === 'all_users') continue
-              if (repeatedNodes.some((n) => network.getConnectedNodes(node).includes(n))) {
+            //if a cluster has been opened at least once, do not reapply clustering conditions, just reuse the already clustered nodes
+            //I needed to add this logic because on 2nd etc reclustering some previously clustered nodes did not pass the condition and were not re-clustered
+            //which caused more than 10 nodes to be released, which will be confised to the user who expects exactly 10 nodes to be released at once.
+            if (unclasteredClusters.includes(clusterId)) {
+              for (const node of nodesToCluster) {
                 network.body.nodes[node].options.cid = a
                 clusteredNodeCount++
+              }
+            } else {
+              //get repeated connected node array(nodes which are connected to more than 3 nodes)
+              //this is done to prevent clustering of unrelated nodes which happen to be on the same height
+              const repeatedNodes = getRepeatedConnectedNodes(nodesToCluster)
+
+              //find nodes with common connections and set cid for each such node
+              //don't cluster user nodes
+
+              for (const node of nodesToCluster) {
+                if (node === 'users' || node === 'all_users') continue
+                if (repeatedNodes.some((n) => network.getConnectedNodes(node).includes(n))) {
+                  network.body.nodes[node].options.cid = a
+                  clusteredNodeCount++
+                }
               }
             }
 
@@ -261,6 +272,7 @@ export default function GraphPage() {
 
                 //release cluster
                 network.openCluster(clickedClusterId)
+                if (!unclasteredClusters.includes(clickedClusterId)) unclasteredClusters.push(clickedClusterId)
 
                 //do not recluster less than 13 nodes
                 if (allClusterNodes.length < 13) {
