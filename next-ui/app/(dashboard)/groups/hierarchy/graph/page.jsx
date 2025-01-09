@@ -119,13 +119,28 @@ export default function GraphPage() {
         options={options}
         getNetwork={(network) => {
           const unclasteredClusters = []
+
+          /**
+           * Determines if the given nodes form a perfect tree, i.e. every node has either 0 or 1 parent and either 0 or 2 children.
+           * @param {array} nodes - The array of node keys to check.
+           * @returns {boolean} - True if the nodes form a perfect tree, false otherwise.
+           */
+          function isPerfectTree(nodes) {
+            return nodes.every(
+              (node) =>
+                (network.getConnectedNodes(node.id, 'from').length === 0 &&
+                  network.getConnectedNodes(node.id, 'to').length === 2) ||
+                (network.getConnectedNodes(node.id, 'from').length === 1 &&
+                  network.getConnectedNodes(node.id, 'to').length === 2) ||
+                (network.getConnectedNodes(node.id, 'from').length === 1 &&
+                  network.getConnectedNodes(node.id, 'to').length === 0)
+            )
+          }
           /**
            * Gets an array of nodes that are connected to 3 or more of the given nodes.
            * @param {array} nodes - The array of node keys to check.
            * @returns {array} - An array of node keys that are connected to 3 or more of the given nodes.
            */
-          //TODO:needs more testing. Should the common nodes count be reduced to 2? Imagine a perfect tree where everyone has 2 children
-          //and there is a bigillion of children at the bottom o.O
           function getRepeatedConnectedNodes(nodes) {
             let connectedNodes = []
             nodes.forEach((node) => {
@@ -146,7 +161,6 @@ export default function GraphPage() {
            * @returns {void}
            */
           function manageZoom(zoomNodes) {
-            console.log('zoomNodes', zoomNodes)
             //IMPORTANT:Need to disable stabilization in physics for this to work↓
             network.fit({
               nodes: zoomNodes,
@@ -221,7 +235,6 @@ export default function GraphPage() {
 
               //find nodes with common connections and set cid for each such node
               //don't cluster user nodes
-
               for (const node of nodesToCluster) {
                 if (node === 'users' || node === 'all_users') continue
                 if (repeatedNodes.some((n) => network.getConnectedNodes(node).includes(n))) {
@@ -358,42 +371,40 @@ export default function GraphPage() {
 
           console.log('HIGHEST NODE HEIGHT', highestNodeHeight) //N.B. the highest node has a negative y value
           console.log('LOWEST NODE HEIGHT', lowestNodeHeight) //N.B. the lowest node has a positive y value
-          lengthArray.reduce((counters, num) => {
-            counters[num] = (counters[num] || 0) + 1
-            if (counters[num] >= 10) {
-              if (!repeatedArray.includes(num)) {
-                repeatedArray.push(num)
-              }
-            }
-            return counters
-          }, {})
 
-          const allNodes = []
-          if (repeatedArray.length > 0) {
-            for (let a = 1; a < repeatedArray.length + 1; a++) {
-              let sameLevelNodes = []
-              for (const key in nodes) {
-                if (nodes[key].y === repeatedArray[a - 1]) {
-                  sameLevelNodes.push(key)
+          //apply clustering and layering only if the graph is not a perfect tree(for now)
+          if (!isPerfectTree(graph.nodes)) {
+            lengthArray.reduce((counters, num) => {
+              counters[num] = (counters[num] || 0) + 1
+              if (counters[num] >= 10) {
+                if (!repeatedArray.includes(num)) {
+                  repeatedArray.push(num)
                 }
               }
+              return counters
+            }, {})
 
-              allNodes.push(sameLevelNodes)
+            const allNodes = []
+            if (repeatedArray.length > 0) {
+              for (let a = 1; a < repeatedArray.length + 1; a++) {
+                let sameLevelNodes = []
+                for (const key in nodes) {
+                  if (nodes[key].y === repeatedArray[a - 1]) {
+                    sameLevelNodes.push(key)
+                  }
+                }
 
-              //if there are more than 20 nodes at the same height, cluster them
-              if (sameLevelNodes.length > 20) {
-                //  console.log('SAME LEVEL NODES', sameLevelNodes)
-                const nodesToCluster = sameLevelNodes.slice(20)
-                manageClustering(nodesToCluster, a, allNodes)
+                allNodes.push(sameLevelNodes)
+
+                //if there are more than 20 nodes at the same height, cluster them
+                if (sameLevelNodes.length > 20) {
+                  const nodesToCluster = sameLevelNodes.slice(20)
+                  manageClustering(nodesToCluster, a, allNodes)
+                }
+                manageLayering(allNodes)
               }
-
-              manageLayering(allNodes)
             }
           }
-          const viewport = network.getViewPosition()
-          //  console.log('VIEWPORT', viewport) //returns x and y coordinates of the center of the viewport, almost useless
-          const starNode = network.getPosition(star)
-          //  console.log('STAR NODE', starNode) //star node position for testing, will delete this part later
 
           // if star node is close to top or whole graph fits into the screen, don't zoom on it
           if (
