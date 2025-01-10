@@ -7,14 +7,14 @@ const logger = require('../logger/logger.js')(__filename)
  * @param {string} key - The key associated with the hash to retrieve.
  * @returns {Promise<Object.<string, string>|null>} A Promise object which resolves to the hash associated with `key`.
  *   The hash is an object in the following format:
- * 
+ *   ```
  *   {
  *     field_1: 'value_1',
  *     field_2: 'value_2',
  *     ...,
  *     field_N: 'value_N'
  *   }
- * 
+ *   ```
  *   If `key` does not exist, the returned Promise object resolves to null.
  * @throws {Error} The returned Promise object resolves to an error if:
  *   - `key` is not a string.
@@ -107,14 +107,14 @@ function getHashValues(key, fields) {
  * @param {string} key - The key associated with the hash to set.
  * @param {Object.<string, string>} hashObj - An object containing the fields and values to set in the hash.
  *   It is expected to be in the following format:
- * 
+ *   ```
  *   {
  *     field_1: 'value_1',
  *     field_2: 'value_2',
  *     ...,
  *     field_N: 'value_N'
  *   }
- * 
+ *   ```
  * @param {number} [ttl] - An optional integer specifying the TTL in seconds for the key.
  * @param {string} [ttlMode] - An optional string specifying the mode for the TTL.
  *   If `ttl` is not specified as an integer, `ttlMode` is ignored.
@@ -160,14 +160,14 @@ function setHash(key, hashObj, ttl, ttlMode) {
  * @param {string} key - The key associated with the hash to set.
  * @param {Object.<string, string>} hashObj - An object containing the fields and values to set in the hash.
  *   It is expected to be in the following format:
- * 
+ *   ```
  *   {
  *     field_1: 'value_1',
  *     field_2: 'value_2',
  *     ...,
  *     field_N: 'value_N'
  *   }
- * 
+ *   ```
  * @param {number} [ttl] - An optional integer specifying the TTL in seconds for the key.
  * @returns {Promise<Array<number|boolean>>} A Promise object which resolves to an array whose length is 2 if `ttl` is not an integer, or 3 if `ttl` is an integer.
  *   - The first element of the array is `1` if `key` existed and was removed, or `0` if `key` did not exist.
@@ -209,7 +209,6 @@ function overwriteHash(key, hashObj, ttl) {
  *       If `keys` is not empty, for each 0 <= i < keys.length, values[i] is:
  *       - A JSON object associated with keys[i].
  *       - null if keys[i] does not exist, or it exists but the data associated with it is not a JSON.
- *       
  *   (B) This function assumes that `keys` is a string, and returns a Promise object which resolves to:
  *       - A JSON object associated with `keys`.
  *       - `null` if `keys` does not exist.
@@ -296,14 +295,14 @@ function setJson(key, jsonObj, ttl, ttlMode) {
  * 
  * @param {Object.<string, Object>} keysToJsonsObj - An object containing the keys and JSON objects to set in Redis.
  *   It is expected to be in the following format:
- * 
+ *   ```
  *   {
  *     key_1: jsonObj_1,
  *     key_2: jsonObj_2,
  *     ...,
  *     key_N: jsonObj_N
  *   }
- * 
+ *   ```
  * // TODO (r.hidaka): Technically, even if `jsonObj_i` (i = 1, ..., N) is an empty object, null, a string, a number or an array, this function can store it in Redis with no errors.
  * //                  Consider throwing an error if they are not a non-empty object to be consistent with {@link setHash} and {@link overwriteHash}.
  * 
@@ -440,11 +439,16 @@ function formatTtlMode(ttlMode) {
 
 module.exports = {
   getHash,
+  // getHashes,
   getAllHashFields,
+  // getHashValue,
   getHashValues,
   setHash,
   overwriteHash,
+  // setHashes,
+  // overwriteHashes,
 
+  // getJson,
   getJsons,
   setJson,
   setJsons,
