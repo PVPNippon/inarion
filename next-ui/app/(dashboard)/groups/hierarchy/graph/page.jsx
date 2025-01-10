@@ -119,6 +119,7 @@ export default function GraphPage() {
         options={options}
         getNetwork={(network) => {
           const unclasteredClusters = []
+          const perfectTree = isPerfectTree(graph.nodes) //create a variable which stores boolean of perfect tree, so it can be reused by all functions
 
           /**
            * Determines if the given nodes form a perfect tree, i.e. every node has either 0 or 1 parent and either 0 or 2 children.
@@ -136,6 +137,7 @@ export default function GraphPage() {
                   network.getConnectedNodes(node.id, 'to').length === 0)
             )
           }
+
           /**
            * Gets an array of nodes that are connected to 3 or more of the given nodes.
            * @param {array} nodes - The array of node keys to check.
@@ -152,7 +154,7 @@ export default function GraphPage() {
               return acc
             }, {})
 
-            return Object.keys(counts).filter((key) => counts[key] >= 3)
+            return Object.keys(counts).filter((key) => counts[key] >= 2)
           }
 
           /**
@@ -292,7 +294,7 @@ export default function GraphPage() {
                   allClusterNodes.forEach((node) => {
                     network.body.nodes[node].options.cid = ''
                   })
-                  manageLayering(allNodes)
+                  if (!perfectTree) manageLayering(allNodes)
                   // manageZoom(allClusterNodes) //disabled rezooming for now because it looks too huge
                   return
                 }
@@ -314,7 +316,7 @@ export default function GraphPage() {
                 const cid = clickedClusterId.split('cluster')[1]
                 manageClustering(nodesToRecluster, cid, allNodes)
 
-                manageLayering(allNodes)
+                if (!perfectTree) manageLayering(allNodes)
                 // manageZoom([clusterId, ...nodesToShow])//disabled rezooming for now because it looks too huge
               }
             }
@@ -373,36 +375,39 @@ export default function GraphPage() {
           console.log('LOWEST NODE HEIGHT', lowestNodeHeight) //N.B. the lowest node has a positive y value
 
           //apply clustering and layering only if the graph is not a perfect tree(for now)
-          if (!isPerfectTree(graph.nodes)) {
-            lengthArray.reduce((counters, num) => {
-              counters[num] = (counters[num] || 0) + 1
-              if (counters[num] >= 10) {
-                if (!repeatedArray.includes(num)) {
-                  repeatedArray.push(num)
+
+          lengthArray.reduce((counters, num) => {
+            counters[num] = (counters[num] || 0) + 1
+            if (counters[num] >= 10) {
+              if (!repeatedArray.includes(num)) {
+                repeatedArray.push(num)
+              }
+            }
+            return counters
+          }, {})
+
+          const allNodes = []
+          if (repeatedArray.length > 0) {
+            for (let a = 1; a < repeatedArray.length + 1; a++) {
+              let sameLevelNodes = []
+              const nodesWithXValue = {}
+              for (const key in nodes) {
+                if (nodes[key].y === repeatedArray[a - 1]) {
+                  nodesWithXValue[key] = nodes[key].x
                 }
               }
-              return counters
-            }, {})
 
-            const allNodes = []
-            if (repeatedArray.length > 0) {
-              for (let a = 1; a < repeatedArray.length + 1; a++) {
-                let sameLevelNodes = []
-                for (const key in nodes) {
-                  if (nodes[key].y === repeatedArray[a - 1]) {
-                    sameLevelNodes.push(key)
-                  }
-                }
+              const sameLevelNodesSortedInX = Object.entries(nodesWithXValue)
+              sameLevelNodes = sameLevelNodesSortedInX.sort((a, b) => a[1] - b[1]).map((a) => a[0]) //sort nodes by x value, so that the cluster nodes always appears in the further right part of the graph
 
-                allNodes.push(sameLevelNodes)
+              allNodes.push(sameLevelNodes)
 
-                //if there are more than 20 nodes at the same height, cluster them
-                if (sameLevelNodes.length > 20) {
-                  const nodesToCluster = sameLevelNodes.slice(20)
-                  manageClustering(nodesToCluster, a, allNodes)
-                }
-                manageLayering(allNodes)
+              //if there are more than 20 nodes at the same height, cluster them
+              if (sameLevelNodes.length > 20) {
+                const nodesToCluster = sameLevelNodes.slice(20)
+                manageClustering(nodesToCluster, a, allNodes)
               }
+              if (!perfectTree) manageLayering(allNodes)
             }
           }
 
