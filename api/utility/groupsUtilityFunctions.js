@@ -1,62 +1,31 @@
-function isUndefined(target) {
-  return typeof target === 'undefined'
-}
-
-function isNotUndefined(target) {
-  return typeof target !== 'undefined'
-}
-
-function isEmptyArray(target) {
-  return Array.isArray(target) && target.length === 0
-}
-
-function isEmptyObject(target) {
-  if (typeof target !== 'object') {
-    return false
-  }
-
-  if (target === null) {
-    return false
-  }
-
-  return Object.getOwnPropertyNames(target).length === 0
-}
-
-function removeProperties(targetObj, propertiesToRemove) {
-  if (typeof targetObj === 'object' && targetObj != null && Array.isArray(propertiesToRemove)) {
-    propertiesToRemove.forEach(property => delete targetObj[property])
-  }
-  return targetObj
-}
-
-function getGroupEmailsToIdsObj(groupInfos) {
-  if (!Array.isArray(groupInfos)) {
-    groupInfos = [groupInfos]
+function getGroupEmailsToIdsObj(groups) {
+  if (!Array.isArray(groups)) {
+    groups = [groups]
   }
 
   const emailsToIdsObj = {}
 
-  groupInfos.forEach(groupInfo => {
-    const groupId = groupInfo.id
+  groups.forEach(group => {
+    const id = group.id
 
-    if (groupInfo.email) {
-      emailsToIdsObj[groupInfo.email] = groupId
+    if (group.email) {
+      emailsToIdsObj[group.email] = id
     }
 
-    if (groupInfo.aliases) {
-      groupInfo.aliases.forEach(alias => emailsToIdsObj[alias] = groupId)
+    if (group.aliases) {
+      group.aliases.forEach(alias => emailsToIdsObj[alias] = id)
     }
 
-    if (groupInfo.nonEditableAliases) {
-      groupInfo.nonEditableAliases.forEach(nonEditableAlias => emailsToIdsObj[nonEditableAlias] = groupId)
+    if (group.nonEditableAliases) {
+      group.nonEditableAliases.forEach(nonEditableAlias => emailsToIdsObj[nonEditableAlias] = id)
     }
   })
 
   return emailsToIdsObj
 }
 
-function sortGroupInfosByEmail(groupInfos) {
-  groupInfos.sort((g1, g2) => {
+function sortGroupsByEmail(groups) {
+  groups.sort((g1, g2) => {
     email1 = g1.email.toLowerCase()
     email2 = g2.email.toLowerCase()
 
@@ -67,11 +36,6 @@ function sortGroupInfosByEmail(groupInfos) {
 }
 
 module.exports = {
-  isUndefined,
-  isNotUndefined,
-  isEmptyArray,
-  isEmptyObject,
-  removeProperties,
   getGroupEmailsToIdsObj,
-  sortGroupInfosByEmail,
+  sortGroupsByEmail,
 }
