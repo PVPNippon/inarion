@@ -1,8 +1,6 @@
 const logger = require('../logger/logger')(__filename, 'Groups')
-const { error } = require('winston')
 const groupsService = require('../services/groupsService')
 const { getNestedTable, getHierarchy } = require('../services/nestedGroupsService')
-const { decryptPayloadForServer, decryptPayloadFromClient } = require('./crypto/cryptoMiddleware')
 
 /**
  * Retrieves the list of all groups in the organization.
