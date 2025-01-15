@@ -64,13 +64,13 @@ async function getAllIds(requiresAllGroupsListedBefore = false) {
     return null
   }
 
-  // The cached hash has a field 'allGroupsListed' if and only if all groups were listed before by calling groupsService.listGroups()
-  // The name 'allGroupsListed' is temporary and may be changed
-  const allGroupsListedBefore = 'allGroupsListed' in emailsToIdsObj
+  // The cached hash has a field 'ALL_GROUPS_LISTED' if and only if all groups were listed before by calling groupsService.listGroups()
+  // The name 'ALL_GROUPS_LISTED' is temporary and may be changed
+  const allGroupsListedBefore = 'ALL_GROUPS_LISTED' in emailsToIdsObj
 
   // If `requiresAllGroupsListedBefore` is true and all groups were not listed before, return null
   if (allGroupsListedBefore) {
-    delete emailsToIdsObj['allGroupsListed']
+    delete emailsToIdsObj['ALL_GROUPS_LISTED']
   } else if (requiresAllGroupsListedBefore) {
     return null
   }
@@ -79,8 +79,8 @@ async function getAllIds(requiresAllGroupsListedBefore = false) {
   const uniqueIdsSet = new Set(Object.values(emailsToIdsObj))
 
   // Remove negative cache entries
-  // The name 'negativeCache' is temporary and may be changed
-  uniqueIdsSet.delete('negativeCache')
+  // The name 'NEGATIVE_CACHE' is temporary and may be changed
+  uniqueIdsSet.delete('NEGATIVE_CACHE')
 
   // If all groups were listed before and only negative cache entries are in the cache, it means there is no group in the organization, so return []
   // If all groups were not listed before and only negative cache entries are in the cache, it means no actual cache exists, so return null
@@ -190,11 +190,11 @@ function getGroupsByIds(groupIds) {
  * 
  * @param {string} email - The email address of the group to retrieve.
  * @returns {Promise<Object|null>} A Promise object which resolves to:
- *   - The group instance if the ID corresponding to `email` is found in the cache and it is not 'negativeCache', 
+ *   - The group instance if the ID corresponding to `email` is found in the cache and it is not 'NEGATIVE_CACHE', 
  *     and the instance of the group which has the ID is found in cache.
  *   - `null` if the ID corresponding to `email` is not found in the cache,
  *     or the ID is found in the cache but the instance of the group which has the ID is not found in cache.
- *   - An empty object ({}) if the ID corresponding to `email` is found in the cache, but it is 'negativeCache'.
+ *   - An empty object ({}) if the ID corresponding to `email` is found in the cache, but it is 'NEGATIVE_CACHE'.
  *     // TODO (r.hidaka): Consider throwing an error instead in this case
  * @see {@link getId}, {@link getGroupById}
  */
@@ -209,10 +209,10 @@ async function getGroup(email) {
     return null
   }
 
-  // Return an empty object if the ID corresponding to `email` is found in the cache, but it is 'negativeCache'
-  // The name 'negativeCache' is temporary and may be changed
+  // Return an empty object if the ID corresponding to `email` is found in the cache, but it is 'NEGATIVE_CACHE'
+  // The name 'NEGATIVE_CACHE' is temporary and may be changed
   // TODO (r.hidaka): Consider throwing an error instead
-  if (id === 'negativeCache') {
+  if (id === 'NEGATIVE_CACHE') {
     return {}
   }
 
@@ -230,11 +230,11 @@ async function getGroup(email) {
  * @returns {Promise<Array<Object|null>>} A Promise object which resolves to an array (let's call it `groups`) whose length is the same as that of `emails`.
  *   So if `emails` is empty ([]), `groups` is also empty.
  *   If `emails` is not empty, for each `0 <= i < emails.length`, `groups[i]` is:
- *   - The group instance if the ID corresponding to `emails[i]` is found in the cache and it is not 'negativeCache', 
+ *   - The group instance if the ID corresponding to `emails[i]` is found in the cache and it is not 'NEGATIVE_CACHE', 
  *     and the instance of the group which has the ID is also found in cache.
  *   - `null` if the ID corresponding to `emails[i]` is not found in the cache,
  *     or the ID is found in the cache but the instance of the group which has the ID is not found in cache.
- *   - An empty object ({}) if the ID corresponding to `emails[i]` is found in the cache, but it is 'negativeCache'.
+ *   - An empty object ({}) if the ID corresponding to `emails[i]` is found in the cache, but it is 'NEGATIVE_CACHE'.
  *     // TODO (r.hidaka): Consider throwing an error instead in this case
  * @see {@link getIds}, {@link getGroupsByIds}
  */
@@ -243,9 +243,9 @@ async function getGroups(emails) {
 
   const rawIds = await getIds(emails)
 
-  // `rawIds` may contain `null` or 'negativeCache', so remove them before retrieving group instances from the cache
-  // The name 'negativeCache' is temporary and may be changed
-  const ids = rawIds.filter(rawId => rawId !== null && rawId !== 'negativeCache')
+  // `rawIds` may contain `null` or 'NEGATIVE_CACHE', so remove them before retrieving group instances from the cache
+  // The name 'NEGATIVE_CACHE' is temporary and may be changed
+  const ids = rawIds.filter(rawId => rawId !== null && rawId !== 'NEGATIVE_CACHE')
 
   // This array may contain `null` if a group ID in `ids` does not have a corresponding group instance in the cache
   // But that case should not happen because a group ID is stored in the cache along with its corresponding group instance
@@ -258,7 +258,7 @@ async function getGroups(emails) {
     }
 
     // TODO (r.hidaka): Consider throwing an error instead
-    if (rawId === 'negativeCache') {
+    if (rawId === 'NEGATIVE_CACHE') {
       return {}
     }
 
@@ -380,7 +380,7 @@ async function getMembersById(id) {
  * @param {string} email - The email address of the group to retrieve the members of.
  * @returns {Promise<Array<Object>|null>} A Promise object which resolves to:
  *   - An array of members of the group if found in the cache.
- *     It is empty ([]) if either the group has no members or the group ID corresponding to `email` is 'negativeCache'.
+ *     It is empty ([]) if either the group has no members or the group ID corresponding to `email` is 'NEGATIVE_CACHE'.
  *   - `null` if (A) the group ID corresponding to `email` is not found in the cache,
  *     or (B) the group ID is found in the cache but the members of the group which has the ID is not found in cache.
  * @see {@link getId}, {@link getMembersById}
@@ -394,7 +394,7 @@ async function getMembers(email) {
     return null
   }
 
-  if (id === 'negativeCache') {
+  if (id === 'NEGATIVE_CACHE') {
     return []
   }
 
@@ -526,7 +526,7 @@ async function getDescendantsById(id) {
  * @param {string} email - The email address of the group to retrieve the descendants of.
  * @returns {Promise<Array<Object>|null>} A Promise object which resolves to:
  *   - An array of descendants of the group if found in the cache.
- *     It is empty ([]) if either the group has no descendants or the group ID corresponding to `email` is 'negativeCache'.
+ *     It is empty ([]) if either the group has no descendants or the group ID corresponding to `email` is 'NEGATIVE_CACHE'.
  *   - `null` if (A) the group ID corresponding to `email` is not found in the cache,
  *     or (B) the group ID is found in the cache but the descendants of the group which has the ID is not found in cache.
  * @see {@link getId}, {@link getDescendantsById}
@@ -540,7 +540,7 @@ async function getDescendants(email) {
     return null
   }
 
-  if (id === 'negativeCache') {
+  if (id === 'NEGATIVE_CACHE') {
     return []
   }
 
@@ -675,11 +675,11 @@ function getSettingsById(id) {
  * 
  * @param {string} email - The email address of the group to retrieve the settings for.
  * @returns {Promise<Object|null>} A Promise object which resolves to:
- *   - The settings of the group if the ID corresponding to `email` is found in the cache, and it is not 'negativeCache',
+ *   - The settings of the group if the ID corresponding to `email` is found in the cache, and it is not 'NEGATIVE_CACHE',
  *     and the settings of the group which has the ID are also found in the cache.
- *     It is empty ({}) if and only if the ID corresponding to `email` is 'negativeCache'.
+ *     It is empty ({}) if and only if the ID corresponding to `email` is 'NEGATIVE_CACHE'.
  *   - `null` if (A) the group ID corresponding to `email` is not found in the cache,
- *     or (B) the group ID is found in the cache and it is not 'negativeCache', but the settings of the group which has the ID is not found in cache.
+ *     or (B) the group ID is found in the cache and it is not 'NEGATIVE_CACHE', but the settings of the group which has the ID is not found in cache.
  * @see {@link getId}, {@link getSettingsById}
  */
 async function getSettings(email) {
@@ -691,7 +691,7 @@ async function getSettings(email) {
     return null
   }
 
-  if (id === 'negativeCache') {
+  if (id === 'NEGATIVE_CACHE') {
     return {}
   }
 
@@ -757,22 +757,34 @@ function setSettings(email, settings) {}
 function overwriteSettings(email, settings) {}
 
 module.exports = {
+  /* Group IDs */
+  getId,
+  getIds,
+  getAllIds,
   setIds,
   overwriteIds,
-  getId,
   
+  /* Group Instances */
+  getGroupById,
+  getGroupsByIds,
+  // getGroup,
+  // getGroups,
+  // getAllGroups,
   setGroup,
   setGroups,
-  getGroup,
-  getGroups,
-  getAllGroups,
 
+  /* Group Members */
+  getMembersById,
+  // getMembers,
   overwriteMembersById,
-  getMembers,
 
-  overwriteDescendantsById,
+  /* Group Descendants */
+  getDescendantsById,
   getDescendants,
+  overwriteDescendantsById,
   
+  /* Group Settings */
+  getSettingsById,
+  // getSettings,
   setSettingsById,
-  getSettings,
 }
