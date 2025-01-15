@@ -189,17 +189,18 @@ const decryptRequestMiddleware = async (req, res, next) => {
  */
 const encryptResponseMiddleware = async (req, res) => {
   try {
+    const statusCode = res.locals.statusCode ?? 200
+    const data = res.locals.data
+
     if (!isCryptoEnabled()) {
       logger.debug('Crypto is set to disabled, sending plaintext response.')
       // Send plaintext response when crypto is disabled
-      return res.json(res.locals.data)
+      return res.status(statusCode).json(data)
     }
     // Input validation
-    if (!res.locals.data) {
+    if (!data) {
       throw new Error('Invalid response data. Expected res.locals.data to be set.')
     }
-
-    const data = res.locals.data
 
     // Call the separate encryption function
     const encryptedResponse = await encryptPayload(data)
@@ -210,7 +211,7 @@ const encryptResponseMiddleware = async (req, res) => {
     }
 
     // Send the encrypted response
-    return res.json(encryptedResponse)
+    return res.status(statusCode).json(encryptedResponse)
   } catch (error) {
     // Log error and return a standardized error response
     logger.error(error)
