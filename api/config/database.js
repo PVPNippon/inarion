@@ -28,7 +28,10 @@ sequelize
   .authenticate()
   // .sync()
   .then(() => {
-    logger.info(`Connection has been established successfully. ${env} mode`)
+    logger.info(
+      `Connected to the database successfully, at http://${process.env.POSTGRES_HOST}:${process.env.POSTGRES_PORT} 
+      ${env} mode`
+    )
   })
   .catch((err) => {
     // logger.error(`Unable to connect to the database:${err}`)
