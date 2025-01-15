@@ -7,36 +7,36 @@ const groupsCacheMiddleware = require('../middleware/groupsCacheMiddleware.js')
 //route to list all groups in customer organization
 router.post('/list',
   decryptRequestMiddleware,
-  groupsCacheMiddleware.getAllGroupInfosFromCache,
+  groupsCacheMiddleware.retrieveAllGroups,
   groupsController.listAllGroups,
-  groupsCacheMiddleware.setAllGroupInfosInCache,
+  groupsCacheMiddleware.storeAllGroups,
   encryptResponseMiddleware,
 )
 
 //route to get group by its email
 router.post('/get',
   decryptRequestMiddleware,
-  groupsCacheMiddleware.getGroupInfoFromCache,
+  groupsCacheMiddleware.retrieveGroup,
   groupsController.getGroup,
-  groupsCacheMiddleware.setGroupInfoInCache,
+  groupsCacheMiddleware.storeGroup,
   encryptResponseMiddleware,
 )
 
 //route to list direct members of a group
 router.post('/list-direct-members',
   decryptRequestMiddleware,
-  groupsCacheMiddleware.getGroupMembersFromCache,
+  groupsCacheMiddleware.retrieveMembers,
   groupsController.listDirectMembers,
-  groupsCacheMiddleware.setGroupMembersInCache,
+  groupsCacheMiddleware.storeMembers,
   encryptResponseMiddleware,
 )
 
 //route to list all members of a group(both direct and indirect)
 router.post('/list-all-members',
   decryptRequestMiddleware,
-  groupsCacheMiddleware.getGroupDescendantsFromCache,
+  groupsCacheMiddleware.retrieveDescendants,
   groupsController.listAllMembers,
-  groupsCacheMiddleware.setGroupDescendantsInCache,
+  groupsCacheMiddleware.storeDescendants,
   encryptResponseMiddleware,
 )
 
@@ -81,7 +81,7 @@ router.post(
 //route to update the 'whoCanLeaveGroup' setting of the specified group
 router.put('/update-whocanleave',
   groupsController.updateWhoCanLeaveGroup,
-  groupsCacheMiddleware.setGroupSettingsInCache
+  groupsCacheMiddleware.storeSettings
 )
 
 //route to delete multiple members from a group
