@@ -29,11 +29,12 @@ exports.listAllGroups = async (req, res, next) => {
     // Return the list of all organization's groups
     res.locals.data = groups
     logger.debug('Returning list of groups', { storeLocation: 'both' })
-    next()
   } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: 'Error fetching groups' }
     logger.error(error)
-    res.status(500).json({ message: 'Error fetching groups' })
   }
+  next()
 }
 
 /**
@@ -63,18 +64,21 @@ exports.getGroup = async (req, res, next) => {
     })
 
     res.locals.data = group
-    next()
   } catch (error) {
-    logger.error(error)
     //the reason why 404 and 403 are grouped is:
     //by try and error method I found out that error 404 is returned when query email is not a proper email address(missing @ symbol etc)
     //and error 403 is returned when query email address doesn't exist but looks like a proper email address
     //Probably this is Google's measure to prevent guessing of email addresses by probing
     if (error.status === 404 || error.status === 403) {
-      return res.status(404).json({ message: 'Group does not exist or you do not have necessary permissions to see this group' })
+      res.locals.statusCode = 404
+      res.locals.data = { message: 'Group does not exist or you do not have necessary permissions to see this group' }
+    } else {
+      res.locals.statusCode = 500
+      res.locals.data = { message: 'Error fetching group' }
     }
-    res.status(500).json({ message: 'Error fetching group' })
+    logger.error(error)
   }
+  next()
 }
 
 /**
@@ -105,16 +109,17 @@ exports.listDirectMembers = async (req, res, next) => {
     }) // Get the list of direct members
 
     res.locals.data = members
-    next()
   } catch (error) {
-    logger.error(error)
     if (error.status === 404 || error.status === 403) {
-      return res
-        .status(404)
-        .json({ message: 'Group does not exist or you do not have necessary permissions to see this group' })
+      res.locals.statusCode = 404
+      res.locals.data = { message: 'Group does not exist or you do not have necessary permissions to see this group' }
+    } else {
+      res.locals.statusCode = 500
+      res.locals.data = { message: 'Error fetching members' }
     }
-    res.status(500).json({ message: 'Error fetching members' })
+    logger.error(error)
   }
+  next()
 }
 
 /**
@@ -146,16 +151,17 @@ exports.listAllMembers = async (req, res, next) => {
 
     // Return the list of direct members of the group
     res.locals.data = descendants
-    next()
   } catch (error) {
-    logger.error(error)
     if (error.status === 404 || error.status === 403) {
-      return res
-        .status(404)
-        .json({ message: 'Group does not exist or you do not have necessary permissions to see this group' })
+      res.locals.statusCode = 404
+      res.locals.data = { message: 'Group does not exist or you do not have necessary permissions to see this group' }
+    } else {
+      res.locals.statusCode = 500
+      res.locals.data = { message: 'Error fetching members' }
     }
-    res.status(500).json({ message: 'Error fetching members' })
+    logger.error(error)
   }
+  next()
 }
 
 /**
@@ -172,6 +178,10 @@ exports.listAllMembers = async (req, res, next) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getGroupActivity = async (req, res, next) => {
+  if (res.locals.cached) {
+    return next()
+  }
+
   const { userEmail } = req.body
   console.log('retrieving group activity: ', userEmail)
 
@@ -182,11 +192,12 @@ exports.getGroupActivity = async (req, res, next) => {
     })
 
     res.locals.data = response
-    next()
   } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: 'Error fetching group activity' }
     logger.error(error)
-    res.status(500).json({ message: 'Error fetching group activity' })
   }
+  next()
 }
 
 /**
@@ -203,6 +214,10 @@ exports.getGroupActivity = async (req, res, next) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getGroupJoinedActivity = async (req, res, next) => {
+  if (res.locals.cached) {
+    return next()
+  }
+
   const { userEmail } = req.body
 
   try {
@@ -210,12 +225,14 @@ exports.getGroupJoinedActivity = async (req, res, next) => {
     const allActivities = await groupsService.getJoinGroupsLogs({
       userEmail,
     })
+
     res.locals.data = allActivities
-    next()
   } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: 'Error fetching group joined activity' }
     logger.error(error)
-    res.status(500).json({ message: 'Error fetching group joined activity' })
   }
+  next()
 }
 
 /**
@@ -229,6 +246,10 @@ exports.getGroupJoinedActivity = async (req, res, next) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getNestedMembership = async (req, res, next) => {
+  if (res.locals.cached) {
+    return next()
+  }
+
   const { userEmail, queryEmail } = req.body
 
   try {
@@ -239,11 +260,12 @@ exports.getNestedMembership = async (req, res, next) => {
     //Return the data with group membership details
     //res.status(200).json(nestedTable)
     res.locals.data = nestedTable
-    next()
   } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: 'Error fetching nested membership' }
     logger.error(error)
-    res.status(500).json({ message: 'Error fetching nested membership' })
   }
+  next()
 }
 
 /**
@@ -263,6 +285,10 @@ exports.getNestedMembership = async (req, res, next) => {
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getGroupHierarchy = async (req, res, next) => {
+  if (res.locals.cached) {
+    return next()
+  }
+
   const { userEmail, queryEmail } = req.body
 
   try {
@@ -279,11 +305,12 @@ exports.getGroupHierarchy = async (req, res, next) => {
     } else {
       res.locals.data = groupHierarchy
     }
-    next()
   } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: 'Error fetching hierarchy' }
     logger.error(error)
-    res.status(500).json({ message: 'Error fetching hierarchy' })
   }
+  next()
 }
 
 /**
@@ -300,6 +327,10 @@ exports.getGroupHierarchy = async (req, res, next) => {
  * @throws {Error} - Throws an error if there is an issue with the API call.
  */
 exports.listGroupsMembersInExportFormat = async (req, res, next) => {
+  if (res.locals.cached) {
+    return next()
+  }
+
   const { userEmail, groups } = req.body
 
   try {
@@ -309,11 +340,12 @@ exports.listGroupsMembersInExportFormat = async (req, res, next) => {
     })
 
     res.locals.data = members
-    next()
   } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: 'Error creating member lists in CSV format' }
     logger.error(error)
-    res.status(500).json({ message: 'Error creating member lists in CSV format' })
   }
+  next()
 }
 
 /**
