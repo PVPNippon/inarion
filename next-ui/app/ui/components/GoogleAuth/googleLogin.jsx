@@ -30,6 +30,9 @@ const GoogleLoginButton = () => {
           console.log('Token:', token)
           newWindow.close()
 
+          // Saving the token in localStorage (for now)
+          //TODO: This is temporary, we need to store the token in Redis
+          localStorage.setItem('jwtToken', token)
           // Step 4: Validate the token on the backend
           const isValid = await validateToken(token)
 

@@ -30,7 +30,7 @@ function rsaEncrypt(data, publicKeyPem) {
   return forge.util.encode64(encrypted) // Return Base64-encoded encrypted data
 }
 
-export async function apiCall(url, data) {
+export async function apiCall(url, data, method) {
   console.log('_______________')
   const preparedData = JSON.stringify(data)
   console.log(preparedData)
@@ -43,22 +43,31 @@ export async function apiCall(url, data) {
   // Step 4: Encrypt the AES Key and IV with RSA
   const encryptedAESKey = rsaEncrypt(aesKey, publicKey)
   const encryptedIV = rsaEncrypt(iv, publicKey)
-  // const response = await axios.post(`${API_BASE_URL}/encryption/decryptPayloadForServer`, {
-  //   encryptedAESKey,
-  //   encryptedIV,
-  //   payload: encryptedPayload,
-  // })
 
-  // const response = await axios.post(`${API_BASE_URL}/api/groups/list`, {
-  //   encryptedAESKey,
-  //   encryptedIV,
-  //   payload: encryptedPayload,
-  // })
-  const response = await axios.post(`${API_BASE_URL}${url}`, {
-    encryptedAESKey,
-    encryptedIV,
-    payload: encryptedPayload,
-  })
+  //Getting the jwtToken from localstorage, this is temporary
+  //TODO: The jwtToken will be fetched from Redis
+  const token = localStorage.getItem('jwtToken')
+  let response
+  if (method == 'POST') {
+    response = await axios.post(
+      `${API_BASE_URL}${url}`,
+      {
+        encryptedAESKey,
+        encryptedIV,
+        payload: encryptedPayload,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`, // Pass the token in the Authorization header
+        },
+      }
+    )
+  }
+  //If not POST Then fallback to GET
+  //Can add other method types here as well
+  else {
+    //TODO: Add the GET method here
+  }
 
   console.log('Server Response:', response.data)
   return response

@@ -2,6 +2,7 @@ const logger = require('../logger/logger')(__filename, 'Groups')
 const groupsService = require('../services/groupsService')
 const { getNestedTable, getHierarchy } = require('../services/nestedGroupsService')
 const { decryptPayloadForServer, decryptPayloadFromClient } = require('./crypto/cryptoMiddleware')
+const { validateJWTMiddleware } = require('./googleAuthController')
 
 /**
  * Retrieves the list of all groups in the organization.
@@ -14,7 +15,6 @@ const { decryptPayloadForServer, decryptPayloadFromClient } = require('./crypto/
  */
 exports.listAllGroups = async (req, res, next) => {
   const { userEmail } = req.body
-
   try {
     // Get an array with all organization's groups
     const groups = await groupsService.listGroups({

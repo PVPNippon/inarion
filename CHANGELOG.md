@@ -15,6 +15,28 @@ Ensure the following files are up-to-date:
 
 ## Breaking Changes
 
+### January 16, 2025 - Login Changes
+
+**Summary**:
+
+- Removed old Login System
+- Fixed Project Name for the client in the project
+
+**Impact**:
+
+- Removed email address and project fields from Login Page
+- Added project name to .env
+
+**Steps to Resolve**:
+
+- While loggin in, just click on Login With Google
+- The email address will be retrieved automatically from the logged in Workspace Admin account trying to log in
+- The project name will be retrieved automatically from the .env variable PROJECT_NAME
+- Make sure the project name in the .env is the one you want to use
+- As of now, we are using PROJECT_NAME=new-proj
+
+---
+
 ### December 24, 2024 - Crypto Changes
 
 **Summary**:
