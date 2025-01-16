@@ -197,40 +197,43 @@ function overwriteHash(key, hashObj, ttl) {
   return multi.exec()
 }
 
-// TODO (r.hidaka): Consider splitting this function into 2 (getJson(key) and getJsons(keys)).
 /**
- * Retrieves JSON object(s) associated with `keys` from Redis.
+ * Retrieves a JSON object associated with `key` from Redis.
  *
- * @param {Array<string>|string} keys - The key(s) associated with the hash to retrieve.
- *   It should be either (A) an array or (B) a string.
- * @returns {Promise<Array<Object|null>|Object|null>} A Promise object which resolves to the JSON object(s) associated with `keys`.
- *   (A) The returned Promise object resolves to an array (let's call it `values`) whose length is the same as that of `keys`.
- *       So if `keys` is empty ([]), `values` is also empty.
- *       If `keys` is not empty, for each 0 <= i < keys.length, values[i] is:
- *       - A JSON object associated with keys[i].
- *       - null if keys[i] does not exist, or it exists but the data associated with it is not a JSON.
- *   (B) This function assumes that `keys` is a string, and returns a Promise object which resolves to:
- *       - A JSON object associated with `keys`.
- *       - `null` if `keys` does not exist.
+ * @param {string} key - The key associated with the JSON object to retrieve.
+ * @returns {Promise<Object|null>} A Promise object which resolves to:
+ *   - A JSON object associated with `key`.
+ *   - `null` if `key` does not exist.
  * @throws {Error} The returned Promise object resolves to an error if:
+ *   - `key` is not a string.
+ *   - `key` is a string and exists but the data associated with it is not a JSON.
+ * @see {@link https://redis.io/docs/latest/commands/json.get/}
+ */
+function getJson(key) {
+  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
+  return redisClient.json.get(key)
+}
+
+/**
+ * Retrieves JSON objects associated with `keys` from Redis.
+ *
+ * @param {Array<string>} keys - The keys associated with the JSON objects to retrieve.
+ * @returns {Promise<Array<Object|null>|null>} A Promise object which resolves to an array (let's call it `values`) whose length is the same as that of `keys`.
+ *   So if `keys` is empty (`[]`), `values` is also empty.
+ *   If `keys` is not empty, for each `0 <= i < keys.length`, `values[i]` is:
+ *   - A JSON object associated with `keys[i]`.
+ *   - `null` if `keys[i]` does not exist, or it exists but the data associated with it is not a JSON.
+ * @throws {Error} The returned Promise object resolves to an error if:
+ *   - `keys` is not an array.
  *   - `keys` is an array which has a non-string element.
- *   - `keys` is a string and exists but the data associated with it is not a JSON.
- *   - `keys` is not an array or a string.
- * @see {@link https://redis.io/docs/latest/commands/json.mget/},
- *      {@link https://redis.io/docs/latest/commands/json.get/}
+ * @see {@link https://redis.io/docs/latest/commands/json.mget/}
  */
 function getJsons(keys) {
-  // (A)
-  if (Array.isArray(keys)) {
-    if (keys.length === 0) {
-      return Promise.resolve([])
-    }
-
-    return redisClient.json.mGet(keys, '$').then(rawJsons => rawJsons.flat())
+  // TODO (r.hidaka): VALIDATION: `keys` should be an array of non-empty strings
+  if (keys.length === 0) {
+    return Promise.resolve([])
   }
-
-  // (B)
-  return redisClient.json.get(keys)
+  return redisClient.json.mGet(keys, '$').then(rawJsons => rawJsons.flat())
 }
 
 /**
@@ -448,7 +451,7 @@ module.exports = {
   // setHashes,
   // overwriteHashes,
 
-  // getJson,
+  getJson,
   getJsons,
   setJson,
   setJsons,

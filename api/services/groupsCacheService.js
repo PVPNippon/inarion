@@ -156,12 +156,12 @@ function overwriteIds(emailsToIdsObj) {
  * 
  * @param {string} groupId - The ID of the group to retrieve.
  * @returns {Promise<Object|null>} A Promise object which resolves to the group instance if found, or null if not found.
- * @see {@link cacheService.getJsons|getJsons}
+ * @see {@link cacheService.getJson|getJson}
  */
 function getGroupById(groupId) {
   // TODO (r.hidaka): VALIDATION: `groupId` should be a non-empty string.
   const key = `${process.env.DOMAIN}:groups:${groupId}:info`
-  return cacheService.getJsons(key)
+  return cacheService.getJson(key)
 }
 
 /**
