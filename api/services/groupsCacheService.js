@@ -186,124 +186,6 @@ function getGroupsByIds(groupIds) {
 }
 
 /**
- * Retrieves a {@link https://developers.google.com/admin-sdk/directory/reference/rest/v1/groups#resource:-group|group instance} by its email address from the cache.
- * 
- * @param {string} email - The email address of the group to retrieve.
- * @returns {Promise<Object|null>} A Promise object which resolves to:
- *   - The group instance if the ID corresponding to `email` is found in the cache and it is not 'NEGATIVE_CACHE', 
- *     and the instance of the group which has the ID is found in cache.
- *   - `null` if the ID corresponding to `email` is not found in the cache,
- *     or the ID is found in the cache but the instance of the group which has the ID is not found in cache.
- *   - An empty object ({}) if the ID corresponding to `email` is found in the cache, but it is 'NEGATIVE_CACHE'.
- *     // TODO (r.hidaka): Consider throwing an error instead in this case
- * @see {@link getId}, {@link getGroupById}
- */
-async function getGroup(email) {
-  // TODO (r.hidaka): VALIDATION: `email` should be a string in an email address format
-
-  // Fetch the group ID using the group email
-  const id = await getId(email)
-
-  // Return null if the group ID is not found in the cache
-  if (id === null) {
-    return null
-  }
-
-  // Return an empty object if the ID corresponding to `email` is found in the cache, but it is 'NEGATIVE_CACHE'
-  // The name 'NEGATIVE_CACHE' is temporary and may be changed
-  // TODO (r.hidaka): Consider throwing an error instead
-  if (id === 'NEGATIVE_CACHE') {
-    return {}
-  }
-
-  // Fetch and return the group instance using the group ID
-  const group = await getGroupById(id)
-
-  return group
-}
-
-/**
- * Retrieves an array of {@link https://developers.google.com/admin-sdk/directory/reference/rest/v1/groups#resource:-group|group instances}
- * by their email addresses from the cache.
- * 
- * @param {Array<string>} emails - An array of email addresses of the groups to retrieve.
- * @returns {Promise<Array<Object|null>>} A Promise object which resolves to an array (let's call it `groups`) whose length is the same as that of `emails`.
- *   So if `emails` is empty ([]), `groups` is also empty.
- *   If `emails` is not empty, for each `0 <= i < emails.length`, `groups[i]` is:
- *   - The group instance if the ID corresponding to `emails[i]` is found in the cache and it is not 'NEGATIVE_CACHE', 
- *     and the instance of the group which has the ID is also found in cache.
- *   - `null` if the ID corresponding to `emails[i]` is not found in the cache,
- *     or the ID is found in the cache but the instance of the group which has the ID is not found in cache.
- *   - An empty object ({}) if the ID corresponding to `emails[i]` is found in the cache, but it is 'NEGATIVE_CACHE'.
- *     // TODO (r.hidaka): Consider throwing an error instead in this case
- * @see {@link getIds}, {@link getGroupsByIds}
- */
-async function getGroups(emails) {
-  // TODO (r.hidaka): VALIDATION: `emails` should be an array of strings in an email address format
-
-  const rawIds = await getIds(emails)
-
-  // `rawIds` may contain `null` or 'NEGATIVE_CACHE', so remove them before retrieving group instances from the cache
-  // The name 'NEGATIVE_CACHE' is temporary and may be changed
-  const ids = rawIds.filter(rawId => rawId !== null && rawId !== 'NEGATIVE_CACHE')
-
-  // This array may contain `null` if a group ID in `ids` does not have a corresponding group instance in the cache
-  // But that case should not happen because a group ID is stored in the cache along with its corresponding group instance
-  const rawGroups = await getGroupsByIds(ids)
-
-  let idx = 0
-  const groups = rawIds.map(rawId => {
-    if (rawId ===  null) {
-      return null
-    }
-
-    // TODO (r.hidaka): Consider throwing an error instead
-    if (rawId === 'NEGATIVE_CACHE') {
-      return {}
-    }
-
-    return rawGroups[idx++]
-  })
-
-  return groups
-}
-
-/**
- * Retrieves an array of all {@link https://developers.google.com/admin-sdk/directory/reference/rest/v1/groups#resource:-group|group instances} stored in the cache.
- *
- * If `requiresAllGroupsListedBefore` is true, the function checks whether the cache contains all groups previously listed.
- * 
- * @param {boolean} [requiresAllGroupsListedBefore=false] - Indicates whether to return null if not all groups were listed before.
- *   // TODO (r.hidaka): Come up with a better name for this parameter
- * @returns {Promise<Array<string>|null>} A Promise object that resolves to:
- *   - An array of all group instances in the cache.
- *     It is empty ([]) if all groups were listed before and only negative cache entries are in the cache,
- *     or all group IDs in the cache do not have corresponding group instances in the cache.
- *     // The latter case should not happen because a group ID is stored in the cache along with its corresponding group instance
- *   - `null` if and only if `getAllGroupIds(requiresAllGroupsListedBefore)` resolves to null, that is,
- *     if (A) no group IDs are in the cache,
- *     or (B) `requiresAllGroupsListedBefore` is true and all groups were not listed before,
- *     or (C) all groups were not listed before and only negative cache entries are in the cache.
- * @see {@link getAllIds}, {@link getGroupsByIds}
- */
-async function getAllGroups(requiresAllGroupsListedBefore = false) {
-  const ids = await getAllIds(requiresAllGroupsListedBefore)
-
-  if (ids === null) {
-    return null
-  }
-
-  const rawGroups = await getGroupsByIds(ids)
-
-  // If ids[i] (0 <= i < ids.length) does not have a corresponding group instance in the cache, rawGroups[i] will be null
-  // But that case should not happen because a group ID is stored in the cache along with its corresponding group instance
-  // Remove nulls from rawGroups just in case anyway
-  const groups = rawGroups.filter(rawGroup => rawGroup !== null)
-
-  return groups
-}
-
-/**
  * Stores a {@link https://developers.google.com/admin-sdk/directory/reference/rest/v1/groups#resource:-group|group instance} in the cache.
  * 
  * The group instance is stored with a key of `<DOMAIN>:groups:<id>:info` and a TTL where `<id>` is the group ID.
@@ -367,38 +249,9 @@ async function getMembersById(id) {
     return null
   }
 
-  delete rawMembersObj['membersCount']
+  delete rawMembersObj['MEMBERS_COUNT']
 
   const members = Object.values(rawMembersObj).map(rawMember => JSON.parse(rawMember))
-
-  return members
-}
-
-/**
- * Retrieves an array of members of the group with the given email address from the cache.
- * 
- * @param {string} email - The email address of the group to retrieve the members of.
- * @returns {Promise<Array<Object>|null>} A Promise object which resolves to:
- *   - An array of members of the group if found in the cache.
- *     It is empty ([]) if either the group has no members or the group ID corresponding to `email` is 'NEGATIVE_CACHE'.
- *   - `null` if (A) the group ID corresponding to `email` is not found in the cache,
- *     or (B) the group ID is found in the cache but the members of the group which has the ID is not found in cache.
- * @see {@link getId}, {@link getMembersById}
- */
-async function getMembers(email) {
-  // TODO (r.hidaka): VALIDATION: `email` should be a string in an email address format
-
-  const id = await getId(email)
-
-  if (id === null) {
-    return null
-  }
-
-  if (id === 'NEGATIVE_CACHE') {
-    return []
-  }
-
-  const members = await getMembersById(id)
 
   return members
 }
@@ -419,7 +272,7 @@ async function getMembers(email) {
  *   a new hash of the following object is associated with the key (`N = members.length`):
  *   ```
  *   {
- *     membersCount: `${members.length}`,
+ *     MEMBERS_COUNT: `${members.length}`,
  *     members[0].id: JSON.stringify(members[0]),
  *     members[1].id: JSON.stringify(members[1]),
  *     ...,
@@ -436,11 +289,11 @@ async function getMembers(email) {
 function setMembersById(id, members) {
   const key = `${process.env.DOMAIN}:groups:${id}:members`
 
-  // Without the `membersCount` field, the member information of a group with 0 members cannot be stored in the cache
+  // Without the `MEMBERS_COUNT` field, the member information of a group with 0 members cannot be stored in the cache
   // as an empty object cannot be stored in the cache in the form of a hash
   // There may be a better solution to deal with a group with 0 members
   const idsToMembersObj = {
-    'membersCount': `${members.length}`
+    'MEMBERS_COUNT': `${members.length}`
   }
   members.forEach(member => idsToMembersObj[member.id] = JSON.stringify(member))
 
@@ -463,7 +316,7 @@ function setMembersById(id, members) {
  *   The hash to be associated with the key `<DOMAIN>:groups:<id>:members` is the following object (`N = members.length`):
  *   ```
  *   {
- *     membersCount: `${members.length}`,
+ *     MEMBERS_COUNT: `${members.length}`,
  *     members[0].id: JSON.stringify(members[0]),
  *     members[1].id: JSON.stringify(members[1]),
  *     ...,
@@ -479,11 +332,11 @@ function setMembersById(id, members) {
 function overwriteMembersById(id, members) {
   const key = `${process.env.DOMAIN}:groups:${id}:members`
 
-  // Without the `membersCount` field, the member information of a group with 0 members cannot be stored in the cache
+  // Without the `MEMBERS_COUNT` field, the member information of a group with 0 members cannot be stored in the cache
   // as an empty object cannot be stored in the cache in the form of a hash
   // There may be a better solution to deal with a group with 0 members
   const idsToMembersObj = {
-    'membersCount': `${members.length}`
+    'MEMBERS_COUNT': `${members.length}`
   }
   members.forEach(member => idsToMembersObj[member.id] = JSON.stringify(member))
 
@@ -491,10 +344,6 @@ function overwriteMembersById(id, members) {
 
   return cacheService.overwriteHash(key, idsToMembersObj, ttl)
 }
-
-function setMembers(email, members) {}
-
-function overwriteMembers(email, members) {}
 
 /**
  * Retrieves an array of descendants (all direct and indirect members) of the group with the given group ID from the cache.
@@ -513,38 +362,9 @@ async function getDescendantsById(id) {
     return null
   }
 
-  delete rawDescendantsObj['descendantsCount']
+  delete rawDescendantsObj['DESCENDANTS_COUNT']
 
   const descendants = Object.values(rawDescendantsObj).map(rawDescendant => JSON.parse(rawDescendant))
-
-  return descendants
-}
-
-/**
- * Retrieves an array of descendants (all direct and indirect members) of the group with the given email address from the cache.
- * 
- * @param {string} email - The email address of the group to retrieve the descendants of.
- * @returns {Promise<Array<Object>|null>} A Promise object which resolves to:
- *   - An array of descendants of the group if found in the cache.
- *     It is empty ([]) if either the group has no descendants or the group ID corresponding to `email` is 'NEGATIVE_CACHE'.
- *   - `null` if (A) the group ID corresponding to `email` is not found in the cache,
- *     or (B) the group ID is found in the cache but the descendants of the group which has the ID is not found in cache.
- * @see {@link getId}, {@link getDescendantsById}
- */
-async function getDescendants(email) {
-  // TODO (r.hidaka): VALIDATION: `email` should be a string in an email address format
-
-  const id = await getId(email)
-
-  if (id === null) {
-    return null
-  }
-
-  if (id === 'NEGATIVE_CACHE') {
-    return []
-  }
-
-  const descendants = await getDescendantsById(id)
 
   return descendants
 }
@@ -565,7 +385,7 @@ async function getDescendants(email) {
  *   a new hash of the following object is associated with the key (`N = descendants.length`):
  *   ```
  *   {
- *     descendantsCount: `${descendants.length}`,
+ *     DESCENDANTS_COUNT: `${descendants.length}`,
  *     descendants[0].id: JSON.stringify(descendants[0]),
  *     descendants[1].id: JSON.stringify(descendants[1]),
  *     ...,
@@ -583,7 +403,7 @@ function setDescendantsById(id, descendants) {
   const key = `${process.env.DOMAIN}:groups:${id}:descendants`
 
   const idsToDescendantsObj = {
-    'descendantsCount': `${descendants.length}`
+    'DESCENDANTS_COUNT': `${descendants.length}`
   }
   descendants.forEach(descendant => idsToDescendantsObj[descendant.id] = JSON.stringify(descendant))
 
@@ -607,7 +427,7 @@ function setDescendantsById(id, descendants) {
  *   The hash to be associated with the key `<DOMAIN>:groups:<id>:descendants` is the following object (`N = descendants.length`):
  *   ```
  *   {
- *     descendantsCount: `${descendants.length}`,
+ *     DESCENDANTS_COUNT: `${descendants.length}`,
  *     descendants[0].id: JSON.stringify(descendants[0]),
  *     descendants[1].id: JSON.stringify(descendants[1]),
  *     ...,
@@ -624,7 +444,7 @@ function overwriteDescendantsById(id, descendants) {
   const key = `${process.env.DOMAIN}:groups:${id}:descendants`
 
   const idsToDescendantsObj = {
-    'descendantsCount': `${descendants.length}`
+    'DESCENDANTS_COUNT': `${descendants.length}`
   }
   descendants.forEach(descendant => idsToDescendantsObj[descendant.id] = JSON.stringify(descendant))
 
@@ -633,29 +453,20 @@ function overwriteDescendantsById(id, descendants) {
   return cacheService.overwriteHash(key, idsToDescendantsObj, ttl)
 }
 
-function setDescendants(email, descendants) {}
-
-function overwriteDescendants(email, descendants) {}
-
-
+// TODO (r.hidaka): Implement this after creating a corresponding controller
 function getParentsById(id) {
 
 }
 
-function getParents(email) {
-
-}
+// TODO (r.hidaka): Implement this after creating a corresponding controller
 function setParentsById(id, parents) {
 
 }
 
+// TODO (r.hidaka): Implement this after creating a corresponding controller
 function overwriteParentsById(id, parents) {
 
 }
-
-function setParents(email, parents) {}
-
-function overwriteParents(email, parents) {}
 
 /**
  * Retrieves the settings of the group with the given group ID from the cache.
@@ -668,36 +479,6 @@ function overwriteParents(email, parents) {}
 function getSettingsById(id) {
   const key = `${process.env.DOMAIN}:groups:${id}:settings`
   return cacheService.getHash(key)
-}
-
-/**
- * Retrieves the settings of a group by its email address from the cache.
- * 
- * @param {string} email - The email address of the group to retrieve the settings for.
- * @returns {Promise<Object|null>} A Promise object which resolves to:
- *   - The settings of the group if the ID corresponding to `email` is found in the cache, and it is not 'NEGATIVE_CACHE',
- *     and the settings of the group which has the ID are also found in the cache.
- *     It is empty ({}) if and only if the ID corresponding to `email` is 'NEGATIVE_CACHE'.
- *   - `null` if (A) the group ID corresponding to `email` is not found in the cache,
- *     or (B) the group ID is found in the cache and it is not 'NEGATIVE_CACHE', but the settings of the group which has the ID is not found in cache.
- * @see {@link getId}, {@link getSettingsById}
- */
-async function getSettings(email) {
-  // TODO (r.hidaka): VALIDATION: `email` should be a string in an email address format
-
-  const id = await getId(email)
-
-  if (id === null) {
-    return null
-  }
-
-  if (id === 'NEGATIVE_CACHE') {
-    return {}
-  }
-
-  const settings = await getSettingsById(id)
-
-  return settings
 }
 
 /**
@@ -752,10 +533,6 @@ function overwriteSettingsById(id, settings) {
   return cacheService.overwriteHash(key, settings, ttl)
 }
 
-function setSettings(email, settings) {}
-
-function overwriteSettings(email, settings) {}
-
 module.exports = {
   /* Group IDs */
   getId,
@@ -767,24 +544,22 @@ module.exports = {
   /* Group Instances */
   getGroupById,
   getGroupsByIds,
-  // getGroup,
-  // getGroups,
-  // getAllGroups,
   setGroup,
   setGroups,
 
   /* Group Members */
   getMembersById,
-  // getMembers,
   overwriteMembersById,
 
   /* Group Descendants */
   getDescendantsById,
-  getDescendants,
   overwriteDescendantsById,
+
+  /* Group Parents */
+  // getParentsById,
+  // overwriteParentsById,
   
   /* Group Settings */
   getSettingsById,
-  // getSettings,
   setSettingsById,
 }
