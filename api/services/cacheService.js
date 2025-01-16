@@ -5,17 +5,9 @@ const logger = require('../logger/logger.js')(__filename)
  * Retrieves the entire hash associated with `key` from Redis.
  *
  * @param {string} key - The key associated with the hash to retrieve.
- * @returns {Promise<Object.<string, string>|null>} A Promise object which resolves to the hash associated with `key`.
- *   The hash is an object in the following format:
- *   ```
- *   {
- *     field_1: 'value_1',
- *     field_2: 'value_2',
- *     ...,
- *     field_N: 'value_N'
- *   }
- *   ```
- *   If `key` does not exist, the returned Promise object resolves to null.
+ * @returns {Promise<Object.<string, string>|null>} A Promise object which resolves to:
+ *   - A hash associated with `key`.
+ *   - `null` if `key` does not exist.
  * @throws {Error} The returned Promise object resolves to an error if:
  *   - `key` is not a string.
  *   - `key` exists but the data associated with it is not a hash.
@@ -32,7 +24,7 @@ function getHash(key) {
  *
  * @param {string} key - The key associated with the hash to retrieve fields from.
  * @returns {Promise<Array<string>>} A Promise object which resolves to an array of all fields in the hash associated with `key`.
- *   If `key` does not exist, the returned Promise object resolves to an empty array ([]).
+ *   If `key` does not exist, the returned Promise object resolves to an empty array (`[]`).
  * @throws {Error} The returned Promise object resolves to an error if:
  *   - `key` is not a string.
  *   - `key` exists but the data associated with it is not a hash.
@@ -42,57 +34,61 @@ function getAllHashFields(key) {
   return redisClient.hKeys(key)
 }
 
-// TODO (r.hidaka): Consider splitting this function into 3 (getSingleHashValue(key, field), getHashValues(key, fields), and getAllHashValues(key)).
 /**
- * Retrieves values from a hash associated with `key` from Redis.
+ * Retrieves a value `field` holds in the hash associated with `key` from Redis.
+ *
+ * @param {string} key - The key associated with the hash to retrieve a value from.
+ * @param {string} field - The field whose value to retrieve.
+ * @returns {Promise<string|null>} A Promise object which resolves to:
+ *   - A string which `field` holds in the hash associated with `key`.
+ *   - `null` if `field` is not present in the hash associated with `key`, or `key` does not exist.
+ * @throws {Error} The returned Promise object resolves to an error if:
+ *   - `key` is not a string.
+ *   - `key` exists but the data associated with it is not a hash.
+ * @see {@link https://redis.io/docs/latest/commands/hget/}
+ */
+function getHashValue(key, field) {
+  return redisClient.hGet(key, field)
+}
+
+/**
+ * Retrieves values elements of `fields` hold in the hash associated with `key` from Redis.
  *
  * @param {string} key - The key associated with the hash to retrieve values from.
- * @param {Array<string>|string} [fields] - An optional parameter specifying what values to retrieve from the hash.
- *   It should be one of (A) `undefined`, (B) an array of strings, or (C) a string.
- * @returns {Promise<Array<string|null>|string|null>} A Promise object which resolves to an array of strings, a single string, or null.
- *   (A) The returned Promise object resolves to:
- *       - An array consisting of all values in a hash associated with `key`.
- *       - An empty array ([]) if `key` does not exist.
- *
- *   (B) The returned Promise object resolves to:
- *       - An array (let's call it `values`) whose length is the same as that of `fields`.
- *         So if `fields` is empty ([]), `values` is also empty.
- *         If `fields` is not empty, for each 0 <= i < fields.length, values[i] is:
- *         -- A string which fields[i] holds in the hash associated with `key`.
- *         -- null if fields[i] is not present in the hash associated with `key`, or `key` does not exist.
- *
- *   (C) This function assumes that `fields` is a string if it is neither undefined nor an array, and returns a Promise object which resolves to:
- *       - A string which `fields` holds in the hash associated with `key`.
- *       - null if `fields` is not present in the hash associated with `key`, or `key` does not exist.
- *       
+ * @param {Array<string>} fields - An array of the fields whose values to retrieve.
+ * @returns {Promise<Array<string|null>>} A Promise object which resolves to an array (let's call it `values`) whose length is the same as that of `fields`.
+ *   So if `fields` is empty (`[]`), `values` is also empty.
+ *   If `fields` is not empty, for each `0 <= i < fields.length`, `values[i]` is:
+ *   - A string `fields[i]` holds in the hash associated with `key`.
+ *   - `null` if `fields[i]` is not present in the hash associated with `key`, or `key` does not exist.
  * @throws {Error} The returned Promise object resolves to an error if:
- *   - `key` is not a string
- *     (note that the returned Promise object resolves to an empty array if `fields` is an empty array, even if `key` is not a string).
- *   - `key` exists but the data associated with it is not a hash.
- * @see {@link https://redis.io/docs/latest/commands/hvals/},
- *      {@link https://redis.io/docs/latest/commands/hmget/},
- *      {@link https://redis.io/docs/latest/commands/hget/}
+ *   - `fields` is not empty and `key` is not a string.
+ *   - `fields` is not empty, and `key` exists but the data associated with it is not a hash.
+ * @see {@link https://redis.io/docs/latest/commands/hmget/}
  */
 function getHashValues(key, fields) {
-  // (A)
-  if (typeof fields === 'undefined') {
-    return redisClient.hVals(key)
+  // If `fields` is an empty array, hmGet(key, fields) returns a Promise object which resolves to an error.
+  // I prefer the returned Promise object to resolve to an empty array in that case.
+  if (fields.length === 0) {
+    return Promise.resolve([])
   }
+  return redisClient.hmGet(key, fields)
+}
 
-  // (B)
-  if (Array.isArray(fields)) {
-    // If `fields` is an empty array, hmGet(key, fields) returns a Promise object which resolves to an error.
-    // I prefer the returned Promise object to resolve to an empty array in that case.
-    if (fields.length === 0) {
-      return Promise.resolve([])
-    }
-
-    return redisClient.hmGet(key, fields)
-  }
-
-  // (C)
-  // Note that `fields` is neither undefined nor an array here (it is supposed to be a string).
-  return redisClient.hGet(key, fields)
+/**
+ * Retrieves all values in the hash associated with `key` from Redis.
+ *
+ * @param {string} key - The key associated with the hash to retrieve values from.
+ * @returns {Promise<Array<string>>} A Promise object which resolves to:
+ *   - An array consisting of all values in the hash associated with `key`.
+ *   - An empty array (`[]`) if `key` does not exist.
+ * @throws {Error} The returned Promise object resolves to an error if:
+ *   - `key` is not a string.
+ *   - `key` exists but the data associated with it is not a hash.
+ * @see {@link https://redis.io/docs/latest/commands/hvals/}
+ */
+function getAllHashValues(key) {
+  return redisClient.hVals(key)
 }
 
 /**
@@ -206,7 +202,7 @@ function overwriteHash(key, hashObj, ttl) {
  *   - `null` if `key` does not exist.
  * @throws {Error} The returned Promise object resolves to an error if:
  *   - `key` is not a string.
- *   - `key` is a string and exists but the data associated with it is not a JSON.
+ *   - `key` exists but the data associated with it is not a JSON.
  * @see {@link https://redis.io/docs/latest/commands/json.get/}
  */
 function getJson(key) {
@@ -444,8 +440,9 @@ module.exports = {
   getHash,
   // getHashes,
   getAllHashFields,
-  // getHashValue,
+  getHashValue,
   getHashValues,
+  getAllHashValues,
   setHash,
   overwriteHash,
   // setHashes,

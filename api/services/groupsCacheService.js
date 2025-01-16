@@ -7,13 +7,13 @@ const cacheService = require('./cacheService.js')
  * @returns {Promise<string|null>} A Promise object which resolves to:
  *   - the group ID corresponding to `email` if it is found in the cache
  *   - `null` if the group ID corresponding to `email` is not found in the cache.
- * @see {@link cacheService.getHashValues|getHashValues}
+ * @see {@link cacheService.getHashValue|getHashValue}
  */
 function getId(email) {
   // TODO (r.hidaka): VALIDATION: `email` should be a string in an email address format
 
   const key = `${process.env.DOMAIN}:groups:id`
-  return cacheService.getHashValues(key, email)
+  return cacheService.getHashValue(key, email)
 }
 
 /**
@@ -29,7 +29,6 @@ function getId(email) {
  *   If `emails` is not empty, for each `0 <= i < emails.length`, `ids[i]` is:
  *   - The group ID corresponding to `emails[i]` if it is found in the cache.
  *   - `null` if the group ID corresponding to `emails[i]` is not found in the cache.
- *   
  * @see {@link cacheService.getHashValues|getHashValues}
  */
 function getIds(emails) {
