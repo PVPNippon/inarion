@@ -17,7 +17,6 @@ exports.listAllGroups = async (req, res, next) => {
   }
 
   const { userEmail } = req.body
-
   try {
     // Get an array with all organization's groups
     const groups = await groupsService.listGroups({

@@ -17,7 +17,7 @@ import { ValueProvider } from '../ui/contexts/ValueContext'
 export default function Home() {
   return (
     <div>
-      <RegisteOrLogin></RegisteOrLogin>
+      {/* <RegisteOrLogin></RegisteOrLogin> */}
       <GoogleLoginButton></GoogleLoginButton>
     </div>
   )
