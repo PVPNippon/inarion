@@ -41,6 +41,9 @@ const GoogleLoginButton = () => {
             const decodedUser = jwtDecode(token)
             console.log('Decoded User:', decodedUser)
 
+            //Store the email in local storage
+            localStorage.setItem('email', decodedUser.email) // Replace with your token saving logicdecodedUser)
+
             // Step 6: Redirect to a protected route
             router.push('/groups')
           } else {
