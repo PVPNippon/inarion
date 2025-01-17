@@ -87,6 +87,28 @@ router.post('/hashes/:key', async (req, res) => {
   }
 })
 
+router.get('/hashes', async (req, res) => {
+  try {
+    const keys = req.query.keys
+    const response = await cacheService.getHashes(keys)
+    res.json(response)
+  } catch (error) {
+    console.log('Error getting hashes:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+router.post('/hashes', async (req, res) => {
+  try {
+    const keysToHashesObj = req.body
+    const response = await cacheService.setHashes({}, 300)
+    res.json(response)
+  } catch (error) {
+    console.log('Error setting hashes:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
 router.post('/:key', async (req, res) => {
   try {
     const key = req.params.key
