@@ -6,7 +6,14 @@ const { encryptResponseMiddleware, decryptRequestMiddleware } = require('../cont
 // TODO(m.okamoto): Will be introduced in the future when a cache service for users is created.
 
 // route to list all users in customer organization
-// According to decryptRequestMiddleware, it seems that it is not possible to decrypt a GET request.
-router.get('/', usersController.listAllUsers, encryptResponseMiddleware)
+router.get('/', usersController.listAllUsers)
+
+// decryptRequestMiddleware is not applicable to GET requests, so GET requests should be written above this.
+router.use(decryptRequestMiddleware)
+
+// Route to turn off 2sv for multiple users
+router.post('/2sv-off', usersController.turnOffTwoSVForUsers)
+
+router.use(encryptResponseMiddleware)
 
 module.exports = router
