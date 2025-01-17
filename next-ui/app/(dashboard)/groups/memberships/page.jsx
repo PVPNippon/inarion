@@ -5,9 +5,9 @@ import NestedGroupsLister from '../../../ui/components/NestedGroupsLister'
 function GroupsNestedMembershipPage() {
   return (
     <LoggedInUserProvider>
-      <main>
+      <div>
         <NestedGroupsLister></NestedGroupsLister>
-      </main>
+      </div>
     </LoggedInUserProvider>
   )
 }

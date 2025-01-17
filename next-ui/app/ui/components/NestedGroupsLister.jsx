@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiClient } from '@/utils/apiClient'
-import { ExternalLinkIcon } from 'lucide-react'
+import { ExternalLinkIcon, SearchIcon } from 'lucide-react'
 import { groupsStyles } from '../../(dashboard)/groups/groups-styles'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -182,10 +182,11 @@ function ErrorMessage({ message }) {
  */
 function EmptyResult() {
   return (
-    <>
+    <div className={`${groupsStyles.roundBorder} w-full`}>
+      <SearchIcon size={116} className="text-muted-foreground" />
       <h3>No hierarchy found</h3>
       <h5>The target may not be a member of any groups</h5>
-    </>
+    </div>
   )
 }
 
