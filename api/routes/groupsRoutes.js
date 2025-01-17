@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const groupsController = require('../controllers/groupsController')
+const groupsCacheMiddleware = require('../middleware/groupsCacheMiddleware')
 const { encryptResponseMiddleware, decryptRequestMiddleware } = require('../controllers/crypto/cryptoMiddleware')
 const { validateJWTMiddleware } = require('../controllers/googleAuthController')
 

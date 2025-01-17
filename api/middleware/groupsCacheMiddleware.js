@@ -146,6 +146,10 @@ async function storeGroup(req, res, next) {
     return
   }
 
+  if (res.locals.statusCode === 500) {
+    return
+  }
+
   // If the group which has `groupEmail` is not found, store negative cache in the cache
   if (res.locals.statusCode === 404) {
     try {
@@ -229,6 +233,10 @@ async function storeMembers(req, res, next) {
   next()
 
   if (res.locals.cached) {
+    return
+  }
+
+  if (res.locals.statusCode === 500) {
     return
   }
 
@@ -359,6 +367,10 @@ async function storeDescendants(req, res, next) {
     return
   }
 
+  if (res.locals.statusCode === 500) {
+    return
+  }
+
   // TODO (r.hidaka): Change this to "const groupEmail = req.params.groupEmail"
   // after refactoring groupsController.listAllMembers and its route
   const { groupEmail } = req.body
@@ -483,6 +495,10 @@ async function storeSettings(req, res, next) {
   next()
 
   if (res.locals.cached) {
+    return
+  }
+
+  if (res.locals.statusCode === 500) {
     return
   }
 
