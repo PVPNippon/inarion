@@ -413,53 +413,47 @@ exports.updateWhoCanLeaveGroup = async (req, res) => {
  * @returns {Promise<void>} - Responds with the response of the API call, or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-exports.deleteMembers = async (req, res) => {
-  const { userEmail, groupEmail, memberEmails } = req.body
-
-  // Returns Bad Request if the target group is not specified.
-  if (!groupEmail) {
-    return res.status(400).json({ message: 'groupEmail is not specified' })
-  }
-
-  // Returns Bad Request if members to be deleted are not specified.
-  if (!memberEmails || memberEmails.length === 0) {
-    return res.status(400).json({ message: 'memberEmails are not specified' })
-  }
+exports.deleteMembers = async (req, res, next) => {
+  const { userEmail } = req.query
+  const { groupEmail } = req.params
+  const { memberEmails } = req.body
 
   // Eliminate duplicate members if any.
-  const uniqueMembers = [...new Set(memberEmails)]
+  const uniqueMemberEmails = [...new Set(memberEmails)]
 
   try {
     const response = await groupsService.deleteMembersWithRateLimit({
       userEmail,
       groupEmail,
-      memberEmails: uniqueMembers,
+      memberEmails: uniqueMemberEmails,
     })
 
     if (response.undeletedMembers.length === 0) {
       // All requested members were deleted from the group successfully.
       response.message = `Deleted All requested member(s) from ${groupEmail}`
-      res.status(200).json(response)
+      res.locals.statusCode = 200
     } else if (response.deletedMembers.length > 0) {
       // Some requested members were deleted from the group successfully, but some were not.
       response.message = `${response.undeletedMembers.length} requested member(s) could not be deleted from ${groupEmail}`
-      res.status(207).json(response) // Ref for the status code: https://xexeq.jp/blogs/media/it-glossary1206
+      res.locals.statusCode = 207 // Ref for the status code: https://xexeq.jp/blogs/media/it-glossary1206
     } else {
       // No requested members were deleted from the group.
       response.message = `No members were deleted from ${groupEmail}`
 
       // If one of the status codes are in 500, the status code of the response should be 500 (Internal Server Error).
       // Otherwise it should be 400 (Bad Request).
-      const statusCode = response.undeletedMembers.some(({ statusCode }) => statusCode >= 500 && statusCode < 600)
+      res.locals.statusCode = response.undeletedMembers.some(({ statusCode }) => statusCode >= 500 && statusCode < 600)
         ? 500
         : 400
-
-      res.status(statusCode).json(response)
     }
+
+    res.locals.data = response
   } catch (error) {
     logger.error(error)
-    res.status(500).json({ message: `Error deleting members from ${groupEmail}` })
+    res.locals.statusCode = 500
+    res.locals.data = { message: `Error deleting members from ${groupEmail}` }
   }
+  next()
 }
 
 /**
