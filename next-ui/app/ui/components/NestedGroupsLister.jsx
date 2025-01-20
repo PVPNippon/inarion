@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiClient } from '@/utils/apiClient'
-import { ExternalLinkIcon, SearchIcon } from 'lucide-react'
+import { ExternalLinkIcon, SearchIcon, EyeIcon } from 'lucide-react'
 import { groupsStyles } from '../../(dashboard)/groups/groups-styles'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -19,6 +19,7 @@ function NestedGroupsLister() {
   const [isLoading, setIsLoading] = useState(false)
   const [emptyResult, setEmptyResult] = useState(false)
   const [query, setQuery] = useState('')
+  const [hiddenClass, setHiddenClass] = useState(' ')
 
   useEffect(() => {
     /**
@@ -53,6 +54,7 @@ function NestedGroupsLister() {
         if (response) {
           const responseData = JSON.parse(response)
           responseData.length === 0 ? setEmptyResult(true) : setGroupList(responseData)
+          setHiddenClass('hidden')
         }
       } catch (error) {
         setError(error)
@@ -63,18 +65,20 @@ function NestedGroupsLister() {
     fetchMembership()
   }, [query])
   return (
-    <div className="mx-8 mb-6">
+    // TODO(maria): need more testing with this height↓
+    <div style={{ height: `calc(100vh - 288px)` }} className="mx-8 mb-6">
       <p className="mb-3.5 text-2xl font-medium leading-7">Nested Group Membership</p>
       <p className=" text-lg text-muted-foreground mb-3 leading-5">View the ancestry of a group or user</p>
-      <div className={`flex text-xs gap-x-1 ${groupsStyles.secondaryTextChart5}`}>
+      <div className={`flex text-xs gap-x-1 ${groupsStyles.secondaryTextChart5} mb-3`}>
         <span>Learn how it works</span>
         {/* TODO(maria): replace the link below with the actual link */}
         <a href="http://localhost:3000/groups" target="_blank">
           <ExternalLinkIcon size={14} />
         </a>
       </div>
-      <InputForm setQuery={setQuery} />
+      <InputForm setQuery={setQuery} hiddenClass={hiddenClass} />
       {isLoading && <Loader />}
+      {!isLoading && !error && query && <TopPanel query={query} />}
       {!isLoading && !error && groupList.length > 0 && <NestedGroupsTable groups={groupList} />}
       {error && <ErrorMessage message={error.message} />}
       {emptyResult && <EmptyResult />}
@@ -94,7 +98,7 @@ export default NestedGroupsLister
  * @param {Function} setQuery - A function to update the query state with the submitted email.
  */
 
-function InputForm({ setQuery }) {
+function InputForm({ setQuery, hiddenClass }) {
   // Define the schema with Zod
   const FormSchema = z.object({
     email: z
@@ -122,7 +126,7 @@ function InputForm({ setQuery }) {
   }
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className={hiddenClass}>
         <FormField
           control={form.control}
           name="email"
@@ -130,7 +134,7 @@ function InputForm({ setQuery }) {
             <FormItem>
               <FormControl>
                 <Input
-                  className={`mt-6 text-muted-foreground ${groupsStyles.searchBarWidth}`}
+                  className={`text-muted-foreground ${groupsStyles.searchBarWidth} `}
                   type="email"
                   name="email"
                   placeholder="Enter a group or user email address"
@@ -182,10 +186,33 @@ function ErrorMessage({ message }) {
  */
 function EmptyResult() {
   return (
-    <div className={`${groupsStyles.roundBorder} w-full`}>
+    <div className={`${groupsStyles.roundBorder} w-full h-full mt-3 pb-7 flex flex-col items-center justify-center`}>
       <SearchIcon size={116} className="text-muted-foreground" />
-      <h3>No hierarchy found</h3>
-      <h5>The target may not be a member of any groups</h5>
+      <p className="text-2xl font-medium leading-10">No hierarchy found</p>
+      <p className="text-xs leading-6">The target may not be a member of any groups</p>
+    </div>
+  )
+}
+
+function TopPanel({ query }) {
+  return (
+    <div className="flex items-center justify-between">
+      <div className="py-3 px-4">
+        <span className={`text-sm py-1 px-3 ${groupsStyles.roundBorder}`}>
+          Showing nested group membership for <span className="font-semibold">{query}</span>
+        </span>
+      </div>
+
+      <div className="flex gap-x-4">
+        <Button className={`${groupsStyles.buttonPadding}`}>Analyze another group or user</Button>
+        {/* TODO(maria): the hierarchy button gets hidden completely when the screen is too small, is it ok?
+        It could be due to disabled state, needs testing when it's not disabled (no logic for that yet)
+          Maybe we could add logic to display only the eye icon when the screen is too small? */}
+        <Button className={`${groupsStyles.buttonPadding}`} disabled>
+          <EyeIcon size={20} />
+          Visualize hierarchy
+        </Button>
+      </div>
     </div>
   )
 }
