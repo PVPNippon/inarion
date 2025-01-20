@@ -52,7 +52,8 @@ exports.getGroup = async (req, res, next) => {
     return next()
   }
 
-  const { userEmail, groupEmail } = req.body
+  const { userEmail } = req.query
+  const { groupEmail } = req.params
 
   try {
     const group = await groupsService.getGroupByEmail({

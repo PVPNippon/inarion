@@ -95,9 +95,7 @@ async function storeAllGroups(req, res, next) {
  */
 async function retrieveGroup(req, res, next) {
   try {
-    // TODO (r.hidaka): Change this to "const groupEmail = req.params.groupEmail"
-    // after refactoring groupsController.getGroup and its route
-    const { groupEmail } = req.body
+    const { groupEmail } = req.params
 
     const groupId = await groupsCacheService.getId(groupEmail)
     
@@ -140,6 +138,10 @@ async function retrieveGroup(req, res, next) {
  * @param {Function} next - The next middleware function in the stack.
  */
 async function storeGroup(req, res, next) {
+  // `groupEmail` should be retrieved before calling next() because req.params is cleared after calling next()
+  // Ref: https://github.com/expressjs/express/issues/4298#issuecomment-656770286
+  const { groupEmail } = req.params
+  
   next()
 
   if (res.locals.cached) {
@@ -153,10 +155,6 @@ async function storeGroup(req, res, next) {
   // If the group which has `groupEmail` is not found, store negative cache in the cache
   if (res.locals.statusCode === 404) {
     try {
-      // TODO (r.hidaka): Change this to "const groupEmail = req.params.groupEmail"
-      // after refactoring groupsController.getGroup and its route
-      const { groupEmail } = req.body
-      
       const result = await groupsCacheService.setIds({ [groupEmail]: 'NEGATIVE_CACHE' })
       console.log('Stored negative cache in the cache:', result)
     } catch (error) {

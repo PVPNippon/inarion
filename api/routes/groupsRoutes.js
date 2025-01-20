@@ -17,7 +17,7 @@ router.get('/',
 )
 
 //route to get group by its email
-router.post('/get',
+router.get('/:groupEmail',
   groupsCacheMiddleware.retrieveGroup,
   groupsController.getGroup,
   groupsCacheMiddleware.storeGroup
