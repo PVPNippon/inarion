@@ -313,9 +313,7 @@ async function storeMembers(req, res, next) {
  */
 async function retrieveDescendants(req, res, next) {
   try {
-    // TODO (r.hidaka): Change this to "const groupEmail = req.params.groupEmail"
-    // after refactoring groupsController.listAllMembers and its route
-    const { groupEmail } = req.body
+    const { groupEmail } = req.params
 
     const groupId = await groupsCacheService.getId(groupEmail)
     
@@ -355,6 +353,10 @@ async function retrieveDescendants(req, res, next) {
  * @param {Function} next - The next middleware function in the stack.
  */
 async function storeDescendants(req, res, next) {
+  // `groupEmail` should be retrieved before calling next() because req.params is cleared after calling next()
+  // Ref: https://github.com/expressjs/express/issues/4298#issuecomment-656770286
+  const { groupEmail } = req.params
+
   next()
 
   if (res.locals.cached) {
@@ -364,10 +366,6 @@ async function storeDescendants(req, res, next) {
   if (res.locals.statusCode === 500) {
     return
   }
-
-  // TODO (r.hidaka): Change this to "const groupEmail = req.params.groupEmail"
-  // after refactoring groupsController.listAllMembers and its route
-  const { groupEmail } = req.body
 
   // If the group which has `groupEmail` cannot be fetched by the API (e.g. the group does not exist), store negative cache in the cache
   if (res.locals.statusCode === 404) {
@@ -409,9 +407,7 @@ async function storeDescendants(req, res, next) {
   let group
 
   try {
-    // TODO (r.hidaka): Change this to "const userEmail = req.query.userEmail"
-    // after refactoring groupsController.listAllMembers
-    const { userEmail } = req.body
+    const { userEmail } = req.query
     group = await groupsService.getGroupByEmail({
       userEmail,
       groupEmail

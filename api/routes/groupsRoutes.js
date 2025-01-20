@@ -31,7 +31,7 @@ router.get('/:groupEmail/members',
 )
 
 //route to list all members of a group(both direct and indirect)
-router.post('/list-all-members',
+router.get('/:groupEmail/descendants',
   groupsCacheMiddleware.retrieveDescendants,
   groupsController.listAllMembers,
   groupsCacheMiddleware.storeDescendants

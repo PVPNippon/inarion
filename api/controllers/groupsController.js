@@ -139,7 +139,8 @@ exports.listAllMembers = async (req, res, next) => {
     return next()
   }
 
-  const { userEmail, groupEmail } = req.body
+  const { userEmail } = req.query
+  const { groupEmail } = req.params
 
   try {
     const descendants = await groupsService.listGroupMembers({
