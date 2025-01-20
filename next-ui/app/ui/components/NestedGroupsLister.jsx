@@ -12,6 +12,31 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 
+/**
+ * Component for listing nested group memberships.
+ *
+ * This component allows users to view the ancestry of a group or user by querying
+ * nested group memberships. It utilizes the `LoggedInUserContext` to access the user's
+ * email and manages several states to handle loading, errors, and displaying results.
+ *
+ * States:
+ * - `groupList`: An array storing the fetched nested memberships.
+ * - `error`: A string for storing any error messages encountered during the API call.
+ * - `isLoading`: A boolean indicating if the data is currently being fetched.
+ * - `emptyResult`: A boolean indicating if no memberships were found.
+ * - `query`: A string for storing the email address being queried.
+ * - `hiddenClass`: A string for managing CSS classes based on state.
+ *
+ * Side Effects:
+ * - Uses `useEffect` to fetch nested memberships whenever the `query` changes.
+ *
+ * API:
+ * - Sends a POST request to `/api/groups/get-nested-membership` with the user's email
+ *   and the query email to retrieve the list of nested memberships.
+ *
+ * @returns {JSX.Element} The rendered component for displaying nested group memberships.
+ */
+
 function NestedGroupsLister() {
   const { email } = useContext(LoggedInUserContext)
   const [groupList, setGroupList] = useState([])
@@ -79,7 +104,7 @@ function NestedGroupsLister() {
       <InputForm setQuery={setQuery} hiddenClass={hiddenClass} />
       {isLoading && <Loader />}
       {!isLoading && !error && query && (
-        <TopPanel query={query} hiddenClass={hiddenClass} setHiddenClass={setHiddenClass} />
+        <TopPanel query={query} hiddenClass={hiddenClass} setHiddenClass={setHiddenClass} groupList={groupList} />
       )}
       {!isLoading && !error && groupList.length > 0 && <NestedGroupsTable groups={groupList} />}
       {error && <ErrorMessage message={error.message} />}
@@ -89,6 +114,32 @@ function NestedGroupsLister() {
 }
 
 export default NestedGroupsLister
+
+/**
+ * A button that is disabled when the groupList is empty.
+ * When clicked, it currently redirects to the hierarchy page just to check that the routing works.
+ * Eventually, the NestedGroupsLister will move to the main hierarchy page (which is accessible from the icon on the side panel)
+ * and the redirection link will send a request to get the hierarchy graph and open it in a separate tab.
+ */
+function HierarchyButton({ groupList }) {
+  return (
+    <Button
+      variant="outline"
+      className={`${groupsStyles.buttonPadding}`}
+      disabled={groupList && groupList.length === 0}
+      onClick={() => {
+        //I temporarily redirect to the hierarchy page just to check that the routing works
+        //Eventually, thie NestedGroupsLister will move to the main hierarhy page(which is accessible from the icon on the side panel)
+        //An the redirection link will send a request to get the hierarchy graph and open it in a separate tab
+        const url = `http://localhost:3000/groups/hierarchy`
+        window.open(url, '_blank')
+      }}
+    >
+      <EyeIcon size={20} />
+      Visualize hierarchy
+    </Button>
+  )
+}
 
 /**
  * A form component for entering an email address to query nested group memberships.
@@ -196,10 +247,24 @@ function EmptyResult() {
   )
 }
 
-function TopPanel({ query, hiddenClass, setHiddenClass }) {
+/**
+ * A component that renders a top panel displaying information about the nested group membership query.
+ *
+ * This panel includes a message showing the email address being queried and provides a button to
+ * analyze another group or user. It also includes a button to visualize the hierarchy if the group list is not empty.
+ *
+ * @param {string} query - The email address being queried for nested group memberships.
+ * @param {string} hiddenClass - A string that controls the visibility of the panel.
+ * @param {Function} setHiddenClass - A function to update the hiddenClass state.
+ * @param {Object[]} groupList - An array containing details about the group memberships.
+ *
+ * @returns {JSX.Element} A JSX element representing the top panel of the nested group membership view.
+ */
+
+function TopPanel({ query, hiddenClass, setHiddenClass, groupList }) {
   return (
     <div className={`flex items-center justify-between ${hiddenClass === 'hidden' ? '' : 'hidden'}`}>
-      <div className={`py-3 px-4 ${hiddenClass === 'hidden' ? '' : 'hidden'}`}>
+      <div className={`py-3 px-4`}>
         <span className={`text-sm py-1 px-3 ${groupsStyles.roundBorder}`}>
           Showing nested group membership for <span className="font-semibold">{query}</span>
         </span>
@@ -218,10 +283,7 @@ function TopPanel({ query, hiddenClass, setHiddenClass }) {
         {/* TODO(maria): the hierarchy button gets hidden completely when the screen is too small, is it ok?
         It could be due to disabled state, needs testing when it's not disabled (no logic for that yet)
         Maybe we could add logic to display only the eye icon when the screen is too small? */}
-        <Button className={`${groupsStyles.buttonPadding}`} disabled>
-          <EyeIcon size={20} />
-          Visualize hierarchy
-        </Button>
+        <HierarchyButton groupList={groupList} />
       </div>
     </div>
   )
