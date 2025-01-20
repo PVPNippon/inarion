@@ -97,7 +97,8 @@ exports.listDirectMembers = async (req, res, next) => {
     return next()
   }
   
-  const { userEmail, groupEmail } = req.body
+  const { userEmail } = req.query
+  const { groupEmail } = req.params
 
   try {
     const members = await groupsService.listGroupMembers({

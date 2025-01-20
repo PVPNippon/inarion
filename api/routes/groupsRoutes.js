@@ -24,7 +24,7 @@ router.get('/:groupEmail',
 )
 
 //route to list direct members of a group
-router.post('/list-direct-members',
+router.get('/:groupEmail/members',
   groupsCacheMiddleware.retrieveMembers,
   groupsController.listDirectMembers,
   groupsCacheMiddleware.storeMembers
