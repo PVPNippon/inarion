@@ -25,7 +25,6 @@ async function listGroups({ userEmail, client, query }) {
     customer: 'my_customer',
     maxResults: 200, //max allowed value
     orderBy: 'email',
-    domain: 'pvp-test-domain2.com',
   }
 
   // Add query(filter) if it exists
