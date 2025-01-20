@@ -19,7 +19,7 @@ function NestedGroupsLister() {
   const [isLoading, setIsLoading] = useState(false)
   const [emptyResult, setEmptyResult] = useState(false)
   const [query, setQuery] = useState('')
-  const [hiddenClass, setHiddenClass] = useState(' ')
+  const [hiddenClass, setHiddenClass] = useState('')
 
   useEffect(() => {
     /**
@@ -68,7 +68,7 @@ function NestedGroupsLister() {
     // TODO(maria): need more testing with this height↓
     <div style={{ height: `calc(100vh - 288px)` }} className="mx-8 mb-6">
       <p className="mb-3.5 text-2xl font-medium leading-7">Nested Group Membership</p>
-      <p className=" text-lg text-muted-foreground mb-3 leading-5">View the ancestry of a group or user</p>
+      <p className="text-lg text-muted-foreground mb-3 leading-5">View the ancestry of a group or user</p>
       <div className={`flex text-xs gap-x-1 ${groupsStyles.secondaryTextChart5} mb-3`}>
         <span>Learn how it works</span>
         {/* TODO(maria): replace the link below with the actual link */}
@@ -78,7 +78,9 @@ function NestedGroupsLister() {
       </div>
       <InputForm setQuery={setQuery} hiddenClass={hiddenClass} />
       {isLoading && <Loader />}
-      {!isLoading && !error && query && <TopPanel query={query} />}
+      {!isLoading && !error && query && (
+        <TopPanel query={query} hiddenClass={hiddenClass} setHiddenClass={setHiddenClass} />
+      )}
       {!isLoading && !error && groupList.length > 0 && <NestedGroupsTable groups={groupList} />}
       {error && <ErrorMessage message={error.message} />}
       {emptyResult && <EmptyResult />}
@@ -194,20 +196,28 @@ function EmptyResult() {
   )
 }
 
-function TopPanel({ query }) {
+function TopPanel({ query, hiddenClass, setHiddenClass }) {
   return (
-    <div className="flex items-center justify-between">
-      <div className="py-3 px-4">
+    <div className={`flex items-center justify-between ${hiddenClass === 'hidden' ? '' : 'hidden'}`}>
+      <div className={`py-3 px-4 ${hiddenClass === 'hidden' ? '' : 'hidden'}`}>
         <span className={`text-sm py-1 px-3 ${groupsStyles.roundBorder}`}>
           Showing nested group membership for <span className="font-semibold">{query}</span>
         </span>
       </div>
-
       <div className="flex gap-x-4">
-        <Button className={`${groupsStyles.buttonPadding}`}>Analyze another group or user</Button>
+        <Button
+          className={`${groupsStyles.buttonPadding}`}
+          onClick={() => {
+            if (hiddenClass === 'hidden') {
+              setHiddenClass('')
+            }
+          }}
+        >
+          Analyze another group or user
+        </Button>
         {/* TODO(maria): the hierarchy button gets hidden completely when the screen is too small, is it ok?
         It could be due to disabled state, needs testing when it's not disabled (no logic for that yet)
-          Maybe we could add logic to display only the eye icon when the screen is too small? */}
+        Maybe we could add logic to display only the eye icon when the screen is too small? */}
         <Button className={`${groupsStyles.buttonPadding}`} disabled>
           <EyeIcon size={20} />
           Visualize hierarchy
