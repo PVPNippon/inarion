@@ -10,7 +10,7 @@ router.use(validateJWTMiddleware) // Validate JWT for all routes
 router.use(decryptRequestMiddleware) // Decrypt request for all routes
 
 //route to list all groups in customer organization
-router.post('/list',
+router.get('/',
   groupsCacheMiddleware.retrieveAllGroups,
   groupsController.listAllGroups,
   groupsCacheMiddleware.storeAllGroups,
