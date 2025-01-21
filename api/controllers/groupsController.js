@@ -250,15 +250,16 @@ exports.getNestedMembership = async (req, res, next) => {
     return next()
   }
 
-  const { userEmail, queryEmail } = req.body
+  const { userEmail } = req.query
+  const { targetEmail } = req.params
 
   try {
     const nestedTable = await getNestedTable({
       userEmail,
-      queryEmail,
+      queryEmail: targetEmail,
     })
+
     //Return the data with group membership details
-    //res.status(200).json(nestedTable)
     res.locals.data = nestedTable
   } catch (error) {
     res.locals.statusCode = 500

@@ -44,7 +44,7 @@ router.get('/activities', groupsController.getGroupActivity)
 router.get('/joined-activities', groupsController.getGroupJoinedActivity)
 
 //route to get nested membership table for a member(group or user)
-router.post('/get-nested-membership', groupsController.getNestedMembership)
+router.get('/target/:targetEmail/nested-membership', groupsController.getNestedMembership)
 
 //route to get group hierarchy relative to a group(or potentially in the future a user)
 router.post('/get-hierarchy', groupsController.getGroupHierarchy)
