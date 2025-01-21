@@ -218,7 +218,7 @@ exports.getGroupJoinedActivity = async (req, res, next) => {
     return next()
   }
 
-  const { userEmail } = req.body
+  const { userEmail } = req.query
 
   try {
     //Return the list of group joined activity in customer organization

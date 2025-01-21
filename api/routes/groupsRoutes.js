@@ -41,7 +41,7 @@ router.get('/group/:groupEmail/descendants',
 router.get('/activities', groupsController.getGroupActivity)
 
 //route to get group joined activity(all "add_member" and "accept_invitation" logs for all groups in cx domain)
-router.post('/get-joined-activity', groupsController.getGroupJoinedActivity)
+router.get('/joined-activities', groupsController.getGroupJoinedActivity)
 
 //route to get nested membership table for a member(group or user)
 router.post('/get-nested-membership', groupsController.getNestedMembership)
