@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiClient } from '@/utils/apiClient'
-import { ExternalLinkIcon, SearchIcon, EyeIcon } from 'lucide-react'
+import { ExternalLinkIcon, SearchIcon, EyeIcon, Ellipsis } from 'lucide-react'
 import { groupsStyles } from '../../(dashboard)/groups/groups-styles'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -101,7 +101,7 @@ function NestedGroupsLister() {
           <ExternalLinkIcon size={14} />
         </a>
       </div>
-      <InputForm setQuery={setQuery} hiddenClass={hiddenClass} />
+      <InputForm setQuery={setQuery} hiddenClass={hiddenClass} groupList={groupList} />
       {isLoading && <Loader />}
       {!isLoading && !error && query && (
         <TopPanel query={query} hiddenClass={hiddenClass} setHiddenClass={setHiddenClass} groupList={groupList} />
@@ -129,8 +129,8 @@ function HierarchyButton({ groupList }) {
       disabled={groupList && groupList.length === 0}
       onClick={() => {
         //I temporarily redirect to the hierarchy page just to check that the routing works
-        //Eventually, thie NestedGroupsLister will move to the main hierarhy page(which is accessible from the icon on the side panel)
-        //An the redirection link will send a request to get the hierarchy graph and open it in a separate tab
+        //Eventually, the NestedGroupsLister will move to the main hierarhy page(which is accessible from the icon on the side panel)
+        //And the redirection link will send a request to get the hierarchy graph and open it in a separate tab
         const url = `http://localhost:3000/groups/hierarchy`
         window.open(url, '_blank')
       }}
@@ -151,7 +151,7 @@ function HierarchyButton({ groupList }) {
  * @param {Function} setQuery - A function to update the query state with the submitted email.
  */
 
-function InputForm({ setQuery, hiddenClass }) {
+function InputForm({ setQuery, hiddenClass, groupList }) {
   // Define the schema with Zod
   const FormSchema = z.object({
     email: z
@@ -199,9 +199,12 @@ function InputForm({ setQuery, hiddenClass }) {
             </FormItem>
           )}
         />
-        <Button className={`${groupsStyles.buttonPadding} my-6`} type="submit">
-          Go
-        </Button>
+        <div className="flex gap-x-4 my-6">
+          <Button className={`${groupsStyles.buttonPadding}`} type="submit">
+            Go
+          </Button>
+          {groupList.length > 0 && <HierarchyButton groupList={groupList} />}
+        </div>
       </form>
     </Form>
   )
@@ -265,11 +268,11 @@ function TopPanel({ query, hiddenClass, setHiddenClass, groupList }) {
   return (
     <div className={`flex items-center justify-between ${hiddenClass === 'hidden' ? '' : 'hidden'}`}>
       <div className={`py-3 px-4`}>
-        <span className={`text-sm py-1 px-3 ${groupsStyles.roundBorder}`}>
+        <span className={`text-sm my-3 py-1 px-3 ${groupsStyles.roundBorder} ${groupsStyles.thinShadow}`}>
           Showing nested group membership for <span className="font-semibold">{query}</span>
         </span>
       </div>
-      <div className="flex gap-x-4">
+      <div className="flex flex-col lg:flex-row gap-x-4">
         <Button
           className={`${groupsStyles.buttonPadding}`}
           onClick={() => {
@@ -306,26 +309,31 @@ function TopPanel({ query, hiddenClass, setHiddenClass, groupList }) {
 
 function NestedGroupsTable({ groups }) {
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-[100px]">Group</TableHead>
-          <TableHead>Inherited via</TableHead>
-          <TableHead>Membership type</TableHead>
-          <TableHead className="text-right">Join timestamp</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {groups &&
-          groups.map((group) => (
-            <TableRow key={group.email}>
-              <TableCell className="font-medium">{group.email}</TableCell>
-              <TableCell>{group.inherited}</TableCell>
-              <TableCell>{group.membership}</TableCell>
-              <TableCell className="text-right">{group.timestamp}</TableCell>
-            </TableRow>
-          ))}
-      </TableBody>
-    </Table>
+    <div className={`${groupsStyles.roundBorder} w-full mt-3 mb-7`}>
+      <Table>
+        <TableHeader>
+          <TableRow className="border-b border-input custom-shadow hover:bg-accent leading-4 text-foreground">
+            <TableHead className="text-inherit ps-9 ">Group name</TableHead>
+            <TableHead className="text-inherit">Membership type</TableHead>
+            <TableHead className="text-inherit">Inherited via</TableHead>
+            <TableHead className="text-inherit">Join timestamp</TableHead>
+            <TableHead className="text-inherit pe-2.5 ">
+              <Ellipsis size={20} />
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {groups &&
+            groups.map((group) => (
+              <TableRow className={`border-none hover:bg-accent`} key={group.email}>
+                <TableCell className={`${groupsStyles.tableRowPadding} font-normal ps-9`}>{group.email}</TableCell>
+                <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.membership}</TableCell>
+                <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.inherited}</TableCell>
+                <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.timestamp}</TableCell>
+              </TableRow>
+            ))}
+        </TableBody>
+      </Table>
+    </div>
   )
 }
