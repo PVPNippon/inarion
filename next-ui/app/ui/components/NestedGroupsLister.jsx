@@ -11,6 +11,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
+import CsvDownloadButton from 'react-json-to-csv'
 
 /**
  * Component for listing nested group memberships.
@@ -313,12 +314,18 @@ function NestedGroupsTable({ groups }) {
       <Table>
         <TableHeader>
           <TableRow className="border-b border-input custom-shadow hover:bg-accent leading-4 text-foreground">
-            <TableHead className="text-inherit ps-9 ">Group name</TableHead>
+            <TableHead className="text-inherit ps-9">Group name</TableHead>
             <TableHead className="text-inherit">Membership type</TableHead>
             <TableHead className="text-inherit">Inherited via</TableHead>
             <TableHead className="text-inherit">Join timestamp</TableHead>
-            <TableHead className="text-inherit pe-2.5 ">
-              <Ellipsis size={20} />
+            <TableHead className="text-inherit pe-2.5">
+              <CsvDownloadButton
+                data={[...groups]}
+                headers={['Group name', 'Membership type', 'Inherited via', 'Join timestamp']}
+                filename={'nested_membership'}
+              >
+                <Ellipsis size={20} />
+              </CsvDownloadButton>
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -330,6 +337,7 @@ function NestedGroupsTable({ groups }) {
                 <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.membership}</TableCell>
                 <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.inherited}</TableCell>
                 <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.timestamp}</TableCell>
+                <TableCell className={`${groupsStyles.tableRowPadding}`}> </TableCell>
               </TableRow>
             ))}
         </TableBody>
