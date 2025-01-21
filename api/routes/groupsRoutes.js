@@ -17,28 +17,28 @@ router.get('/',
 )
 
 //route to get group by its email
-router.get('/:groupEmail',
+router.get('/group/:groupEmail',
   groupsCacheMiddleware.retrieveGroup,
   groupsController.getGroup,
   groupsCacheMiddleware.storeGroup
 )
 
 //route to list direct members of a group
-router.get('/:groupEmail/members',
+router.get('/group/:groupEmail/members',
   groupsCacheMiddleware.retrieveMembers,
   groupsController.listDirectMembers,
   groupsCacheMiddleware.storeMembers
 )
 
 //route to list all members of a group(both direct and indirect)
-router.get('/:groupEmail/descendants',
+router.get('/group/:groupEmail/descendants',
   groupsCacheMiddleware.retrieveDescendants,
   groupsController.listAllMembers,
   groupsCacheMiddleware.storeDescendants
 )
 
-//route to get group activity logs(all group logs for all groups in cx domain)
-router.post('/get-activity', groupsController.getGroupActivity)
+//route to get group activity logs(all group logs for all groups in cx domain) 
+router.get('/activities', groupsController.getGroupActivity)
 
 //route to get group joined activity(all "add_member" and "accept_invitation" logs for all groups in cx domain)
 router.post('/get-joined-activity', groupsController.getGroupJoinedActivity)
@@ -59,10 +59,10 @@ router.put('/update-whocanleave',
 )
 
 //route to delete multiple members from a group
-router.delete('/:groupEmail/members', groupsController.deleteMembers)
+router.delete('/group/:groupEmail/members', groupsController.deleteMembers)
 
 //route to delete a member from multiple groups
-router.delete('/members/:memberEmail', groupsController.deleteMemberFromGroups)
+router.delete('/members/member/:memberEmail', groupsController.deleteMemberFromGroups)
 
 router.use(encryptResponseMiddleware) // Encrypt request for all routes
 

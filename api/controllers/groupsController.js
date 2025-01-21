@@ -182,7 +182,7 @@ exports.getGroupActivity = async (req, res, next) => {
     return next()
   }
 
-  const { userEmail } = req.body
+  const { userEmail } = req.query
   console.log('retrieving group activity: ', userEmail)
 
   try {
@@ -449,9 +449,9 @@ exports.deleteMembers = async (req, res, next) => {
 
     res.locals.data = response
   } catch (error) {
-    logger.error(error)
     res.locals.statusCode = 500
     res.locals.data = { message: `Error deleting members from ${groupEmail}` }
+    logger.error(error)
   }
   next()
 }
@@ -511,9 +511,9 @@ exports.deleteMemberFromGroups = async (req, res, next) => {
 
     res.locals.data = response
   } catch (error) {
-    logger.error(error)
     res.locals.statusCode = 500
     res.locals.data = { message: `Error deleting ${memberEmail} from the requested group(s)` }
+    logger.error(error)
   }
   next()
 }
