@@ -47,7 +47,7 @@ router.get('/joined-activities', groupsController.getGroupJoinedActivity)
 router.get('/target/:targetEmail/nested-membership', groupsController.getNestedMembership)
 
 //route to get group hierarchy relative to a group(or potentially in the future a user)
-router.post('/get-hierarchy', groupsController.getGroupHierarchy)
+router.get('/target/:targetEmail/hierarchy', groupsController.getGroupHierarchy)
 
 //route to list members of groups in CSV format
 router.post('/bulk-export', groupsController.listGroupsMembersInExportFormat)

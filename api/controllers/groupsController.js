@@ -290,13 +290,14 @@ exports.getGroupHierarchy = async (req, res, next) => {
     return next()
   }
 
-  const { userEmail, queryEmail } = req.body
+  const { userEmail } = req.query
+  const { targetEmail } = req.params
 
   try {
     //fetch array with nested membership and timestamps
     const groupHierarchy = await getHierarchy({
       userEmail,
-      queryEmail,
+      queryEmail: targetEmail,
     })
 
     //If there is only one node in the hierarchy, return an array
