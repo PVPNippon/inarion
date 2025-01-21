@@ -351,7 +351,7 @@ exports.listGroupsMembersInExportFormat = async (req, res, next) => {
 }
 
 /**
- * Updates group's 'whoCanLeaveGroup' setting.
+ * Updates a group's settings.
  *
  * This function takes the `userEmail`, `projectId`, `serviceAccountEmail` and `serviceAccountPrivateKey` from the request body.
  * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
@@ -363,39 +363,28 @@ exports.listGroupsMembersInExportFormat = async (req, res, next) => {
  * @returns {Promise<void>} - Responds with the response of the API call, or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-exports.updateWhoCanLeaveGroup = async (req, res) => {
-  const { userEmail, groupEmail, whoCanLeaveGroup } = req.body
-
-  if (
-    whoCanLeaveGroup !== 'ALL_MEMBERS_CAN_LEAVE' &&
-    whoCanLeaveGroup !== 'ALL_MANAGERS_CAN_LEAVE' &&
-    whoCanLeaveGroup !== 'NONE_CAN_LEAVE'
-  ) {
-    return res.status(400).json({
-      message:
-        "The value of 'whoCanLeaveGroup' must be one of 'ALL_MEMBERS_CAN_LEAVE', 'ALL_MANAGERS_CAN_LEAVE' and 'NONE_CAN_LEAVE'",
-    })
-  }
+exports.updateGroupSettings = async (req, res, next) => {
+  const { userEmail } = req.query
+  const { groupEmail } = req.params
+  const resource = req.body
 
   try {
-    const response = await groupsService.updateGroup({
+    const response = await groupsService.updateGroupSettings({
       userEmail,
       groupEmail,
-      resource: { whoCanLeaveGroup },
+      resource,
     })
 
-    if (response.status === 200) {
-      res.status(200).json({ message: `Set the 'whoCanLeaveGroup' of ${groupEmail} to ${whoCanLeaveGroup}` })
-      res.locals.groupSettings = response.data
-      next()
-    } else {
-      res.status(500).json({ message: 'The request could not be handled for some reason' })
-      // logger.debug(JSON.stringify(response, null, 2))
-    }
+    res.locals.data = response.data
   } catch (error) {
+    // If `resource` is invalid (e.g. some settings' names or values are incorrect), `error.status` will be 400
+    // Else if a group which has `groupEmail` as its email address (primary or alias) does not exist in the customer's organization, `error.status` will be 404
+    // I would set 500 as a default error status code
+    res.locals.statusCode = error.status ?? 500
+    res.locals.data = { message: 'Error updating the specified group\'s settings' }
     logger.error(error)
-    res.status(500).json({ message: "Error updating the specified group's 'whoCanLeaveGroup' setting" })
   }
+  next()
 }
 
 /**

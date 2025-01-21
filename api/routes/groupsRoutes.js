@@ -52,9 +52,9 @@ router.get('/target/:targetEmail/hierarchy', groupsController.getGroupHierarchy)
 //route to list members of groups in CSV format
 router.post('/bulk-export', groupsController.listGroupsMembersInExportFormat)
 
-//route to update the 'whoCanLeaveGroup' setting of the specified group
-router.put('/update-whocanleave',
-  groupsController.updateWhoCanLeaveGroup,
+//route to update a group's settings
+router.put('/group/:groupEmail/settings',
+  groupsController.updateGroupSettings,
   groupsCacheMiddleware.storeSettings
 )
 

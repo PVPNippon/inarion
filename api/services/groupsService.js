@@ -488,7 +488,7 @@ async function listUsers({ userEmail, client }) {
 }
 
 /**
- * Updates group info using Groups Settings API.
+ * Updates a group's settings using Groups Settings API.
  *
  * This function takes the `userEmail`, `projectId`, `resourse` and optional `client` from the argument object `params`.
  * It uses these values to make a request to the Google Groups Settings API
@@ -502,7 +502,7 @@ async function listUsers({ userEmail, client }) {
  * @returns {Promise<Object>} - A promise that resolves to the updated group info.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function updateGroup({ userEmail, groupEmail, resource, client }) {
+async function updateGroupSettings({ userEmail, groupEmail, resource, client }) {
   //Retrieve an existing impersonated auth client for GroupsSettings API or create a new one
   const groupsSettings = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'groups'))
 
@@ -816,7 +816,7 @@ module.exports = {
   getAllGroupsLogs,
   getJoinGroupsLogs,
   listMembersInExportFormat,
-  updateGroup,
+  updateGroupSettings,
   deleteMembersWithRateLimit,
   deleteMemberFromGroupsWithRateLimit,
 }

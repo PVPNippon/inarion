@@ -179,7 +179,7 @@ function getHashes(keys) {
  */
 function setHash(key, hashObj, ttl, ttlMode) {
   // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
-  // TODO (r.hidaka): VALIDATION: `hashObj` should be a non-empty object whose values are non-empty strings
+  // TODO (r.hidaka): VALIDATION: `hashObj` should be a non-empty object whose values are strings
 
   const multi = redisClient.multi()
 
