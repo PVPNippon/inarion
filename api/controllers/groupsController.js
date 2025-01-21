@@ -333,7 +333,8 @@ exports.listGroupsMembersInExportFormat = async (req, res, next) => {
     return next()
   }
 
-  const { userEmail, groups } = req.body
+  const { userEmail } = req.query
+  const { groups } = req.body
 
   try {
     const members = await groupsService.listMembersInExportFormat({

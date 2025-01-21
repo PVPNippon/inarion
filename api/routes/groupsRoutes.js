@@ -50,7 +50,7 @@ router.get('/target/:targetEmail/nested-membership', groupsController.getNestedM
 router.get('/target/:targetEmail/hierarchy', groupsController.getGroupHierarchy)
 
 //route to list members of groups in CSV format
-router.post('/bulk-export', groupsController.listGroupsMembersInExportFormat)
+router.post('/members/export', groupsController.listGroupsMembersInExportFormat)
 
 //route to update a group's settings
 router.put('/group/:groupEmail/settings',
