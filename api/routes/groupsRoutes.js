@@ -62,7 +62,7 @@ router.put('/update-whocanleave',
 router.delete('/:groupEmail/members', groupsController.deleteMembers)
 
 //route to delete a member from multiple groups
-router.delete('/delete-member-from-groups', groupsController.deleteMemberFromGroups)
+router.delete('/members/:memberEmail', groupsController.deleteMemberFromGroups)
 
 router.use(encryptResponseMiddleware) // Encrypt request for all routes
 
