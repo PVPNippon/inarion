@@ -5,13 +5,15 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiClient } from '@/utils/apiClient'
-import { ExternalLinkIcon, SearchIcon, EyeIcon, Ellipsis } from 'lucide-react'
+import { ExternalLinkIcon, SearchIcon, EyeIcon, Ellipsis, RotateCwSquare } from 'lucide-react'
 import { groupsStyles } from '../../(dashboard)/groups/groups-styles'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import CsvDownloadButton from 'react-json-to-csv'
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@radix-ui/react-hover-card'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu'
 
 /**
  * Component for listing nested group memberships.
@@ -46,6 +48,7 @@ function NestedGroupsLister() {
   const [emptyResult, setEmptyResult] = useState(false)
   const [query, setQuery] = useState('')
   const [hiddenClass, setHiddenClass] = useState('')
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   useEffect(() => {
     /**
@@ -107,7 +110,9 @@ function NestedGroupsLister() {
       {!isLoading && !error && query && (
         <TopPanel query={query} hiddenClass={hiddenClass} setHiddenClass={setHiddenClass} groupList={groupList} />
       )}
-      {!isLoading && !error && groupList.length > 0 && <NestedGroupsTable groups={groupList} />}
+      {!isLoading && !error && groupList.length > 0 && (
+        <NestedGroupsTable groups={groupList} isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+      )}
       {error && <ErrorMessage message={error.message} />}
       {emptyResult && <EmptyResult />}
     </div>
@@ -308,24 +313,44 @@ function TopPanel({ query, hiddenClass, setHiddenClass, groupList }) {
  * @returns {JSX.Element} A JSX element representing the table of nested group memberships.
  */
 
-function NestedGroupsTable({ groups }) {
+function NestedGroupsTable({ groups, isMenuOpen, setIsMenuOpen }) {
   return (
     <div className={`${groupsStyles.roundBorder} w-full mt-3 mb-7`}>
       <Table>
         <TableHeader>
-          <TableRow className="border-b border-input custom-shadow hover:bg-accent leading-4 text-foreground">
+          <TableRow className="border-b border-input custom-shadow leading-4 text-foreground">
             <TableHead className="text-inherit ps-9">Group name</TableHead>
             <TableHead className="text-inherit">Membership type</TableHead>
             <TableHead className="text-inherit">Inherited via</TableHead>
             <TableHead className="text-inherit">Join timestamp</TableHead>
             <TableHead className="text-inherit pe-2.5">
-              <CsvDownloadButton
-                data={[...groups]}
-                headers={['Group name', 'Membership type', 'Inherited via', 'Join timestamp']}
-                filename={'nested_membership'}
-              >
-                <Ellipsis size={20} />
-              </CsvDownloadButton>
+              <DropdownMenu onOpenChange={(open) => setIsMenuOpen(open)}>
+                <DropdownMenuTrigger asChild>
+                  <Ellipsis
+                    className={`cursor-pointer hover:stroke-primary active:stroke-primary focus:stroke-primary  ${
+                      isMenuOpen ? 'stroke-primary' : ''
+                    }`}
+                    size={20}
+                  />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <CsvDownloadButton
+                    data={[...groups]}
+                    headers={['Group name', 'Membership type', 'Inherited via', 'Join timestamp']}
+                    filename={'nested_membership'}
+                  >
+                    <div className={`flex items-center py-3 px-2 w-[204px]`}>
+                      <div
+                        className="flex items-center  py-1 px-2 gap-3 bg-accent rounded-md text-s w-[188px]"
+                        role="button"
+                      >
+                        <RotateCwSquare size={20} />
+                        <span>Export results</span>
+                      </div>
+                    </div>
+                  </CsvDownloadButton>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </TableHead>
           </TableRow>
         </TableHeader>
