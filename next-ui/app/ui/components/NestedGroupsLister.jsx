@@ -12,8 +12,18 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import CsvDownloadButton from 'react-json-to-csv'
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@radix-ui/react-hover-card'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogPortal,
+  DialogOverlay,
+  DialogTrigger,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogFooter,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 /**
  * Component for listing nested group memberships.
@@ -49,6 +59,7 @@ function NestedGroupsLister() {
   const [query, setQuery] = useState('')
   const [hiddenClass, setHiddenClass] = useState('')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [fileName, setFileName] = useState('')
 
   useEffect(() => {
     /**
@@ -111,7 +122,14 @@ function NestedGroupsLister() {
         <TopPanel query={query} hiddenClass={hiddenClass} setHiddenClass={setHiddenClass} groupList={groupList} />
       )}
       {!isLoading && !error && groupList.length > 0 && (
-        <NestedGroupsTable groups={groupList} isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+        <NestedGroupsTable
+          groups={groupList}
+          query={query}
+          isMenuOpen={isMenuOpen}
+          setIsMenuOpen={setIsMenuOpen}
+          fileName={fileName}
+          setFileName={setFileName}
+        />
       )}
       {error && <ErrorMessage message={error.message} />}
       {emptyResult && <EmptyResult />}
@@ -289,9 +307,6 @@ function TopPanel({ query, hiddenClass, setHiddenClass, groupList }) {
         >
           Analyze another group or user
         </Button>
-        {/* TODO(maria): the hierarchy button gets hidden completely when the screen is too small, is it ok?
-        It could be due to disabled state, needs testing when it's not disabled (no logic for that yet)
-        Maybe we could add logic to display only the eye icon when the screen is too small? */}
         <HierarchyButton groupList={groupList} />
       </div>
     </div>
@@ -313,7 +328,7 @@ function TopPanel({ query, hiddenClass, setHiddenClass, groupList }) {
  * @returns {JSX.Element} A JSX element representing the table of nested group memberships.
  */
 
-function NestedGroupsTable({ groups, isMenuOpen, setIsMenuOpen }) {
+function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName, setFileName }) {
   return (
     <div className={`${groupsStyles.roundBorder} w-full mt-3 mb-7`}>
       <Table>
@@ -333,22 +348,47 @@ function NestedGroupsTable({ groups, isMenuOpen, setIsMenuOpen }) {
                     size={20}
                   />
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <CsvDownloadButton
-                    data={[...groups]}
-                    headers={['Group name', 'Membership type', 'Inherited via', 'Join timestamp']}
-                    filename={'nested_membership'}
-                  >
-                    <div className={`flex items-center py-3 px-2 w-[204px]`}>
-                      <div
-                        className="flex items-center  py-1 px-2 gap-3 bg-accent rounded-md text-s w-[188px]"
-                        role="button"
-                      >
-                        <RotateCwSquare size={20} />
-                        <span>Export results</span>
+                <DropdownMenuContent align="start" alignOffset={-194} avoidCollisions="true" hideWhenDetached="true">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <div className={`flex items-center py-3 px-2 w-[204px]`}>
+                        <div
+                          className="flex items-center  py-1 px-2 gap-3 bg-accent rounded-md text-s w-[188px]"
+                          role="button"
+                          onClick={() => {
+                            setFileName(`memberships_for_${query}`)
+                          }}
+                        >
+                          <RotateCwSquare size={20} />
+                          <span>Export results</span>
+                        </div>
                       </div>
-                    </div>
-                  </CsvDownloadButton>
+                    </DialogTrigger>
+                    <DialogPortal>
+                      <DialogOverlay className="opacity-5" />
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Export Search Results</DialogTitle>
+                        </DialogHeader>
+                        <Input
+                          className={`text-muted-foreground`}
+                          placeholder="Add a name"
+                          value={fileName}
+                          onChange={(e) => setFileName(e.target.value)}
+                        />
+                        <DialogFooter>
+                          <CsvDownloadButton
+                            data={[...groups]}
+                            headers={['Group name', 'Membership type', 'Inherited via', 'Join timestamp']}
+                            filename={fileName}
+                          >
+                            <Button type="submit">Export</Button>
+                          </CsvDownloadButton>
+                        </DialogFooter>
+                        <DialogClose />
+                      </DialogContent>
+                    </DialogPortal>
+                  </Dialog>
                 </DropdownMenuContent>
               </DropdownMenu>
             </TableHead>
