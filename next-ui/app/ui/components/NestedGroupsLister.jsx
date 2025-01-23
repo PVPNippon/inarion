@@ -12,7 +12,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import CsvDownloadButton from 'react-json-to-csv'
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/components/ui/dropdown-menu'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import {
   Dialog,
   DialogPortal,
@@ -20,7 +20,6 @@ import {
   DialogClose,
   DialogContent,
   DialogHeader,
-  DialogFooter,
   DialogTitle,
 } from '@/components/ui/dialog'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
@@ -340,18 +339,18 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
             <TableHead className="text-inherit">Inherited via</TableHead>
             <TableHead className="text-inherit">Join timestamp</TableHead>
             <TableHead className="text-inherit pe-2.5">
-              <DropdownMenu onOpenChange={(open) => setIsMenuOpen(open)}>
-                <DropdownMenuTrigger asChild>
-                  <Ellipsis
-                    className={`cursor-pointer hover:stroke-primary active:stroke-primary focus:stroke-primary  ${
-                      isMenuOpen ? 'stroke-primary' : ''
-                    }`}
-                    size={20}
-                  />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" alignOffset={-194} avoidCollisions="true" hideWhenDetached="true">
-                  <Dialog>
-                    <DialogTrigger asChild>
+              <Dialog>
+                <DropdownMenu open={isMenuOpen} onOpenChange={(open) => setIsMenuOpen(open)}>
+                  <DropdownMenuTrigger asChild>
+                    <Ellipsis
+                      className={`cursor-pointer hover:stroke-primary active:stroke-primary focus:stroke-primary  ${
+                        isMenuOpen ? 'stroke-primary' : ''
+                      }`}
+                      size={20}
+                    />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" alignOffset={-194} avoidCollisions="true" hideWhenDetached="true">
+                    <DialogTrigger>
                       <div className={`flex items-center py-3 px-2 w-[204px]`}>
                         <div
                           className="flex items-center  py-1 px-2 gap-3 bg-accent rounded-md text-s w-[188px]"
@@ -360,61 +359,63 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                             setFileName(`memberships_for_${query}`)
                           }}
                         >
-                          <RotateCwSquare size={20} />
-                          <span>Export results</span>
+                          <DropdownMenuItem>
+                            <RotateCwSquare size={20} />
+                            <span>Export results</span>
+                          </DropdownMenuItem>
                         </div>
                       </div>
                     </DialogTrigger>
-                    <DialogPortal className="bg-white">
-                      <DialogContent className="[&>button]:hidden">
-                        <DialogHeader>
-                          <DialogTitle className="text-2xl/6">Export Nested Group Membership</DialogTitle>
-                        </DialogHeader>
-                        <p className="text-base/5">Name your export</p>
-                        <Input
-                          className="text-muted-foreground"
-                          placeholder="Add a name"
-                          value={fileName}
-                          onChange={(e) => setFileName(e.target.value)}
-                        />
-                        <p className="text-base/5">Choose a format</p>
-                        <RadioGroup defaultValue="csvFormat" className="border border-input rounded-md p-4 gap-y-4">
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="option-one" id="googlesheetFormat" disabled />
-                            <Label htmlFor="option-one" className="text-muted-foreground">
-                              Google Sheet (coming soon)
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="option-two" id="csvFormat" checked />
-                            <Label htmlFor="option-two">CSV</Label>
-                          </div>
-                        </RadioGroup>
-                        <div className="flex flex-col items-center justify-center sm:flex-row sm:justify-end sm:gap-x-4">
-                          <DialogClose asChild>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              className={`${groupsStyles.buttonPaddingWide} w-[108px]`}
-                            >
-                              Cancel
-                            </Button>
-                          </DialogClose>
-                          <CsvDownloadButton
-                            data={[...groups]}
-                            headers={['Group name', 'Membership type', 'Inherited via', 'Join timestamp']}
-                            filename={fileName === '' ? `memberships_for_${query}` : fileName}
-                          >
-                            <Button type="submit" className={`${groupsStyles.buttonPaddingWide}`}>
-                              Export
-                            </Button>
-                          </CsvDownloadButton>
-                        </div>
-                      </DialogContent>
-                    </DialogPortal>
-                  </Dialog>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <DialogPortal className="bg-white">
+                  <DialogContent className="[&>button]:hidden">
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl/6">Export Nested Group Membership</DialogTitle>
+                    </DialogHeader>
+                    <p className="text-base/5">Name your export</p>
+                    <Input
+                      className="text-muted-foreground"
+                      placeholder="Add a name"
+                      value={fileName}
+                      onChange={(e) => setFileName(e.target.value)}
+                    />
+                    <p className="text-base/5">Choose a format</p>
+                    <RadioGroup defaultValue="csvFormat" className="border border-input rounded-md p-4 gap-y-4">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="option-one" id="googlesheetFormat" disabled />
+                        <Label htmlFor="option-one" className="text-muted-foreground">
+                          Google Sheet (coming soon)
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="option-two" id="csvFormat" checked />
+                        <Label htmlFor="option-two">CSV</Label>
+                      </div>
+                    </RadioGroup>
+                    <div className="flex flex-col items-center justify-center sm:flex-row sm:justify-end sm:gap-x-4">
+                      <DialogClose asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className={`${groupsStyles.buttonPaddingWide} w-[108px]`}
+                        >
+                          Cancel
+                        </Button>
+                      </DialogClose>
+                      <CsvDownloadButton
+                        data={[...groups]}
+                        headers={['Group name', 'Membership type', 'Inherited via', 'Join timestamp']}
+                        filename={fileName === '' ? `memberships_for_${query}` : fileName}
+                      >
+                        <Button type="submit" className={`${groupsStyles.buttonPaddingWide}`}>
+                          Export
+                        </Button>
+                      </CsvDownloadButton>
+                    </div>
+                  </DialogContent>
+                </DialogPortal>
+              </Dialog>
             </TableHead>
           </TableRow>
         </TableHeader>
