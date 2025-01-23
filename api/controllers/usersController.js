@@ -14,7 +14,6 @@ const logger = require('../logger/logger')(__filename, 'Users Controller')
  * @returns {Promise<void>} - Passes control to the next middleware function.
  * @throws {Error} - Sends a 500 status code if there is an error fetching users.
  */
-
 exports.listAllUsers = async (req, res, next) => {
   // TODO(m.okamoto): Will it be possible to get the logged-in email address from Redis/session in the future?
   // Retrieve the userEmail from the query parameter
@@ -28,22 +27,24 @@ exports.listAllUsers = async (req, res, next) => {
     // Pass the list of all organization's users
     res.locals.data = users
     logger.debug('Returning list of users.')
-    next()
   } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: 'Error fetching users.' }
     logger.error(error)
-    res.status(500).json({ message: 'Error fetching users.' })
-    next()
   }
+  next()
 }
 
 /**
- * Turns off two-step verification for a specified list of users using Google Admin Directory API.
+ * Turns off two-step verification for multiple users using Google Admin Directory API, with limiting the number of concurrent API calls to prevent rate limit errors.
  *
- * This function takes the email address of the user to impersonate, an optional existing impersonated auth client,
- * and the email addresses of the users for whom to disable two-step verification. It uses these values to authorize a JWT client,
+ * This function takes the email address of the user to impersonate, and the email addresses of the users for whom to disable two-step verification. It uses these values to authorize a JWT client,
  * which it then uses to make requests to the Google Admin Directory API to turn off two-step verification for the specified users.
  *
- * @param {Object} req - The request object containing the `userEmail` in the query parameters and the `twoSVUsers` in the request body.
+ * The number of concurrent API calls is limited to 40 per "set", and this function calls the API in sets until all users are processed.
+ * If the number of users is not divisible by 40, the remaining API calls are executed separately.
+ *
+ * @param {Object} req - The request object containing the `userEmail` in the query parameters and the `twoSVUserEmails` in the request body.
  * @param {Object} res - The response object used to return the list of users for which the operation succeeded and an array of users for which the operation failed.
  * @param {Function} next - The next middleware function in the stack.
  * @returns {Promise<void>} - Passes control to the next middleware function.
@@ -54,51 +55,108 @@ exports.turnOffTwoSVForUsers = async (req, res, next) => {
   // Retrieve the userEmail from the query parameter
   const { userEmail } = req.query
 
-  const { twoSVUsers } = req.body
-
-  // Returns Bad Request if users to be turned off 2sv are not specified.
-  if (!twoSVUsers || twoSVUsers.length === 0) {
-    logger.debug('Fetched no users to be turned off 2sv.')
-    return res.status(400).json({ message: 'Users are not specified' })
-  }
+  const { twoSVUserEmails } = req.body
 
   // Eliminate duplicate members if any.
-  const uniqueTwoSVUsers = [...new Set(twoSVUsers)]
+  const uniqueTwoSVUsers = [...new Set(twoSVUserEmails)]
 
   try {
     const response = await usersService.turnOffTwoSVForUsersWithRateLimit({
       userEmail,
-      twoSVUsers: uniqueTwoSVUsers,
+      twoSVUserEmails: uniqueTwoSVUsers,
     })
 
     if (response.failedUsers.length === 0) {
       // All requested users were turned off 2sv successfully.
       logger.debug(`All ${response.succeededUsers.length} users were turned off 2sv successfully.`)
       response.message = `Turned off 2sv for All user(s) successfully.`
-      res.status(200).json(response)
+      res.locals.statusCode = 200
     } else if (response.succeededUsers.length > 0) {
       // Some requested users were turned off 2sv successfully, but some were not.
       logger.debug(
         `${response.succeededUsers.length} users were turned off 2sv and ${response.failedUsers.length} users were not.`
       )
       response.message = `${response.failedUsers.length} requested user(s) could not be turned off 2sv.`
-      res.status(207).json(response)
+      res.locals.statusCode = 207
     } else {
       // No requested users were turned off 2sv.
       logger.debug(`All ${response.failedUsers.length} users were not turned off 2sv.`)
       response.message = `No users were turned off 2sv.`
 
       // TODO(m.okamoto): I need to think about validation later.
-      const statusCode = response.failedUsers.some(({ statusCode }) => statusCode >= 500 && statusCode < 600)
+      res.locals.statusCode = response.failedUsers.some(({ statusCode }) => statusCode >= 500 && statusCode < 600)
         ? 500
         : 400
-
-      res.status(statusCode).json(response)
     }
-    next()
+
+    res.locals.data = response
   } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: `Error turning off 2sv for users.` }
     logger.error(error)
-    res.status(500).json({ message: `Error turning off 2sv for users.` })
-    next()
   }
+  next()
+}
+
+/**
+ * Deletes multiple users using Google Admin Directory API, with limiting the number of concurrent API calls to prevent rate limit errors.
+ *
+ * This function takes the email address of the user to impersonate, and the email addresses of the users to be deleted. It uses these values to authorize a JWT client,
+ * which it then uses to make requests to the Google Admin Directory API to delete the specified users.
+ *
+ * The number of concurrent API calls is limited to 40 per "set", and this function calls the API in sets until all users are processed.
+ * If the number of users is not divisible by 40, the remaining API calls are executed separately.
+ *
+ * @param {Object} req - The request object containing the `userEmail` in the query parameters and the `deleteUserEmails` in the request body.
+ * @param {Object} res - The response object used to return the list of users for which the operation succeeded and an array of users for which the operation failed.
+ * @param {Function} next - The next middleware function in the stack.
+ * @returns {Promise<void>} - Passes control to the next middleware function.
+ * @throws {Error} - Sends a 500 status code if there is an error deleting users.
+ */
+exports.deleteUsers = async (req, res, next) => {
+  // TODO(m.okamoto): Will it be possible to get the logged-in email address from Redis/session in the future?
+  // Retrieve the userEmail from the query parameter
+  const { userEmail } = req.query
+
+  const { deleteUserEmails } = req.body
+
+  // Eliminate duplicate members if any.
+  const uniqueDeleteUsers = [...new Set(deleteUserEmails)]
+
+  try {
+    const response = await usersService.deleteUsersWithRateLimit({
+      userEmail,
+      deleteUserEmails: uniqueDeleteUsers,
+    })
+
+    if (response.undeletedUsers.length === 0) {
+      // All requested users were deleted successfully.
+      logger.debug(`All ${response.deletedUsers.length} users were deleted successfully.`)
+      response.message = `Deleted All user(s) successfully.`
+      res.locals.statusCode = 200
+    } else if (response.deletedUsers.length > 0) {
+      // Some requested users were deleted successfully, but some were not.
+      logger.debug(
+        `${response.deletedUsers.length} users were deleted and ${response.undeletedUsers.length} users were not.`
+      )
+      response.message = `${response.undeletedUsers.length} requested user(s) could not be deleted.`
+      res.locals.statusCode = 207
+    } else {
+      // No requested users were deleted.
+      logger.debug(`All ${response.undeletedUsers.length} users were not deleted.`)
+      response.message = `No users were deleted.`
+
+      // TODO(m.okamoto): I need to think about validation later.
+      res.locals.statusCode = response.undeletedUsers.some(({ statusCode }) => statusCode >= 500 && statusCode < 600)
+        ? 500
+        : 400
+    }
+
+    res.locals.data = response
+  } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: `Error deleting users.` }
+    logger.error(error)
+  }
+  next()
 }

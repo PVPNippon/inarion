@@ -17,7 +17,7 @@ const logger = require('../logger/logger')(__filename, 'Users Service')
  */
 
 async function listUsers({ userEmail, client, query }) {
-  // TODO(m.okamoto): Allow filtering by domain or group in the future
+  // TODO(m.okamoto): Allow filtering by OU or domain or group in the future
   logger.debug('Reached listUsers endpoint.')
   //Retrieve an existing impersonated auth client for Directory API or create a new one
   const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
@@ -55,21 +55,21 @@ async function listUsers({ userEmail, client, query }) {
 }
 
 /**
- * Turns off two-step verification for a specified user using Google Admin Directory API.
+ * Turns off two-step verification for one user using Google Admin Directory API.
  *
  * This function takes the email address of the user to impersonate, an optional existing impersonated auth client,
  * and the email address of the user for whom to disable two-step verification. It uses these values to authorize a JWT client,
  * which it then uses to make a request to the Google Admin Directory API to turn off two-step verification for the specified user.
  *
- * @param {Object} params - The parameters needed to turn off two-step verification for a user.
+ * @param {Object} params - The parameters needed to turn off two-step verification for one user.
  * @param {string} params.userEmail - The email address of the user to impersonate.
  * @param {Object} [params.client] - An existing impersonated auth client for Directory API.
- * @param {string} params.twoSVUser - The email address of the user for whom to disable two-step verification.
- * @returns {Promise<Object>} - A promise that resolves to an object which contains the response from Google Admin Directory API.
+ * @param {string} params.twoSVUserEmail - The email address of the user for whom to disable two-step verification.
+ * @returns {Promise<Object>} - A promise that resolves to an object which contains the response from the API.
  * @throws {Error} - Throws an error if there is an issue with the API call.
  */
-async function turnOffTwoSVForUser({ userEmail, client, twoSVUser }) {
-  logger.debug('Reached turnOffTwoSVForUser endpoint.')
+async function turnOffTwoSVForUser({ userEmail, client, twoSVUserEmail }) {
+  // logger.debug('Reached turnOffTwoSVForUser endpoint.')
   //Retrieve an existing impersonated auth client for Directory API or create a new one
   const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
 
@@ -78,23 +78,23 @@ async function turnOffTwoSVForUser({ userEmail, client, twoSVUser }) {
   // Successful only if the user's parameter "isEnrolledIn2Sv" is true AND "isEnforcedIn2Sv" is false.
   // The currently known error status patterns are listed below.
   // 400
-  // - When the parameter "isEnforcedIn2Sv" of twoSVUser is true.
+  // - When the parameter "isEnforcedIn2Sv" of twoSVUserEmail is true.
   //   Original message is "2-Step Verification cannot be turned off: user is required by admin policy to have 2-Step Verification (\"enforced\")"
-  // - When the parameter "isEnrolledIn2Sv" of twoSVUser is false.
+  // - When the parameter "isEnrolledIn2Sv" of twoSVUserEmail is false.
   //   Original message is "2-Step Verification cannot be turned off: user not enrolled in 2-Step Verification"
-  // - When twoSVUser is a group outside the organization.
+  // - When twoSVUserEmail is a group outside the organization.
   //   Original message is "Type not supported: userKey"
   //
   // 403
-  // - When twoSVUser is a user outside the organization.
+  // - When twoSVUserEmail is a user outside the organization.
   //   Original message is "Not Authorized to access this resource/api"
   //
   // 404
-  // - When Google cannot find twoSVUser as a user inside the org, like group, unmanaged user, non-email string, etc.
+  // - When Google cannot find twoSVUserEmail as a user inside the org, like group, unmanaged user, non-email string, etc.
   //   Original message is "Resource Not Found: userKey"
   // otherwise it will be 500
-  const response = await directory.twoStepVerification.turnOff({ userKey: twoSVUser })
 
+  const response = await directory.twoStepVerification.turnOff({ userKey: twoSVUserEmail })
   return response
 }
 
@@ -108,12 +108,12 @@ async function turnOffTwoSVForUser({ userEmail, client, twoSVUser }) {
  * @param {Object} params - The parameters needed to turn off two-step verification for multiple users.
  * @param {string} params.userEmail - The email address of the user to impersonate.
  * @param {Object} [params.client] - An existing impersonated auth client for Directory API.
- * @param {string[]} params.twoSVUsers - The email addresses of the users for whom to disable two-step verification.
+ * @param {string[]} params.twoSVUserEmails - The email addresses of the users for whom to disable two-step verification.
  * @returns {Promise<Object>} - A promise that resolves to an object which contains two arrays, an array of users for which the operation succeeded and an array of users for which the operation failed.
  * @throws {Error} - Throws an error if there is an issue with the API call.
  */
-async function turnOffTwoSVForUsers({ userEmail, client, twoSVUsers }) {
-  // TODO(m.okamoto): Allow filtering by OU in the future because the 2sv-related config that Admin can do in admin console is always per OU.
+async function turnOffTwoSVForUsers({ userEmail, client, twoSVUserEmails }) {
+  // TODO(m.okamoto): Allow filtering by OU or group in the future because the 2sv-related config that Admin can do in admin console is always per OU or group.
   logger.debug('Reached turnOffTwoSVForUsers endpoint.')
   // Retrieve an existing impersonated auth client for Directory API or create a new one
   const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
@@ -122,23 +122,23 @@ async function turnOffTwoSVForUsers({ userEmail, client, twoSVUsers }) {
   const failedUsers = [] // Array of users for which turning off 2sv was UNsuccessful
 
   const responseArray = await Promise.allSettled(
-    twoSVUsers.map((twoSVUser) => turnOffTwoSVForUser({ client: directoryClient, twoSVUser }))
+    twoSVUserEmails.map((twoSVUserEmail) => turnOffTwoSVForUser({ client: directoryClient, twoSVUserEmail }))
   )
 
-  for (let index = 0; index < twoSVUsers.length; index++) {
-    const twoSVUser = twoSVUsers[index]
+  for (let index = 0; index < twoSVUserEmails.length; index++) {
+    const twoSVUserEmail = twoSVUserEmails[index]
 
     // If the turning off 2sv was successful, put the user email and statusCode (= 204) to the succeededUsers array.
     if (responseArray[index].status === 'fulfilled') {
       succeededUsers.push({
-        email: twoSVUser,
+        email: twoSVUserEmail,
         statusCode: responseArray[index].value.status,
       })
 
       // If the turning off 2sv failed, put the user email, statusCode and the error message to the failedUsers array.
     } else {
       failedUsers.push({
-        email: twoSVUser,
+        email: twoSVUserEmail,
         statusCode: responseArray[index].reason.status,
         errorMessage: responseArray[index].reason.message,
       })
@@ -166,7 +166,7 @@ async function turnOffTwoSVForUsers({ userEmail, client, twoSVUsers }) {
  * @returns {Promise<Object>} - A promise that resolves to an object which contains two arrays, an array of users for which the operation succeeded and an array of users for which the operation failed.
  * @throws {Error} - Throws an error if there is an issue with the API call.
  */
-async function turnOffTwoSVForUsersWithRateLimit({ userEmail, client, twoSVUsers }) {
+async function turnOffTwoSVForUsersWithRateLimit({ userEmail, client, twoSVUserEmails }) {
   logger.debug('Reached turnOffTwoSVForUsersWithRateLimit endpoint.')
   // Retrieve an existing impersonated auth client for Directory API or create a new one
   const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
@@ -176,8 +176,8 @@ async function turnOffTwoSVForUsersWithRateLimit({ userEmail, client, twoSVUsers
   // This may be integrated into middleware etc. in the future.
   const BULK_2SV_OFF_THRESHOLD = 40
 
-  const numOfBulkAPICalls = Math.floor(twoSVUsers.length / BULK_2SV_OFF_THRESHOLD) // Number of "sets" to execute API 40 times with Promise.allSettled
-  const numOfRemainingAPICalls = twoSVUsers.length % BULK_2SV_OFF_THRESHOLD // Remaining number of API executions below the set of 40
+  const numOfBulkAPICalls = Math.floor(twoSVUserEmails.length / BULK_2SV_OFF_THRESHOLD) // Number of "sets" to execute API 40 times with Promise.allSettled
+  const numOfRemainingAPICalls = twoSVUserEmails.length % BULK_2SV_OFF_THRESHOLD // Remaining number of API executions below the set of 40
 
   const succeededUsers = [] // Array of users for which turning off 2sv was successful
   const failedUsers = [] // Array of users for which turning off 2sv failed
@@ -188,7 +188,7 @@ async function turnOffTwoSVForUsersWithRateLimit({ userEmail, client, twoSVUsers
 
     const response = await turnOffTwoSVForUsers({
       client: directoryClient,
-      twoSVUsers: twoSVUsers.slice(startIndex, endIndex),
+      twoSVUserEmails: twoSVUserEmails.slice(startIndex, endIndex),
     })
 
     succeededUsers.push(...response.succeededUsers)
@@ -196,11 +196,11 @@ async function turnOffTwoSVForUsersWithRateLimit({ userEmail, client, twoSVUsers
   }
 
   if (numOfRemainingAPICalls > 0) {
-    const startIndex = twoSVUsers.length - numOfRemainingAPICalls
+    const startIndex = twoSVUserEmails.length - numOfRemainingAPICalls
 
     const response = await turnOffTwoSVForUsers({
       client: directoryClient,
-      twoSVUsers: twoSVUsers.slice(startIndex),
+      twoSVUserEmails: twoSVUserEmails.slice(startIndex),
     })
 
     succeededUsers.push(...response.succeededUsers)
@@ -210,7 +210,172 @@ async function turnOffTwoSVForUsersWithRateLimit({ userEmail, client, twoSVUsers
   return { succeededUsers, failedUsers }
 }
 
+/**
+ * Deletes a user using Google Admin Directory API.
+ *
+ * This function takes the email address of the user to impersonate, an optional existing impersonated auth client,
+ * and the email address of the user to delete. It uses these values to authorize a JWT client,
+ * which it then uses to make a request to the Google Admin Directory API to delete the specified user.
+ *
+ * @param {Object} params - The parameters needed to delete a user.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {Object} [params.client] - An existing impersonated auth client for Directory API.
+ * @param {string} params.deleteUserEmail - The email address of the user to delete.
+ * @returns {Promise<Object>} - A promise that resolves to the response from the API.
+ * @throws {Error} - Throws an error if the API call fails with status 400, 403, 404 or other issues.
+ * Status 400 indicates the user key is a group outside the organization.
+ * Status 403 indicates the user is outside the organization.
+ * Status 404 indicates the user cannot be found as a valid email or group.
+ */
+
+async function deleteUser({ userEmail, client, deleteUserEmail }) {
+  // logger.debug('Reached deleteUser endpoint.')
+  // Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+
+  //TODO(m.okamoto): Write the status codes for users.delete
+  // users.delete returns a 204 response without any messages if an user deleted successfully.
+  // The currently known error status patterns are listed below.
+  // 400
+  // - When deleteUserEmail is a group outside the organization.
+  //   Original message is "Type not supported: userKey"
+  //
+  // 403
+  // - When deleteUserEmail is an user outside the organization.
+  //   Original message is "Not Authorized to access this resource/api"
+  //
+  // 404
+  // - When Google cannot find deleteUserEmail as a user inside the org, like group, unmanaged user, non-email string, etc.
+  //   Original message is "Resource Not Found: userKey"
+  // otherwise it will be 500
+
+  const response = await directoryClient.users.delete({ userKey: deleteUserEmail })
+  return response
+}
+
+/**
+ * Deletes multiple users using the Google Admin Directory API.
+ *
+ * This function takes the email address of the user to impersonate, an optional existing impersonated auth client,
+ * and the email addresses of the users to be deleted. It uses these values to authorize a JWT client, which it then uses
+ * to make requests to delete the specified users.
+ *
+ * The function attempts to delete each user in the provided list and records the outcome for each user.
+ * If a user's deletion is successful, their email and status code are added to the `deletedUsers` array.
+ * If a user's deletion fails, their email, status code, and error message are added to the `undeletedUsers` array.
+ *
+ * @param {Object} params - The parameters needed to delete users.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {Object} [params.client] - An existing impersonated auth client for Directory API.
+ * @param {string[]} params.deleteUserEmails - The email addresses of the users to be deleted.
+ * @returns {Promise<Object>} - A promise that resolves to an object containing two arrays:
+ *                              `deletedUsers` and `undeletedUsers`, each holding details of the
+ *                              respective operation's outcome.
+ * @throws {Error} - Throws an error if there is an issue with the API call.
+ */
+
+async function deleteUsers({ userEmail, client, deleteUserEmails }) {
+  // TODO(m.okamoto): I will think about the function to raise an alert later if the user to be deleted is SA or Admin.
+  logger.debug('Reached deleteUsers endpoint.')
+  // Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+
+  const deletedUsers = [] // Array of users for which deletion was successful
+  const undeletedUsers = [] // Array of users for which deletion failed
+
+  const responseArray = await Promise.allSettled(
+    deleteUserEmails.map((deleteUserEmail) => deleteUser({ client: directoryClient, deleteUserEmail }))
+  )
+
+  for (let index = 0; index < deleteUserEmails.length; index++) {
+    const deleteUserEmail = deleteUserEmails[index]
+
+    if (responseArray[index].status === 'fulfilled') {
+      deletedUsers.push({
+        email: deleteUserEmail,
+        statuscode: responseArray[index].value.status,
+      })
+    } else {
+      undeletedUsers.push({
+        email: deleteUserEmail,
+        statuscode: responseArray[index].reason.status,
+        errorMessage: responseArray[index].reason.message,
+      })
+    }
+  }
+
+  return { deletedUsers, undeletedUsers }
+}
+
+/**
+ * Deletes multiple users using the Google Admin Directory API,
+ * with limiting the number of concurrent API calls to prevent rate limit errors.
+ *
+ * This function takes the email address of the user to impersonate, an optional existing impersonated auth client,
+ * and the email addresses of the users to be deleted. It uses these values to authorize a JWT client, which it then uses
+ * to make requests to delete the specified users.
+ *
+ * The function attempts to delete each user in the provided list and records the outcome for each user.
+ * If a user's deletion is successful, their email and status code are added to the `deletedUsers` array.
+ * If a user's deletion fails, their email, status code, and error message are added to the `undeletedUsers` array.
+ *
+ * The number of concurrent API calls is limited to 40 per "set", and this function calls the API in sets until all users are processed.
+ * If the number of users is not divisible by 40, the remaining API calls are executed separately.
+ *
+ * @param {Object} params - The parameters needed to delete users.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {Object} [params.client] - An existing impersonated auth client for Directory API.
+ * @param {string[]} params.deleteUserEmails - The email addresses of the users to be deleted.
+ * @returns {Promise<Object>} - A promise that resolves to an object containing two arrays:
+ *                              `deletedUsers` and `undeletedUsers`, each holding details of the
+ *                              respective operation's outcome.
+ * @throws {Error} - Throws an error if there is an issue with the API call.
+ */
+async function deleteUsersWithRateLimit({ userEmail, client, deleteUserEmails }) {
+  logger.debug('Reached deleteUsersWithRateLimit endpoint.')
+  // Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+
+  // Using same logic as deleteMembersWithRateLimit
+  // This may be integrated into middleware etc. in the future.
+  const BULK_DELETE_THRESHOLD = 40
+
+  const numOfBulkAPICalls = Math.floor(deleteUserEmails.length / BULK_DELETE_THRESHOLD)
+  const numOfRemainingAPICalls = deleteUserEmails.length % BULK_DELETE_THRESHOLD
+
+  const deletedUsers = [] // Array of users for which deletion was successful
+  const undeletedUsers = [] // Array of users for which deletion failed
+
+  for (let i = 0; i < numOfBulkAPICalls; i++) {
+    const startIndex = i * BULK_DELETE_THRESHOLD
+    const endIndex = startIndex + BULK_DELETE_THRESHOLD
+
+    const response = await deleteUsers({
+      client: directoryClient,
+      deleteUserEmails: deleteUserEmails.slice(startIndex, endIndex),
+    })
+
+    deletedUsers.push(...response.deletedUsers)
+    undeletedUsers.push(...response.undeletedUsers)
+  }
+
+  if (numOfRemainingAPICalls > 0) {
+    const startIndex = deleteUserEmails.length - numOfRemainingAPICalls
+
+    const response = await deleteUsers({
+      client: directoryClient,
+      deleteUserEmails: deleteUserEmails.slice(startIndex),
+    })
+
+    deletedUsers.push(...response.deletedUsers)
+    undeletedUsers.push(...response.undeletedUsers)
+  }
+
+  return { deletedUsers, undeletedUsers }
+}
+
 module.exports = {
   listUsers,
   turnOffTwoSVForUsersWithRateLimit,
+  deleteUsersWithRateLimit,
 }
