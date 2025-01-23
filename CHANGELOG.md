@@ -15,6 +15,20 @@ Ensure the following files are up-to-date:
 
 ## Breaking Changes
 
+### January 23, 2025 - Login Changes
+
+**Summary**:
+
+- Changed the HTTP methods and endpoints of group APIs (api/routes/groupsRoutes.js)
+
+**Impact**:
+
+- The corresponding FE code will not work until it is modified to use the new HTTP methods and endpoints.
+- decryptRequestMiddleware (api/controllers/crypto/cryptoMiddleware.js) will throw an error for all GET requests to the group APIs.
+  It needs to be modified to be transparent to all requests which do not have a body.
+
+---
+
 ### January 16, 2025 - Login Changes
 
 **Summary**:
