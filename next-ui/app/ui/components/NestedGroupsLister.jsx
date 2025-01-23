@@ -24,6 +24,8 @@ import {
   DialogFooter,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { Label } from '@/components/ui/label'
 
 /**
  * Component for listing nested group memberships.
@@ -366,26 +368,44 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                     </DialogTrigger>
                     <DialogPortal>
                       <DialogOverlay className="opacity-5" />
-                      <DialogContent>
+                      <DialogContent className="[&>button]:hidden">
                         <DialogHeader>
-                          <DialogTitle>Export Search Results</DialogTitle>
+                          <DialogTitle>Export Nested Group Membership</DialogTitle>
                         </DialogHeader>
+                        <p>Name your export</p>
                         <Input
                           className={`text-muted-foreground`}
                           placeholder="Add a name"
                           value={fileName}
                           onChange={(e) => setFileName(e.target.value)}
                         />
+                        <p>Choose a format</p>
+                        <RadioGroup defaultValue="csvFormat">
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="option-one" id="googlesheetFormat" disabled />
+                            <Label htmlFor="option-one" className="text-muted-foreground">
+                              Google Sheet (coming soon)
+                            </Label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="option-two" id="csvFormat" checked />
+                            <Label htmlFor="option-two">CSV</Label>
+                          </div>
+                        </RadioGroup>
                         <DialogFooter>
+                          <DialogClose asChild>
+                            <Button type="button" variant="outline">
+                              Cancel
+                            </Button>
+                          </DialogClose>
                           <CsvDownloadButton
                             data={[...groups]}
                             headers={['Group name', 'Membership type', 'Inherited via', 'Join timestamp']}
-                            filename={fileName}
+                            filename={fileName === '' ? `memberships_for_${query}` : fileName}
                           >
                             <Button type="submit">Export</Button>
                           </CsvDownloadButton>
                         </DialogFooter>
-                        <DialogClose />
                       </DialogContent>
                     </DialogPortal>
                   </Dialog>
