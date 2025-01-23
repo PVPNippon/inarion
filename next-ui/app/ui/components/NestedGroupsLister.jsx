@@ -16,7 +16,6 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '@/compon
 import {
   Dialog,
   DialogPortal,
-  DialogOverlay,
   DialogTrigger,
   DialogClose,
   DialogContent,
@@ -366,21 +365,20 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                         </div>
                       </div>
                     </DialogTrigger>
-                    <DialogPortal>
-                      <DialogOverlay className="opacity-5" />
+                    <DialogPortal className="bg-white">
                       <DialogContent className="[&>button]:hidden">
                         <DialogHeader>
-                          <DialogTitle>Export Nested Group Membership</DialogTitle>
+                          <DialogTitle className="text-2xl/6">Export Nested Group Membership</DialogTitle>
                         </DialogHeader>
-                        <p>Name your export</p>
+                        <p className="text-base/5">Name your export</p>
                         <Input
-                          className={`text-muted-foreground`}
+                          className="text-muted-foreground"
                           placeholder="Add a name"
                           value={fileName}
                           onChange={(e) => setFileName(e.target.value)}
                         />
-                        <p>Choose a format</p>
-                        <RadioGroup defaultValue="csvFormat">
+                        <p className="text-base/5">Choose a format</p>
+                        <RadioGroup defaultValue="csvFormat" className="border border-input rounded-md p-4 gap-y-4">
                           <div className="flex items-center space-x-2">
                             <RadioGroupItem value="option-one" id="googlesheetFormat" disabled />
                             <Label htmlFor="option-one" className="text-muted-foreground">
@@ -392,9 +390,13 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                             <Label htmlFor="option-two">CSV</Label>
                           </div>
                         </RadioGroup>
-                        <DialogFooter>
+                        <div className="flex flex-col items-center justify-center sm:flex-row sm:justify-end sm:gap-x-4">
                           <DialogClose asChild>
-                            <Button type="button" variant="outline">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className={`${groupsStyles.buttonPaddingWide} w-[108px]`}
+                            >
                               Cancel
                             </Button>
                           </DialogClose>
@@ -403,9 +405,11 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                             headers={['Group name', 'Membership type', 'Inherited via', 'Join timestamp']}
                             filename={fileName === '' ? `memberships_for_${query}` : fileName}
                           >
-                            <Button type="submit">Export</Button>
+                            <Button type="submit" className={`${groupsStyles.buttonPaddingWide}`}>
+                              Export
+                            </Button>
                           </CsvDownloadButton>
-                        </DialogFooter>
+                        </div>
                       </DialogContent>
                     </DialogPortal>
                   </Dialog>
