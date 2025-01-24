@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiClient } from '@/utils/apiClient'
-import { ExternalLinkIcon, SearchIcon, EyeIcon, Ellipsis, RotateCwSquare } from 'lucide-react'
+import { ExternalLinkIcon, SearchIcon, EyeIcon, Ellipsis, RotateCwSquare, CircleAlert } from 'lucide-react'
 import { groupsStyles } from '../../(dashboard)/groups/groups-styles'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 /**
  * Component for listing nested group memberships.
@@ -337,7 +338,24 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
             <TableHead className="text-inherit ps-9">Group name</TableHead>
             <TableHead className="text-inherit">Membership type</TableHead>
             <TableHead className="text-inherit">Inherited via</TableHead>
-            <TableHead className="text-inherit">Join timestamp</TableHead>
+            <TableHead className="text-inherit">
+              <span>Join timestamp</span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    {' '}
+                    <CircleAlert size={16} className="inline align-middle ms-2 stroke-destructive" />
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={28} align="start" alignOffset={-250}>
+                    {/* I had to separate the tooltip content into into paragraphs because the escape characters were ignored.
+                   Maybe there's a better/easier way to do it*/}
+                    <p>{`A blank value in this column usually means that the`}</p>
+                    <p>{`timestamp isn't available. In most cases, it's missing`}</p>
+                    <p>{`because Google only retains relevant logs for 180 days.`}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </TableHead>
             <TableHead className="text-inherit pe-2.5">
               <Dialog>
                 <DropdownMenu open={isMenuOpen} onOpenChange={(open) => setIsMenuOpen(open)}>
