@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useContext } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -109,8 +109,9 @@ function NestedGroupsLister() {
     fetchMembership()
   }, [query])
   return (
-    // TODO(maria): need more testing with this height↓
-    <div style={{ height: `calc(100vh - 288px)` }} className="mx-8 mb-6">
+    <div style={{ height: emptyResult && `calc(100vh - 288px)` }} className="mx-8 mb-6">
+      {' '}
+      {/* apply custom height only when emptyResult is displayed(maybe it should be set when there is an error screen in the future) */}
       <p className="mb-3.5 text-2xl font-medium leading-7">Nested Group Membership</p>
       <p className="text-lg text-muted-foreground mb-3 leading-5">View the ancestry of a group or user</p>
       <div className={`flex text-xs gap-x-1 ${groupsStyles.secondaryTextChart5} mb-3`}>
@@ -391,10 +392,10 @@ function TopPanel({ query, hiddenClass, setHiddenClass, groupList }) {
 
 function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName, setFileName }) {
   return (
-    <div className={`${groupsStyles.roundBorder} w-full mt-3 mb-7`}>
+    <div className={`${groupsStyles.roundBorder} mt-3 mb-7 px-4`}>
       <Table>
         <TableHeader>
-          <TableRow className="border-b border-input custom-shadow leading-4 text-foreground">
+          <TableRow className="border-b border-input custom-shadow leading-4 text-foreground hover:bg-background">
             <TableHead className="text-inherit ps-9">Group name</TableHead>
             <TableHead className="text-inherit">Membership type</TableHead>
             <TableHead className="text-inherit">Inherited via</TableHead>
@@ -501,11 +502,13 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
           {groups &&
             groups.map((group) => (
               <TableRow className={`border-none hover:bg-accent`} key={group.email}>
-                <TableCell className={`${groupsStyles.tableRowPadding} font-normal ps-9`}>{group.email}</TableCell>
-                <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.membership}</TableCell>
+                <TableCell className={`${groupsStyles.tableRowPadding} font-normal ps-9 rounded-l-md `}>
+                  {group.email}
+                </TableCell>
+                <TableCell className={`${groupsStyles.tableRowPadding} `}>{group.membership}</TableCell>
                 <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.inherited}</TableCell>
                 <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.timestamp}</TableCell>
-                <TableCell className={`${groupsStyles.tableRowPadding}`}> </TableCell>
+                <TableCell className={`${groupsStyles.tableRowPadding} rounded-r-md`}> </TableCell>
               </TableRow>
             ))}
         </TableBody>
