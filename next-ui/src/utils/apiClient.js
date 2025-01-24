@@ -7,7 +7,7 @@ export async function apiClient(url, method = 'GET', data = null, headers = {}, 
   try {
     const privateKey = await axios.get(`${API_BASE_URL}/encryption/server-private-key`)
     // console.log(data)
-    const encryptedData = await apiCall(url, data)
+    const encryptedData = await apiCall(url, data, method)
     console.log('***********************************************')
     console.log('Encrypted Data:', encryptedData)
     console.log(encryptedData.data.encryptedAESKey)
@@ -20,17 +20,9 @@ export async function apiClient(url, method = 'GET', data = null, headers = {}, 
       privateKey.data.serverPrivateKey
     )
     console.log('Decrypted the response from server')
-    // const response = await axios({
-    //   baseURL: API_BASE_URL,
-    //   url,
-    //   method,
-    //   data,
-    //   headers,
-    //   withCredentials,
-    // })
 
     return result
-    return encryptedData.data
+    // return encryptedData.data
   } catch (error) {
     if (error.response) {
       console.error('API Error:', error.response.data)

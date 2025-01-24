@@ -9,10 +9,11 @@ import { apiClient } from '@/utils/apiClient'
  * On click of button, fetch groups and display in div (error or group list).
  */
 function ListGroups() {
-  const { email } = useContext(LoggedInUserContext)
+  // const { email } = useContext(LoggedInUserContext)
   const [groupList, setGroupList] = useState([])
   const [clickCount, setClickCount] = useState(0)
   const [error, setError] = useState(null)
+  let email
 
   useEffect(() => {
     const fetchGroups = async (req, res) => {
@@ -21,6 +22,8 @@ function ListGroups() {
       }
       try {
         console.log('fetching groups...')
+        email = window.localStorage.getItem('email')
+        console.log('email:', email)
         const response = await apiClient(
           '/api/groups/list', // Endpoint path relative to API_BASE_URL
           'POST', // HTTP method

@@ -30,6 +30,9 @@ const GoogleLoginButton = () => {
           console.log('Token:', token)
           newWindow.close()
 
+          // Saving the token in localStorage (for now)
+          //TODO: This is temporary, we need to store the token in Redis
+          localStorage.setItem('jwtToken', token)
           // Step 4: Validate the token on the backend
           const isValid = await validateToken(token)
 
@@ -37,6 +40,9 @@ const GoogleLoginButton = () => {
             // Step 5: Decode the token to extract user details
             const decodedUser = jwtDecode(token)
             console.log('Decoded User:', decodedUser)
+
+            //Store the email in local storage
+            localStorage.setItem('email', decodedUser.email) // Replace with your token saving logicdecodedUser)
 
             // Step 6: Redirect to a protected route
             router.push('/groups')
