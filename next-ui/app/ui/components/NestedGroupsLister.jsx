@@ -1,6 +1,5 @@
 'use client'
 import React, { useState, useEffect, useContext } from 'react'
-import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -52,7 +51,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
  */
 
 function NestedGroupsLister() {
-  const { email } = useContext(LoggedInUserContext)
   const [groupList, setGroupList] = useState([])
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -61,6 +59,7 @@ function NestedGroupsLister() {
   const [hiddenClass, setHiddenClass] = useState('')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [fileName, setFileName] = useState('')
+  let email
 
   useEffect(() => {
     /**
@@ -80,20 +79,39 @@ function NestedGroupsLister() {
         setGroupList([])
         setEmptyResult(false)
 
-        const response = await apiClient(
-          '/api/groups/get-nested-membership', // Endpoint path relative to API_BASE_URL
-          'POST', // HTTP method
+        email = window.localStorage.getItem('email')
+        console.log('email:', email)
+
+        const token = localStorage.getItem('jwtToken')
+        console.log('TOKEN', token)
+
+        // const response = await apiClient(
+        //   '/api/groups/get-nested-membership', // Endpoint path relative to API_BASE_URL
+        //   'POST', // HTTP method
+        //   {
+        //     userEmail: email,
+        //     queryEmail: query,
+        //   },
+        //   {}, // Additional headers, if any
+        //   true // withCredentials flag
+        // )
+
+        //while FE is broken, falling back to the good old fetch(beware of cache though)
+        const response = await fetch(
+          `http://localhost:4000/api/groups/target/${query}/nested-membership?userEmail=${email}`,
           {
-            userEmail: email,
-            queryEmail: query,
-          },
-          {}, // Additional headers, if any
-          true // withCredentials flag
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            method: 'GET',
+            cache: 'no-store', //this disables cache
+          }
         )
 
         // if emtpy table is returned, set error 'No memberships found', otherwise set groupList
         if (response) {
-          const responseData = JSON.parse(response)
+          //  const responseData = JSON.parse(response)
+          const responseData = await response.json()
           responseData.length === 0 ? setEmptyResult(true) : setGroupList(responseData)
           setHiddenClass('hidden')
         }
