@@ -26,30 +26,15 @@ import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 /**
- * Component for listing nested group memberships.
- *
- * This component allows users to view the ancestry of a group or user by querying
- * nested group memberships. It utilizes the `LoggedInUserContext` to access the user's
- * email and manages several states to handle loading, errors, and displaying results.
- *
- * States:
- * - `groupList`: An array storing the fetched nested memberships.
- * - `error`: A string for storing any error messages encountered during the API call.
- * - `isLoading`: A boolean indicating if the data is currently being fetched.
- * - `emptyResult`: A boolean indicating if no memberships were found.
- * - `query`: A string for storing the email address being queried.
- * - `hiddenClass`: A string for managing CSS classes based on state.
- *
- * Side Effects:
- * - Uses `useEffect` to fetch nested memberships whenever the `query` changes.
- *
- * API:
- * - Sends a POST request to `/api/groups/get-nested-membership` with the user's email
- *   and the query email to retrieve the list of nested memberships.
- *
- * @returns {JSX.Element} The rendered component for displaying nested group memberships.
+ * A component that displays a table with nested group membership details.
+ * It fetches the nested membership of a given group or user when the component mounts.
+ * It also handles updating the query state and fetching the nested membership when the user submits a new query.
+ * It displays a loading indicator while the API call is in progress.
+ * It displays an error message if there is an error with the API call.
+ * It displays an empty result message if the API call returns an empty table.
+ * It displays a button to analyze another group or user.
+ * It displays a dropdown menu with options to export the table data to a CSV file.
  */
-
 function NestedGroupsLister() {
   const [groupList, setGroupList] = useState([])
   const [error, setError] = useState('')
@@ -135,7 +120,7 @@ function NestedGroupsLister() {
           <ExternalLinkIcon size={14} />
         </a>
       </div>
-      <InputForm setQuery={setQuery} hiddenClass={hiddenClass} groupList={groupList} />
+      <InputForm query={query} setQuery={setQuery} hiddenClass={hiddenClass} groupList={groupList} />
       {isLoading && <Loader />}
       {!isLoading && !error && query && (
         <TopPanel query={query} hiddenClass={hiddenClass} setHiddenClass={setHiddenClass} groupList={groupList} />
@@ -159,24 +144,81 @@ function NestedGroupsLister() {
 export default NestedGroupsLister
 
 /**
- * A button that is disabled when the groupList is empty.
- * When clicked, it currently redirects to the hierarchy page just to check that the routing works.
- * Eventually, the NestedGroupsLister will move to the main hierarchy page (which is accessible from the icon on the side panel)
- * and the redirection link will send a request to get the hierarchy graph and open it in a separate tab.
+ * A button component for fetching and visualizing a hierarchy graph.
+ *
+ * The button is disabled if the `groupList` prop is empty or falsy.
+ * When clicked, it sends a GET request to `/api/groups/target/:query/hierarchy` with the user's email and the query email to retrieve the hierarchy graph.
+ * If the response is successful, it saves the graph to the local storage and opens a new tab with the graph.
+ * If there is an issue with the API call or if the hierarchy cannot be fetched, it throws an error.
+ *
+ * @param {Object[]} groupList - An array containing details about the group memberships.
+ * @param {string} query - The email address being queried for nested group memberships.
+ * @throws {Error} - If there is an issue with the API call or if the hierarchy cannot be fetched.
  */
-function HierarchyButton({ groupList }) {
+function HierarchyButton({ groupList, query }) {
+  /**
+   * Handles the button click event.
+   * Removes any existing graph from the local storage.
+   * Fetches the hierarchy graph for the given email address and saves it to the local storage.
+   * Opens a new tab with the graph if the request is successful.
+   * @throws {Error} - If there is an issue with the API call or if the hierarchy cannot be fetched.
+   */
+  async function handleClick() {
+    const oldGraph = localStorage.getItem('graph')
+    if (oldGraph) localStorage.removeItem('graph')
+
+    try {
+      const email = window.localStorage.getItem('email')
+      console.log('email:', email)
+
+      //N.B.the token validity is 1 hour, when starting getting the 401 error, sign out and sign in back
+      const token = localStorage.getItem('jwtToken')
+      console.log('TOKEN', token)
+      //while FE is broken, falling back to the good old fetch(beware of cache though)
+      const response = await fetch(`http://localhost:4000/api/groups/target/${query}/hierarchy?userEmail=${email}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        method: 'GET',
+        cache: 'no-store', //this disables cache
+      })
+
+      //disabled apiClient because the logic for get requests is not ready yet
+      // const response = await apiClient(
+      //   '/api/groups/get-hierarchy', // Endpoint path relative to API_BASE_URL
+      //   'POST', // HTTP method
+      //   {
+      //     userEmail: email,
+      //     queryEmail: inputValue,
+      //   },
+      //   {}, // Additional headers, if any
+      //   true // withCredentials flag
+      // )
+      // if emtpy data is returned, set error 'No memberships found', otherwise set groupList
+      if (response) {
+        // const responseData = JSON.parse(response)
+        const responseData = await response.json()
+
+        if (responseData.nodes && responseData.nodes.length > 0) {
+          const graph = {
+            graph: responseData,
+            star: query,
+          }
+          localStorage.setItem('graph', JSON.stringify(graph))
+          window.open(`/groups/hierarchy/graph?target=${query}`, '_blank')
+        }
+      }
+    } catch (error) {
+      console.log('error:', error)
+    }
+  }
   return (
     <Button
+      type="button"
       variant="outline"
       className={`${groupsStyles.buttonPadding}`}
       disabled={groupList && groupList.length === 0}
-      onClick={() => {
-        //I temporarily redirect to the hierarchy page just to check that the routing works
-        //Eventually, the NestedGroupsLister will move to the main hierarhy page(which is accessible from the icon on the side panel)
-        //And the redirection link will send a request to get the hierarchy graph and open it in a separate tab
-        const url = `http://localhost:3000/groups/hierarchy`
-        window.open(url, '_blank')
-      }}
+      onClick={handleClick}
     >
       <EyeIcon size={20} />
       Visualize hierarchy
@@ -194,7 +236,7 @@ function HierarchyButton({ groupList }) {
  * @param {Function} setQuery - A function to update the query state with the submitted email.
  */
 
-function InputForm({ setQuery, hiddenClass, groupList }) {
+function InputForm({ query, setQuery, hiddenClass, groupList }) {
   // Define the schema with Zod
   const FormSchema = z.object({
     email: z
@@ -246,7 +288,7 @@ function InputForm({ setQuery, hiddenClass, groupList }) {
           <Button className={`${groupsStyles.buttonPadding}`} type="submit">
             Go
           </Button>
-          {groupList.length > 0 && <HierarchyButton groupList={groupList} />}
+          {groupList.length > 0 && <HierarchyButton groupList={groupList} query={query} />}
         </div>
       </form>
     </Form>
@@ -326,7 +368,7 @@ function TopPanel({ query, hiddenClass, setHiddenClass, groupList }) {
         >
           Analyze another group or user
         </Button>
-        <HierarchyButton groupList={groupList} />
+        <HierarchyButton groupList={groupList} query={query} />
       </div>
     </div>
   )
