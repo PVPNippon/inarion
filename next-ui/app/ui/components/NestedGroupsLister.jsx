@@ -112,7 +112,7 @@ function NestedGroupsLister() {
       <p className="text-lg text-muted-foreground mb-3 leading-5">View the ancestry of a group or user</p>
       <div className={`flex text-xs gap-x-1 ${groupsStyles.secondaryTextChart5} mb-3`}>
         <span>Learn how it works</span>
-        {/* TODO(maria): replace the link below with the actual link */}
+        {/* TODO(maria): replace the link below with the actual link when it's ready*/}
         <a href="http://localhost:3000/groups" target="_blank">
           <ExternalLinkIcon size={14} />
         </a>
@@ -377,7 +377,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                             setFileName(`memberships_for_${query}`)
                           }}
                         >
-                          <DropdownMenuItem>
+                          <DropdownMenuItem className="cursor-pointer">
                             <RotateCwSquare size={20} />
                             <span>Export results</span>
                           </DropdownMenuItem>
