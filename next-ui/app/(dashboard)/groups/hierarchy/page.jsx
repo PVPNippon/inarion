@@ -448,50 +448,58 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <DialogPortal className="bg-white">
-                  <DialogContent className="[&>button]:hidden">
+                  <DialogContent className="[&>button]:hidden" aria-describedby={undefined}>
                     <DialogHeader>
                       <DialogTitle className="text-2xl/6">Export Nested Group Membership</DialogTitle>
-                    </DialogHeader>
-                    <p className="text-base/5">Name your export</p>
-                    <Input
-                      className="text-muted-foreground"
-                      placeholder="Add a name"
-                      value={fileName}
-                      onChange={(e) => setFileName(e.target.value)}
-                    />
-                    <p className="text-base/5">Choose a format</p>
-                    <RadioGroup defaultValue="csvFormat" className="border border-input rounded-md p-4 gap-y-4">
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="option-one" id="googlesheetFormat" disabled />
-                        <Label htmlFor="option-one" className="text-muted-foreground">
-                          Google Sheet (coming soon)
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="option-two" id="csvFormat" checked />
-                        <Label htmlFor="option-two">CSV</Label>
-                      </div>
-                    </RadioGroup>
-                    <div className="flex flex-col items-center justify-center sm:flex-row sm:justify-end sm:gap-x-4">
-                      <DialogClose asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className={`${groupsStyles.buttonPaddingWide} w-[108px]`}
+                      <p className="text-base/5">Name your export</p>
+                      <Input
+                        className="text-muted-foreground"
+                        placeholder="Add a name"
+                        value={fileName}
+                        onChange={(e) => setFileName(e.target.value)}
+                      />
+                      <p className="text-base/5">Choose a format</p>
+                      <RadioGroup defaultValue="csvFormat" className="border border-input rounded-md p-4 gap-y-4">
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="option-one" id="googlesheetFormat" disabled />
+                          <Label htmlFor="option-one" className="text-muted-foreground">
+                            Google Sheet (coming soon)
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="option-two" id="csvFormat" checked />
+                          <Label htmlFor="option-two">CSV</Label>
+                        </div>
+                      </RadioGroup>
+                      <div className="flex flex-col items-center justify-center sm:flex-row sm:justify-end sm:gap-x-4">
+                        <DialogClose asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className={`${groupsStyles.buttonPaddingWide} w-[108px]`}
+                          >
+                            Cancel
+                          </Button>
+                        </DialogClose>
+
+                        <CsvDownloadButton
+                          data={[...groups]}
+                          headers={['Group name', 'Membership type', 'Inherited via', 'Join timestamp']}
+                          filename={fileName === '' ? `memberships_for_${query}` : fileName}
+                          className="hidden"
+                          id="csv-download-group-memberships"
                         >
-                          Cancel
-                        </Button>
-                      </DialogClose>
-                      <CsvDownloadButton
-                        data={[...groups]}
-                        headers={['Group name', 'Membership type', 'Inherited via', 'Join timestamp']}
-                        filename={fileName === '' ? `memberships_for_${query}` : fileName}
-                      >
-                        <Button type="submit" className={`${groupsStyles.buttonPaddingWide}`}>
+                          {/* Nesting buttons is not allowed in html, so I hid the csv button and added a fn onclick to the export button. */}
+                          {/* Even with nesting it was working fine, but I didn't want the warning. */}
+                        </CsvDownloadButton>
+                        <Button
+                          className={`${groupsStyles.buttonPaddingWide}`}
+                          onClick={() => document.getElementById('csv-download-group-memberships').click()}
+                        >
                           Export
                         </Button>
-                      </CsvDownloadButton>
-                    </div>
+                      </div>
+                    </DialogHeader>
                   </DialogContent>
                 </DialogPortal>
               </Dialog>
