@@ -414,27 +414,34 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
     <div className={`${groupsStyles.roundBorder} mt-3 mb-7 px-4`}>
       <Table>
         <TableHeader>
-          <TableRow className="border-b border-input custom-shadow leading-4 text-foreground hover:bg-background">
-            <TableHead className="text-inherit ps-9">{columnHeaders[0]}</TableHead>
-            <TableHead className="text-inherit">{columnHeaders[1]}</TableHead>
-            <TableHead className="text-inherit">{columnHeaders[2]}</TableHead>
-            <TableHead className="text-inherit">
-              <span>{columnHeaders[3]}</span>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    {' '}
-                    <CircleAlert size={16} className="inline align-middle ms-2 stroke-destructive" />
-                  </TooltipTrigger>
-                  <TooltipContent sideOffset={28} align="start" alignOffset={-250}>
-                    {/* I had to separate the tooltip content into into paragraphs because the escape characters were ignored.
+          <TableRow className="border-b border-input custom-shadow leading-4 text-foreground hover:bg-background text-inherit sm:text-nowrap ">
+            <TableHead className={`${groupsStyles.tableHeaderText} ps-4`}>
+              {columnHeaders[0] /* Group name */}
+            </TableHead>
+            <TableHead className={`${groupsStyles.tableHeaderText}`}>
+              {columnHeaders[1] /* Membership type */}
+            </TableHead>
+            <TableHead className={`${groupsStyles.tableHeaderText}`}>{columnHeaders[2] /* Inherited via */}</TableHead>
+            <TableHead className={`${groupsStyles.tableHeaderText}`}>
+              {/* I split the header because I want to put them in different spans to prevent the icon from wrapping to the 3rd line */}
+              <span>{columnHeaders[3].split(' ')[0] + ' ' /* Join */}</span>
+              <span className="text-nowrap">
+                {columnHeaders[3].split(' ')[1] /* timestamp */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <CircleAlert size={16} className="inline align-middle ms-1 stroke-destructive" />
+                    </TooltipTrigger>
+                    <TooltipContent sideOffset={28} align="start" alignOffset={-250}>
+                      {/* I had to separate the tooltip content into into paragraphs because the escape characters were ignored.
                    Maybe there's a better/easier way to do it*/}
-                    <p>{`A blank value in this column usually means that the`}</p>
-                    <p>{`timestamp isn't available. In most cases, it's missing`}</p>
-                    <p>{`because Google only retains relevant logs for 180 days.`}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+                      <p>{`A blank value in this column usually means that the`}</p>
+                      <p>{`timestamp isn't available. In most cases, it's missing`}</p>
+                      <p>{`because Google only retains relevant logs for 180 days.`}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </span>
             </TableHead>
             <TableHead className="text-inherit pe-2.5">
               <Dialog>
@@ -466,7 +473,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                     </DialogTrigger>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <DialogPortal className="bg-white">
+                <DialogPortal>
                   <DialogContent className="[&>button]:hidden" aria-describedby={undefined}>
                     <DialogHeader>
                       <DialogTitle className="text-2xl/6">Export Nested Group Membership</DialogTitle>
@@ -529,7 +536,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
           {groups &&
             groups.map((group) => (
               <TableRow className={`border-none hover:bg-accent`} key={group.email}>
-                <TableCell className={`${groupsStyles.tableRowPadding} font-normal ps-9 rounded-l-md `}>
+                <TableCell className={`${groupsStyles.tableRowPadding} font-normal ps-4 rounded-l-md `}>
                   {group.email}
                 </TableCell>
                 <TableCell className={`${groupsStyles.tableRowPadding} `}>{group.membership}</TableCell>

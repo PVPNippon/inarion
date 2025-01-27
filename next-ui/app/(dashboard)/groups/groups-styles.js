@@ -6,4 +6,5 @@ export const groupsStyles = {
   roundBorder: 'border border-input rounded-lg', //radius 8px
   thinShadow: 'shadow-[0_1px_5px_0_rgba(239,80,57,0.08)]',
   tableRowPadding: 'py-3', //top-bottom 12px
+  tableHeaderText: 'text-inherit',
 }
