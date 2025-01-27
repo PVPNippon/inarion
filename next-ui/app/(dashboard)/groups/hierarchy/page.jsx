@@ -65,9 +65,11 @@ function NestedGroupsLister() {
         setGroupList([])
         setEmptyResult(false)
 
+        //getting email and token from local storage is a temporary measure, so I'm not refactoring or improving this part
         email = window.localStorage.getItem('email')
         console.log('email:', email)
 
+        //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back
         const token = localStorage.getItem('jwtToken')
         console.log('TOKEN', token)
 
@@ -98,7 +100,6 @@ function NestedGroupsLister() {
         if (response) {
           //  const responseData = JSON.parse(response)
           const responseData = await response.json()
-          console.log(responseData)
           responseData.length === 0 ? setEmptyResult(true) : setGroupList(responseData)
           setHiddenClass('hidden')
         }
@@ -118,7 +119,7 @@ function NestedGroupsLister() {
   return (
     <div style={{ height: emptyResult && `calc(100vh - 288px)` }} className="mx-8 mb-6">
       {' '}
-      {/* apply custom height only when emptyResult is displayed(maybe it should be set when there is an error screen in the future) */}
+      {/* apply custom height only when emptyResult is displayed(maybe it should also be set when there is an error screen in the future) */}
       <p className="mb-3.5 text-2xl font-medium leading-7">Nested Group Membership</p>
       <p className="text-lg text-muted-foreground mb-3 leading-5">View the ancestry of a group or user</p>
       <div className={`flex text-xs gap-x-1 ${groupsStyles.secondaryTextChart5} mb-3`}>
@@ -180,7 +181,6 @@ function HierarchyButton({ groupList, query }) {
       const email = window.localStorage.getItem('email')
       console.log('email:', email)
 
-      //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back
       const token = localStorage.getItem('jwtToken')
       console.log('TOKEN', token)
       //while FE is broken, falling back to the good old fetch(beware of cache though)
@@ -214,7 +214,6 @@ function HierarchyButton({ groupList, query }) {
             star: query,
           }
           localStorage.setItem('graph', JSON.stringify(graph))
-          // window.open(`/groups/hierarchy/graph?target=${query}`, '_blank')
           newTab.location.reload()
         }
       }
@@ -400,35 +399,16 @@ function TopPanel({ query, hiddenClass, setHiddenClass, groupList }) {
  */
 
 function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName, setFileName }) {
+  //a temporary patch to fix the format of the timestamp coming from the backend, to be able to check out the actual column lenth
+  //this will be fixed in BE because they have the moments-timezone library which should make it easy(probably)
   function convertTimestamp(timestamp) {
-    if (!timestamp) {
-      return ''
+    if (!timestamp) return ''
+
+    if (timestamp.includes('GMT')) {
+      return timestamp.split('GMT')[0] + 'JST'
+    } else {
+      return timestamp
     }
-    const dateFormat = new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      second: 'numeric',
-      // timeZoneName: 'short',
-      timeZoneName: 'long',
-    })
-
-    const date = new Date(timestamp)
-
-    const formattedDate = dateFormat.format(date)
-    console.log('date:', formattedDate)
-    const timezoneAbbreviation = Intl.DateTimeFormat().resolvedOptions().timeZone
-    console.log('timezoneAbbreviation:', timezoneAbbreviation)
-    const localTimezoneAbbreviation = timezoneAbbreviation.replace('GMT', '')
-    console.log('localTimezoneAbbreviation:', localTimezoneAbbreviation)
-    const finalDate = formattedDate.replace('GMT', localTimezoneAbbreviation)
-
-    console.log('finalDate:', finalDate)
-
-    // return finalDate
-    return timestamp
   }
   return (
     <div className={`${groupsStyles.roundBorder} mt-3 mb-7 px-4`}>
