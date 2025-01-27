@@ -24,6 +24,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+const columnHeaders = ['Group name', 'Membership type', 'Inherited via', 'Join timestamp']
 
 /**
  * A component that displays a table with nested group membership details.
@@ -47,6 +48,7 @@ function NestedGroupsLister() {
   let email
 
   useEffect(() => {
+    const controller = new AbortController()
     /**
      * Fetches the nested membership of a given group or user.
      * Sets the `groupList` state to the response data if it is not empty, otherwise sets the `emptyResult` state to true.
@@ -54,7 +56,6 @@ function NestedGroupsLister() {
      * Sets the `isLoading` state to false when the API call is finished.
      */
     async function fetchMembership() {
-      //validation should do it, but just in case
       if (query === '') return
 
       try {
@@ -97,6 +98,7 @@ function NestedGroupsLister() {
         if (response) {
           //  const responseData = JSON.parse(response)
           const responseData = await response.json()
+          console.log(responseData)
           responseData.length === 0 ? setEmptyResult(true) : setGroupList(responseData)
           setHiddenClass('hidden')
         }
@@ -107,6 +109,11 @@ function NestedGroupsLister() {
       }
     }
     fetchMembership()
+
+    // Abort the API call when the component unmounts
+    return function () {
+      controller.abort()
+    }
   }, [query])
   return (
     <div style={{ height: emptyResult && `calc(100vh - 288px)` }} className="mx-8 mb-6">
@@ -167,12 +174,13 @@ function HierarchyButton({ groupList, query }) {
   async function handleClick() {
     const oldGraph = localStorage.getItem('graph')
     if (oldGraph) localStorage.removeItem('graph')
+    const newTab = window.open(`/groups/hierarchy/graph?target=${query}`, '_blank')
 
     try {
       const email = window.localStorage.getItem('email')
       console.log('email:', email)
 
-      //N.B.the token validity is 1 hour, when starting getting the 401 error, sign out and sign in back
+      //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back
       const token = localStorage.getItem('jwtToken')
       console.log('TOKEN', token)
       //while FE is broken, falling back to the good old fetch(beware of cache though)
@@ -206,7 +214,8 @@ function HierarchyButton({ groupList, query }) {
             star: query,
           }
           localStorage.setItem('graph', JSON.stringify(graph))
-          window.open(`/groups/hierarchy/graph?target=${query}`, '_blank')
+          // window.open(`/groups/hierarchy/graph?target=${query}`, '_blank')
+          newTab.location.reload()
         }
       }
     } catch (error) {
@@ -391,16 +400,46 @@ function TopPanel({ query, hiddenClass, setHiddenClass, groupList }) {
  */
 
 function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName, setFileName }) {
+  function convertTimestamp(timestamp) {
+    if (!timestamp) {
+      return ''
+    }
+    const dateFormat = new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      // timeZoneName: 'short',
+      timeZoneName: 'long',
+    })
+
+    const date = new Date(timestamp)
+
+    const formattedDate = dateFormat.format(date)
+    console.log('date:', formattedDate)
+    const timezoneAbbreviation = Intl.DateTimeFormat().resolvedOptions().timeZone
+    console.log('timezoneAbbreviation:', timezoneAbbreviation)
+    const localTimezoneAbbreviation = timezoneAbbreviation.replace('GMT', '')
+    console.log('localTimezoneAbbreviation:', localTimezoneAbbreviation)
+    const finalDate = formattedDate.replace('GMT', localTimezoneAbbreviation)
+
+    console.log('finalDate:', finalDate)
+
+    // return finalDate
+    return timestamp
+  }
   return (
     <div className={`${groupsStyles.roundBorder} mt-3 mb-7 px-4`}>
       <Table>
         <TableHeader>
           <TableRow className="border-b border-input custom-shadow leading-4 text-foreground hover:bg-background">
-            <TableHead className="text-inherit ps-9">Group name</TableHead>
-            <TableHead className="text-inherit">Membership type</TableHead>
-            <TableHead className="text-inherit">Inherited via</TableHead>
+            <TableHead className="text-inherit ps-9">{columnHeaders[0]}</TableHead>
+            <TableHead className="text-inherit">{columnHeaders[1]}</TableHead>
+            <TableHead className="text-inherit">{columnHeaders[2]}</TableHead>
             <TableHead className="text-inherit">
-              <span>Join timestamp</span>
+              <span>{columnHeaders[3]}</span>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger>
@@ -484,7 +523,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
 
                         <CsvDownloadButton
                           data={[...groups]}
-                          headers={['Group name', 'Membership type', 'Inherited via', 'Join timestamp']}
+                          headers={columnHeaders}
                           filename={fileName === '' ? `memberships_for_${query}` : fileName}
                           className="hidden"
                           id="csv-download-group-memberships"
@@ -515,7 +554,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                 </TableCell>
                 <TableCell className={`${groupsStyles.tableRowPadding} `}>{group.membership}</TableCell>
                 <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.inherited}</TableCell>
-                <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.timestamp}</TableCell>
+                <TableCell className={`${groupsStyles.tableRowPadding}`}>{convertTimestamp(group.timestamp)}</TableCell>
                 <TableCell className={`${groupsStyles.tableRowPadding} rounded-r-md`}> </TableCell>
               </TableRow>
             ))}
