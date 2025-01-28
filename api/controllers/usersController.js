@@ -15,6 +15,11 @@ const logger = require('../logger/logger')(__filename, 'Users Controller')
  * @throws {Error} - Sends a 500 status code if there is an error fetching users.
  */
 exports.listAllUsers = async (req, res, next) => {
+  if (res.locals.cached) {
+    // TODO:(m.okamoto): If you want to add a filter, process the response of listAllUsers and pass it here.
+    return next()
+  }
+
   // TODO(m.okamoto): Will it be possible to get the logged-in email address from Redis/session in the future?
   // Retrieve the userEmail from the query parameter
   const { userEmail } = req.query
@@ -24,6 +29,7 @@ exports.listAllUsers = async (req, res, next) => {
     const users = await usersService.listUsers({ userEmail })
     logger.debug(`Fetched ${users.length} users from the domain.`)
 
+    // TODO:(m.okamoto): If you want to add a filter, process the response of listAllUsers and pass it here.
     // Pass the list of all organization's users
     res.locals.data = users
     logger.debug('Returning list of users.')
