@@ -423,7 +423,8 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
     if (tableRef.current) {
       const parentDiv = tableRef.current.parentElement
       parentDiv.classList.remove('overflow-auto')
-      parentDiv.className = `${groupsStyles.roundBorder} mt-3 mb-7 px-4 relative`
+      // parentDiv.className = `${groupsStyles.roundBorder} mt-3 mb-7 px-4 relative`
+      parentDiv.className = `${groupsStyles.roundBorder} mt-3 mb-7 relative`
     }
   }, [])
 
@@ -458,7 +459,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
   }, [displayedGroups])
   return (
     <Table ref={tableRef}>
-      <TableHeader className="sticky top-0 z-[100] bg-background !border-b border-input">
+      <TableHeader className="sticky top-0 bg-background !border-b border-input">
         <TableRow className="!border-b border-input custom-shadow leading-4 text-foreground hover:bg-background text-inherit sm:text-nowrap ">
           <TableHead className={`${groupsStyles.tableHeaderText} ps-4`}>{columnHeaders[0] /* Group name */}</TableHead>
           <TableHead className={`${groupsStyles.tableHeaderText}`}>{columnHeaders[1] /* Membership type */}</TableHead>
