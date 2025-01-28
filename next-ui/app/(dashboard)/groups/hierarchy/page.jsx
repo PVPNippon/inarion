@@ -423,8 +423,11 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
     if (tableRef.current) {
       const parentDiv = tableRef.current.parentElement
       parentDiv.classList.remove('overflow-auto')
-      // parentDiv.className = `${groupsStyles.roundBorder} mt-3 mb-7 px-4 relative`
       parentDiv.className = `${groupsStyles.roundBorder} mt-3 mb-7 relative`
+      const tableHead = tableRef.current.children[0]
+      const row = tableHead.children[0]
+      row.classList.remove('border-foreground/30')
+      row.classList.add('border-input')
     }
   }, [])
 
@@ -459,12 +462,13 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
   }, [displayedGroups])
   return (
     <Table ref={tableRef}>
-      <TableHeader className="sticky top-0 bg-background !border-b border-input">
-        <TableRow className="!border-b border-input custom-shadow leading-4 text-foreground hover:bg-background text-inherit sm:text-nowrap ">
+      <TableHeader className="sticky top-0 bg-background custom-shadow">
+        <TableRow className="leading-4 text-foreground hover:bg-background text-inherit sm:text-nowrap">
+          <TableHead className={`${groupsStyles.tableHeaderText} rounded-tl-lg`}> </TableHead>
           <TableHead className={`${groupsStyles.tableHeaderText} ps-4`}>{columnHeaders[0] /* Group name */}</TableHead>
           <TableHead className={`${groupsStyles.tableHeaderText}`}>{columnHeaders[1] /* Membership type */}</TableHead>
           <TableHead className={`${groupsStyles.tableHeaderText}`}>{columnHeaders[2] /* Inherited via */}</TableHead>
-          <TableHead className={`${groupsStyles.tableHeaderText}`}>
+          <TableHead className={`${groupsStyles.tableHeaderText} `}>
             {/* I split the header because I want to put them in different spans to prevent the icon from wrapping to the 3rd line */}
             <span>{columnHeaders[3].split(' ')[0] + ' ' /* Join */}</span>
             <span className="text-nowrap">
@@ -485,7 +489,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
               </TooltipProvider>
             </span>
           </TableHead>
-          <TableHead className="text-inherit pe-2.5">
+          <TableHead className="text-inherit pe-2.5 rounded-tr-lg">
             <Dialog>
               <DropdownMenu open={isMenuOpen} onOpenChange={(open) => setIsMenuOpen(open)}>
                 <DropdownMenuTrigger asChild>
@@ -578,13 +582,15 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
         {displayedGroups &&
           displayedGroups.map((group) => (
             <TableRow className={`border-none hover:bg-accent`} key={group.email}>
-              <TableCell className={`${groupsStyles.tableRowPadding} font-normal ps-4 rounded-l-md `}>
+              <TableCell className={`!w-[16] !bg-background !hover:bg-background`}> </TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding} ps-4 font-normal rounded-l-md`}>
                 {group.email}
               </TableCell>
-              <TableCell className={`${groupsStyles.tableRowPadding} `}>{group.membership}</TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.membership}</TableCell>
               <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.inherited}</TableCell>
               <TableCell className={`${groupsStyles.tableRowPadding}`}>{convertTimestamp(group.timestamp)}</TableCell>
               <TableCell className={`${groupsStyles.tableRowPadding} rounded-r-md`}> </TableCell>
+              <TableCell className={`pe-2.5 !bg-background !hover:bg-background`}> </TableCell>
             </TableRow>
           ))}
       </TableBody>
