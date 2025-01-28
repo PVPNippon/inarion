@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -418,9 +418,16 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
       return timestamp
     }
   }
+  const tableRef = useRef(null)
+  useEffect(() => {
+    if (tableRef.current) {
+      const parentDiv = tableRef.current.parentElement
+      parentDiv.classList.remove('overflow-auto')
+      parentDiv.className = `${groupsStyles.roundBorder} mt-3 mb-7 px-4 relative`
+    }
+  }, [])
 
   const [displayedGroups, setDisplayedGroups] = useState(groups.slice(0, 20))
-
   useEffect(() => {
     //a temporary "lazy loading" replacement
     //20 rows are displayed by default and the rest is loaded as user scrolls down(10 rows at a time)
@@ -450,142 +457,136 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
     }
   }, [displayedGroups])
   return (
-    <div className={`${groupsStyles.roundBorder} mt-3 mb-7 px-4`}>
-      <Table>
-        <TableHeader>
-          <TableRow className="border-b border-input custom-shadow leading-4 text-foreground hover:bg-background text-inherit sm:text-nowrap ">
-            <TableHead className={`${groupsStyles.tableHeaderText} ps-4`}>
-              {columnHeaders[0] /* Group name */}
-            </TableHead>
-            <TableHead className={`${groupsStyles.tableHeaderText}`}>
-              {columnHeaders[1] /* Membership type */}
-            </TableHead>
-            <TableHead className={`${groupsStyles.tableHeaderText}`}>{columnHeaders[2] /* Inherited via */}</TableHead>
-            <TableHead className={`${groupsStyles.tableHeaderText}`}>
-              {/* I split the header because I want to put them in different spans to prevent the icon from wrapping to the 3rd line */}
-              <span>{columnHeaders[3].split(' ')[0] + ' ' /* Join */}</span>
-              <span className="text-nowrap">
-                {columnHeaders[3].split(' ')[1] /* timestamp */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <CircleAlert size={16} className="inline align-middle ms-1 stroke-destructive" />
-                    </TooltipTrigger>
-                    <TooltipContent sideOffset={28} align="start" alignOffset={-250}>
-                      {/* I had to separate the tooltip content into into paragraphs because the escape characters were ignored.
+    <Table ref={tableRef}>
+      <TableHeader className="sticky top-0 z-[100] bg-background !border-b border-input">
+        <TableRow className="!border-b border-input custom-shadow leading-4 text-foreground hover:bg-background text-inherit sm:text-nowrap ">
+          <TableHead className={`${groupsStyles.tableHeaderText} ps-4`}>{columnHeaders[0] /* Group name */}</TableHead>
+          <TableHead className={`${groupsStyles.tableHeaderText}`}>{columnHeaders[1] /* Membership type */}</TableHead>
+          <TableHead className={`${groupsStyles.tableHeaderText}`}>{columnHeaders[2] /* Inherited via */}</TableHead>
+          <TableHead className={`${groupsStyles.tableHeaderText}`}>
+            {/* I split the header because I want to put them in different spans to prevent the icon from wrapping to the 3rd line */}
+            <span>{columnHeaders[3].split(' ')[0] + ' ' /* Join */}</span>
+            <span className="text-nowrap">
+              {columnHeaders[3].split(' ')[1] /* timestamp */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <CircleAlert size={16} className="inline align-middle ms-1 stroke-destructive" />
+                  </TooltipTrigger>
+                  <TooltipContent sideOffset={28} align="start" alignOffset={-250}>
+                    {/* I had to separate the tooltip content into into paragraphs because the escape characters were ignored.
                    Maybe there's a better/easier way to do it*/}
-                      <p>{`A blank value in this column usually means that the`}</p>
-                      <p>{`timestamp isn't available. In most cases, it's missing`}</p>
-                      <p>{`because Google only retains relevant logs for 180 days.`}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </span>
-            </TableHead>
-            <TableHead className="text-inherit pe-2.5">
-              <Dialog>
-                <DropdownMenu open={isMenuOpen} onOpenChange={(open) => setIsMenuOpen(open)}>
-                  <DropdownMenuTrigger asChild>
-                    <Ellipsis
-                      className={`cursor-pointer hover:stroke-primary active:stroke-primary focus:stroke-primary  ${
-                        isMenuOpen ? 'stroke-primary' : ''
-                      }`}
-                      size={20}
+                    <p>{`A blank value in this column usually means that the`}</p>
+                    <p>{`timestamp isn't available. In most cases, it's missing`}</p>
+                    <p>{`because Google only retains relevant logs for 180 days.`}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </span>
+          </TableHead>
+          <TableHead className="text-inherit pe-2.5">
+            <Dialog>
+              <DropdownMenu open={isMenuOpen} onOpenChange={(open) => setIsMenuOpen(open)}>
+                <DropdownMenuTrigger asChild>
+                  <Ellipsis
+                    className={`cursor-pointer hover:stroke-primary active:stroke-primary focus:stroke-primary  ${
+                      isMenuOpen ? 'stroke-primary' : ''
+                    }`}
+                    size={20}
+                  />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" alignOffset={-194} avoidCollisions="true" hideWhenDetached="true">
+                  <DialogTrigger>
+                    <div className={`flex items-center py-3 px-2 w-[204px]`}>
+                      <div
+                        className="flex items-center  py-1 px-2 gap-3 bg-accent rounded-md text-s w-[188px]"
+                        role="button"
+                        onClick={() => {
+                          setFileName(`memberships_for_${query}`)
+                        }}
+                      >
+                        <DropdownMenuItem className="cursor-pointer">
+                          <RotateCwSquare size={20} />
+                          <span>Export results</span>
+                        </DropdownMenuItem>
+                      </div>
+                    </div>
+                  </DialogTrigger>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <DialogPortal>
+                <DialogContent className="[&>button]:hidden" aria-describedby={undefined}>
+                  <DialogHeader>
+                    <DialogTitle className="text-2xl/6">Export Nested Group Membership</DialogTitle>
+                    <p className="text-base/5">Name your export</p>
+                    <Input
+                      className="text-muted-foreground"
+                      placeholder="Add a name"
+                      value={fileName}
+                      onChange={(e) => setFileName(e.target.value)}
                     />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" alignOffset={-194} avoidCollisions="true" hideWhenDetached="true">
-                    <DialogTrigger>
-                      <div className={`flex items-center py-3 px-2 w-[204px]`}>
-                        <div
-                          className="flex items-center  py-1 px-2 gap-3 bg-accent rounded-md text-s w-[188px]"
-                          role="button"
-                          onClick={() => {
-                            setFileName(`memberships_for_${query}`)
-                          }}
-                        >
-                          <DropdownMenuItem className="cursor-pointer">
-                            <RotateCwSquare size={20} />
-                            <span>Export results</span>
-                          </DropdownMenuItem>
-                        </div>
+                    <p className="text-base/5">Choose a format</p>
+                    <RadioGroup defaultValue="csvFormat" className="border border-input rounded-md p-4 gap-y-4">
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="option-one" id="googlesheetFormat" disabled />
+                        <Label htmlFor="option-one" className="text-muted-foreground">
+                          Google Sheet (coming soon)
+                        </Label>
                       </div>
-                    </DialogTrigger>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <DialogPortal>
-                  <DialogContent className="[&>button]:hidden" aria-describedby={undefined}>
-                    <DialogHeader>
-                      <DialogTitle className="text-2xl/6">Export Nested Group Membership</DialogTitle>
-                      <p className="text-base/5">Name your export</p>
-                      <Input
-                        className="text-muted-foreground"
-                        placeholder="Add a name"
-                        value={fileName}
-                        onChange={(e) => setFileName(e.target.value)}
-                      />
-                      <p className="text-base/5">Choose a format</p>
-                      <RadioGroup defaultValue="csvFormat" className="border border-input rounded-md p-4 gap-y-4">
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="option-one" id="googlesheetFormat" disabled />
-                          <Label htmlFor="option-one" className="text-muted-foreground">
-                            Google Sheet (coming soon)
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="option-two" id="csvFormat" checked />
-                          <Label htmlFor="option-two">CSV</Label>
-                        </div>
-                      </RadioGroup>
-                      <div className="flex flex-col items-center justify-center sm:flex-row sm:justify-end sm:gap-x-4">
-                        <DialogClose asChild>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            className={`${groupsStyles.buttonPaddingWide} w-[108px]`}
-                          >
-                            Cancel
-                          </Button>
-                        </DialogClose>
-
-                        <CsvDownloadButton
-                          data={[...groups]}
-                          headers={columnHeaders}
-                          filename={fileName === '' ? `memberships_for_${query}` : fileName}
-                          className="hidden"
-                          id="csv-download-group-memberships"
-                        >
-                          {/* Nesting buttons is not allowed in html, so I hid the csv button and added a fn onclick to the export button. */}
-                          {/* Even with nesting it was working fine, but I didn't want the warning. */}
-                        </CsvDownloadButton>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="option-two" id="csvFormat" checked />
+                        <Label htmlFor="option-two">CSV</Label>
+                      </div>
+                    </RadioGroup>
+                    <div className="flex flex-col items-center justify-center sm:flex-row sm:justify-end sm:gap-x-4">
+                      <DialogClose asChild>
                         <Button
-                          className={`${groupsStyles.buttonPaddingWide}`}
-                          onClick={() => document.getElementById('csv-download-group-memberships').click()}
+                          type="button"
+                          variant="outline"
+                          className={`${groupsStyles.buttonPaddingWide} w-[108px]`}
                         >
-                          Export
+                          Cancel
                         </Button>
-                      </div>
-                    </DialogHeader>
-                  </DialogContent>
-                </DialogPortal>
-              </Dialog>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {displayedGroups &&
-            displayedGroups.map((group) => (
-              <TableRow className={`border-none hover:bg-accent`} key={group.email}>
-                <TableCell className={`${groupsStyles.tableRowPadding} font-normal ps-4 rounded-l-md `}>
-                  {group.email}
-                </TableCell>
-                <TableCell className={`${groupsStyles.tableRowPadding} `}>{group.membership}</TableCell>
-                <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.inherited}</TableCell>
-                <TableCell className={`${groupsStyles.tableRowPadding}`}>{convertTimestamp(group.timestamp)}</TableCell>
-                <TableCell className={`${groupsStyles.tableRowPadding} rounded-r-md`}> </TableCell>
-              </TableRow>
-            ))}
-        </TableBody>
-      </Table>
-    </div>
+                      </DialogClose>
+
+                      <CsvDownloadButton
+                        data={[...groups]}
+                        headers={columnHeaders}
+                        filename={fileName === '' ? `memberships_for_${query}` : fileName}
+                        className="hidden"
+                        id="csv-download-group-memberships"
+                      >
+                        {/* Nesting buttons is not allowed in html, so I hid the csv button and added a fn onclick to the export button. */}
+                        {/* Even with nesting it was working fine, but I didn't want the warning. */}
+                      </CsvDownloadButton>
+                      <Button
+                        className={`${groupsStyles.buttonPaddingWide}`}
+                        onClick={() => document.getElementById('csv-download-group-memberships').click()}
+                      >
+                        Export
+                      </Button>
+                    </div>
+                  </DialogHeader>
+                </DialogContent>
+              </DialogPortal>
+            </Dialog>
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {displayedGroups &&
+          displayedGroups.map((group) => (
+            <TableRow className={`border-none hover:bg-accent`} key={group.email}>
+              <TableCell className={`${groupsStyles.tableRowPadding} font-normal ps-4 rounded-l-md `}>
+                {group.email}
+              </TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding} `}>{group.membership}</TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.inherited}</TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding}`}>{convertTimestamp(group.timestamp)}</TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding} rounded-r-md`}> </TableCell>
+            </TableRow>
+          ))}
+      </TableBody>
+    </Table>
   )
 }
