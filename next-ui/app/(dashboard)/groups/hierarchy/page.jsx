@@ -384,6 +384,54 @@ function TopPanel({ query, hiddenClass, setHiddenClass, groupList }) {
 }
 
 /**
+ * ExpandableInheritedViaList is a component that takes a string of
+ * comma-separated group names and displays the first 50 characters
+ * of the string. If the string is longer than 50 characters and contains
+ * a comma, it displays the part before the last comma. The user can click
+ * on the ellipsis at the end of the string to expand it to the full
+ * string.
+ *
+ * @param {{ inheritedVia: string }} props The props object.
+ * @prop {string} inheritedVia The string of comma-separated group names.
+ *
+ * @returns {JSX.Element} The JSX element representing the expandable list.
+ */
+function ExpandableInheritedViaList({ inheritedVia }) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [inheritedViaText, setInheritedViaText] = useState('')
+
+  useEffect(() => {
+    if (isExpanded) return
+    // If the string is longer than 50 characters and contains a comma, only display the part before the last comma
+    const visiblePartBase = inheritedVia.slice(0, 50)
+    const lastOccurence = visiblePartBase.lastIndexOf(',')
+    if (lastOccurence >= 0) {
+      setInheritedViaText(inheritedVia.slice(0, lastOccurence))
+    } else {
+      //if the comma is not found, only display the first 50 characters
+      setInheritedViaText(visiblePartBase)
+    }
+  }, [inheritedViaText])
+  return (
+    <span>
+      {inheritedViaText}
+      {!isExpanded && (
+        <Ellipsis
+          className={`ms-2 cursor-pointer hover:stroke-primary active:stroke-primary focus:stroke-primary inline ${
+            isExpanded ? 'hidden' : ''
+          }`}
+          size={20}
+          onClick={() => {
+            setIsExpanded(true)
+            setInheritedViaText(inheritedVia)
+          }}
+        />
+      )}
+    </span>
+  )
+}
+
+/**
  * A component that renders a table displaying nested group membership details.
  *
  * This table includes columns for the group email, the method of inheritance,
@@ -602,7 +650,13 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                 {group.email}
               </TableCell>
               <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.membership}</TableCell>
-              <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.inherited}</TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding}`}>
+                {group.inherited.length < 50 ? (
+                  group.inherited
+                ) : (
+                  <ExpandableInheritedViaList inheritedVia={group.inherited} />
+                )}
+              </TableCell>
               <TableCell className={`${groupsStyles.tableRowPadding}`}>{convertTimestamp(group.timestamp)}</TableCell>
               <TableCell className={`${groupsStyles.tableRowPadding} rounded-r-md`}> </TableCell>
               <TableCell className={`!w-[4px] !bg-background !hover:bg-background leading-none`}>&nbsp;</TableCell>
