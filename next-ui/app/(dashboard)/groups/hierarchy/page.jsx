@@ -443,35 +443,35 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
     }
   }, [])
 
-  const [displayedGroups, setDisplayedGroups] = useState(groups.slice(0, 80))
-  // useEffect(() => {
-  //   //a temporary "lazy loading" replacement
-  //   //20 rows are displayed by default and the rest is loaded as user scrolls down(10 rows at a time)
+  const [displayedGroups, setDisplayedGroups] = useState(groups.slice(0, 30))
 
-  //   /**
-  //    * A function that is called when the window is scrolled.
-  //    *
-  //    * When the scroll reaches the bottom of the page (i.e., the sum of the window's inner height and the document element's scroll top is greater than
-  //    * or equal to the document element's offset height), it adds the next 10 elements of the group list to the displayedGroups state.
-  //    * If the displayedGroups array already contains all elements of the group list, it does not update the state.
-  //    */
-  //   const handleScroll = () => {
-  //     /* needed to add 0.5 because otherwise it will never reach the offsetHeight and the scroll will never be triggered */
-  //     if (window.innerHeight + document.documentElement.scrollTop + 0.5 >= document.documentElement.offsetHeight) {
-  //       setDisplayedGroups(() => {
-  //         return displayedGroups.length === groups.length
-  //           ? displayedGroups
-  //           : groups.slice(0, displayedGroups.length + 10)
-  //       })
-  //     }
-  //   }
+  useEffect(() => {
+    if (!tableRef.current) return
+    const parentDiv = tableRef.current.parentElement
 
-  //   window.addEventListener('scroll', handleScroll)
-
-  //   return () => {
-  //     window.removeEventListener('scroll', handleScroll)
-  //   }
-  //  }, [displayedGroups])
+    /**
+     * An event handler for the scroll event on the table container.
+     * It checks if the user has scrolled to the bottom of the container.
+     * If so, it adds 10 more items to the displayedGroups state.
+     * This has the effect of lazy-loading the table, so that only
+     * a subset of the groups are displayed at any given time.
+     */
+    //this is a temporary solution, to be fixed in BE
+    //it imitates "lazy loading" by displaying 30 rows by default and loading additional rows on scroll, 10 rows at a time
+    const handleScroll = () => {
+      if (parentDiv.scrollTop + parentDiv.offsetHeight >= parentDiv.scrollHeight) {
+        setDisplayedGroups(() => {
+          return displayedGroups.length === groups.length
+            ? displayedGroups
+            : groups.slice(0, displayedGroups.length + 10)
+        })
+      }
+    }
+    parentDiv.addEventListener('scroll', handleScroll)
+    return () => {
+      parentDiv.removeEventListener('scroll', handleScroll)
+    }
+  }, [displayedGroups])
   return (
     <Table ref={tableRef}>
       <TableHeader className="sticky top-0 bg-background custom-shadow">
