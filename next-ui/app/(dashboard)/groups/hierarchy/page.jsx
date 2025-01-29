@@ -422,8 +422,20 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
   useEffect(() => {
     if (tableRef.current) {
       const parentDiv = tableRef.current.parentElement
-      parentDiv.classList.remove('overflow-auto', 'w-full')
-      parentDiv.className = `${groupsStyles.roundBorder} mt-3 mb-7 relative md:w-full w-fit`
+      parentDiv.classList.add(
+        'overflow-y-scroll',
+        'h-[80vh]',
+        'relative',
+        'mt-3',
+        'mb-7',
+        'relative',
+        'md:w-full',
+        'w-fit',
+        'border',
+        'border-input',
+        'rounded-md'
+      )
+
       const tableHead = tableRef.current.children[0]
       const row = tableHead.children[0]
       row.classList.remove('border-foreground/30')
@@ -431,35 +443,35 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
     }
   }, [])
 
-  const [displayedGroups, setDisplayedGroups] = useState(groups.slice(0, 20))
-  useEffect(() => {
-    //a temporary "lazy loading" replacement
-    //20 rows are displayed by default and the rest is loaded as user scrolls down(10 rows at a time)
+  const [displayedGroups, setDisplayedGroups] = useState(groups.slice(0, 80))
+  // useEffect(() => {
+  //   //a temporary "lazy loading" replacement
+  //   //20 rows are displayed by default and the rest is loaded as user scrolls down(10 rows at a time)
 
-    /**
-     * A function that is called when the window is scrolled.
-     *
-     * When the scroll reaches the bottom of the page (i.e., the sum of the window's inner height and the document element's scroll top is greater than
-     * or equal to the document element's offset height), it adds the next 10 elements of the group list to the displayedGroups state.
-     * If the displayedGroups array already contains all elements of the group list, it does not update the state.
-     */
-    const handleScroll = () => {
-      /* needed to add 0.5 because otherwise it will never reach the offsetHeight and the scroll will never be triggered */
-      if (window.innerHeight + document.documentElement.scrollTop + 0.5 >= document.documentElement.offsetHeight) {
-        setDisplayedGroups(() => {
-          return displayedGroups.length === groups.length
-            ? displayedGroups
-            : groups.slice(0, displayedGroups.length + 10)
-        })
-      }
-    }
+  //   /**
+  //    * A function that is called when the window is scrolled.
+  //    *
+  //    * When the scroll reaches the bottom of the page (i.e., the sum of the window's inner height and the document element's scroll top is greater than
+  //    * or equal to the document element's offset height), it adds the next 10 elements of the group list to the displayedGroups state.
+  //    * If the displayedGroups array already contains all elements of the group list, it does not update the state.
+  //    */
+  //   const handleScroll = () => {
+  //     /* needed to add 0.5 because otherwise it will never reach the offsetHeight and the scroll will never be triggered */
+  //     if (window.innerHeight + document.documentElement.scrollTop + 0.5 >= document.documentElement.offsetHeight) {
+  //       setDisplayedGroups(() => {
+  //         return displayedGroups.length === groups.length
+  //           ? displayedGroups
+  //           : groups.slice(0, displayedGroups.length + 10)
+  //       })
+  //     }
+  //   }
 
-    window.addEventListener('scroll', handleScroll)
+  //   window.addEventListener('scroll', handleScroll)
 
-    return () => {
-      window.removeEventListener('scroll', handleScroll)
-    }
-  }, [displayedGroups])
+  //   return () => {
+  //     window.removeEventListener('scroll', handleScroll)
+  //   }
+  //  }, [displayedGroups])
   return (
     <Table ref={tableRef}>
       <TableHeader className="sticky top-0 bg-background custom-shadow">
