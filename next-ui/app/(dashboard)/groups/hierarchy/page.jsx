@@ -422,8 +422,8 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
   useEffect(() => {
     if (tableRef.current) {
       const parentDiv = tableRef.current.parentElement
-      parentDiv.classList.remove('overflow-auto')
-      parentDiv.className = `${groupsStyles.roundBorder} mt-3 mb-7 relative`
+      parentDiv.classList.remove('overflow-auto', 'w-full')
+      parentDiv.className = `${groupsStyles.roundBorder} mt-3 mb-7 relative md:w-full w-fit`
       const tableHead = tableRef.current.children[0]
       const row = tableHead.children[0]
       row.classList.remove('border-foreground/30')
@@ -464,7 +464,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
     <Table ref={tableRef}>
       <TableHeader className="sticky top-0 bg-background custom-shadow">
         <TableRow className="leading-4 text-foreground hover:bg-background text-inherit sm:text-nowrap">
-          <TableHead className={`${groupsStyles.tableHeaderText} rounded-tl-lg`}> </TableHead>
+          <TableHead className={`${groupsStyles.tableHeaderText} px-0 rounded-tl-lg`}></TableHead>
           <TableHead className={`${groupsStyles.tableHeaderText} ps-4`}>{columnHeaders[0] /* Group name */}</TableHead>
           <TableHead className={`${groupsStyles.tableHeaderText}`}>{columnHeaders[1] /* Membership type */}</TableHead>
           <TableHead className={`${groupsStyles.tableHeaderText}`}>{columnHeaders[2] /* Inherited via */}</TableHead>
@@ -579,10 +579,13 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
         </TableRow>
       </TableHeader>
       <TableBody>
+        <TableRow className={`border-none py-0`}>
+          <TableCell className={`text-[8px] py-0 leading-none`}>&nbsp;</TableCell>
+        </TableRow>
         {displayedGroups &&
           displayedGroups.map((group) => (
-            <TableRow className={`border-none hover:bg-accent`} key={group.email}>
-              <TableCell className={`!w-[16] !bg-background !hover:bg-background`}> </TableCell>
+            <TableRow className={`border-none hover:bg-accent min-w-2xl`} key={group.email}>
+              <TableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>&nbsp;</TableCell>
               <TableCell className={`${groupsStyles.tableRowPadding} ps-4 font-normal rounded-l-md`}>
                 {group.email}
               </TableCell>
@@ -590,9 +593,13 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
               <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.inherited}</TableCell>
               <TableCell className={`${groupsStyles.tableRowPadding}`}>{convertTimestamp(group.timestamp)}</TableCell>
               <TableCell className={`${groupsStyles.tableRowPadding} rounded-r-md`}> </TableCell>
-              <TableCell className={`pe-2.5 !bg-background !hover:bg-background`}> </TableCell>
+              <TableCell className={`!w-[4px] !bg-background !hover:bg-background leading-none`}>&nbsp;</TableCell>
             </TableRow>
           ))}
+        {/* A dummy row at the end for the sake of the radius and padding */}
+        <TableRow className={`border-none rounded-b-md py-0`}>
+          <TableCell className={`text-[8px] py-0 leading-none`}>&nbsp;</TableCell>
+        </TableRow>
       </TableBody>
     </Table>
   )
