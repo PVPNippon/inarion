@@ -606,6 +606,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                     <div className="flex flex-col items-center justify-center sm:flex-row sm:justify-end sm:gap-x-4">
                       <DialogClose asChild>
                         <Button
+                          id="close-export-dialog"
                           type="button"
                           variant="outline"
                           className={`${groupsStyles.buttonPaddingWide} w-[108px]`}
@@ -626,7 +627,13 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                       </CsvDownloadButton>
                       <Button
                         className={`${groupsStyles.buttonPaddingWide}`}
-                        onClick={() => document.getElementById('csv-download-group-memberships').click()}
+                        onClick={() => {
+                          document.getElementById('csv-download-group-memberships').click()
+                          setTimeout(() => {
+                            // Close the Dialog window component in a very ungraceful way("Cody" has no better ideas)
+                            document.getElementById('close-export-dialog').click()
+                          }, 500)
+                        }}
                       >
                         Export
                       </Button>
@@ -657,7 +664,9 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                   <ExpandableInheritedViaList inheritedVia={group.inherited} />
                 )}
               </TableCell>
-              <TableCell className={`${groupsStyles.tableRowPadding}`}>{convertTimestamp(group.timestamp)}</TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding} sm:text-nowrap`}>
+                {convertTimestamp(group.timestamp)}
+              </TableCell>
               <TableCell className={`${groupsStyles.tableRowPadding} rounded-r-md`}> </TableCell>
               <TableCell className={`!w-[4px] !bg-background !hover:bg-background leading-none`}>&nbsp;</TableCell>
             </TableRow>
