@@ -25,7 +25,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { CustomIconExport } from '../../../ui/svg-icons/custom-icons'
+
+//constants
 const columnHeaders = ['Group name', 'Membership type', 'Inherited via', 'Join timestamp']
+const rowsOnFirstLoad = 30 //number of table rows to load on first load
+const rowLoadIncrement = 10 //number of table rows to load on scroll
+const visibleInheritedViaCutOffValue = 100 //maximum number of characters -1 to display in the "inherited via" column
 
 /**
  * A component that displays a table with nested group membership details.
@@ -384,32 +389,21 @@ function TopPanel({ query, hiddenClass, setHiddenClass, groupList }) {
   )
 }
 
-/**
- * ExpandableInheritedViaList is a component that takes a string of
- * comma-separated group names and displays the first 50 characters
- * of the string. If the string is longer than 50 characters and contains
- * a comma, it displays the part before the last comma. The user can click
- * on the ellipsis at the end of the string to expand it to the full
- * string.
- *
- * @param {{ inheritedVia: string }} props The props object.
- * @prop {string} inheritedVia The string of comma-separated group names.
- *
- * @returns {JSX.Element} The JSX element representing the expandable list.
- */
 function ExpandableInheritedViaList({ inheritedVia }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [inheritedViaText, setInheritedViaText] = useState('')
 
   useEffect(() => {
     if (isExpanded) return
-    // If the string is longer than 50 characters and contains a comma, only display the part before the last comma
-    const visiblePartBase = inheritedVia.slice(0, 50)
+    // If the string is longer than the cutoff value and contains a comma, only display the part before the last comma
+    const visiblePartBase = inheritedVia.slice(0, visibleInheritedViaCutOffValue)
     const lastOccurence = visiblePartBase.lastIndexOf(',')
     if (lastOccurence >= 0) {
       setInheritedViaText(inheritedVia.slice(0, lastOccurence))
     } else {
-      //if the comma is not found, only display the first 50 characters
+      //if the comma is not found, only display the first characters equal the cutoff value
+      //no commas means that there is a very long email address(the limit as per RFC is 320 so technically it's possible
+      //in this case the email address will be truncated and the last part will be hidden behind the icon
       setInheritedViaText(visiblePartBase)
     }
   }, [inheritedViaText])
@@ -468,13 +462,18 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
     }
   }
   const tableRef = useRef(null)
+
   useEffect(() => {
     if (tableRef.current) {
       const parentDiv = tableRef.current.parentElement
+
+      parentDiv.classList.remove('overflow-auto')
+
       parentDiv.classList.add(
-        'overflow-y-scroll',
-        'h-[80vh]',
-        'relative',
+        //display the scrollbar only when there are more groups than the number of rows on first load
+        groups.length > rowsOnFirstLoad ? 'overflow-y-scroll' : 'overflow-y-clip',
+        groups.length > rowsOnFirstLoad && 'h-[80vh]',
+        'overflow-x-auto',
         'mt-3',
         'mb-7',
         'relative',
@@ -492,7 +491,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
     }
   }, [])
 
-  const [displayedGroups, setDisplayedGroups] = useState(groups.slice(0, 30))
+  const [displayedGroups, setDisplayedGroups] = useState(groups.slice(0, rowsOnFirstLoad))
 
   useEffect(() => {
     if (!tableRef.current) return
@@ -512,7 +511,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
         setDisplayedGroups(() => {
           return displayedGroups.length === groups.length
             ? displayedGroups
-            : groups.slice(0, displayedGroups.length + 10)
+            : groups.slice(0, displayedGroups.length + rowLoadIncrement)
         })
       }
     }
@@ -652,7 +651,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
               </TableCell>
               <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.membership}</TableCell>
               <TableCell className={`${groupsStyles.tableRowPadding}`}>
-                {group.inherited.length < 50 ? (
+                {group.inherited.length < visibleInheritedViaCutOffValue ? (
                   group.inherited
                 ) : (
                   <ExpandableInheritedViaList inheritedVia={group.inherited} />
