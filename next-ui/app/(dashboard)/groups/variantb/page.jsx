@@ -166,7 +166,7 @@ export default NestedGroupsListerVariantB
  * @param {string} query - The email address being queried for nested group memberships.
  * @throws {Error} - If there is an issue with the API call or if the hierarchy cannot be fetched.
  */
-function HierarchyButton({ groupList, query }) {
+function HierarchyButton({ groupList, query, className }) {
   /**
    * Handles the button click event.
    * Removes any existing graph from the local storage.
@@ -227,7 +227,7 @@ function HierarchyButton({ groupList, query }) {
     <Button
       type="button"
       variant="outline"
-      className={`${groupsStyles.buttonPadding}`}
+      className={`${groupsStyles.buttonPadding} ${className}`}
       disabled={groupList && groupList.length === 0}
       onClick={handleClick}
     >
@@ -276,7 +276,7 @@ function InputForm({ query, setQuery, groupList }) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        <div className="flex items-center gap-x-10">
+        <div className="flex items-center gap-x-10 mb-5">
           <FormField
             control={form.control}
             name="email"
@@ -359,15 +359,11 @@ function EmptyResult() {
  */
 function TopPanel({ query, groupList }) {
   return (
-    <div className={`flex items-center justify-between `}>
-      <div className={`py-3 px-4`}>
-        <span className={`text-sm my-3 py-1 px-3 ${groupsStyles.roundBorder} ${groupsStyles.thinShadow}`}>
-          Showing nested group membership for <span className="font-semibold">{query}</span>
-        </span>
-      </div>
-      <div className="flex flex-col lg:flex-row gap-x-4">
-        <HierarchyButton groupList={groupList} query={query} />
-      </div>
+    <div className={`flex items-center justify-between ${groupsStyles.roundBorder} px-4`}>
+      <span className={`text-sm  py-1 px-3 ${groupsStyles.roundBorder} ${groupsStyles.thinShadow}`}>
+        Showing nested group membership for <span className="font-semibold">{query}</span>
+      </span>
+      <HierarchyButton groupList={groupList} query={query} className="my-[14px]" />
     </div>
   )
 }
