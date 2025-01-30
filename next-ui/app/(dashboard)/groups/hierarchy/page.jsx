@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiClient } from '@/utils/apiClient'
-import { ExternalLinkIcon, SearchIcon, EyeIcon, Ellipsis, RotateCwSquare, CircleAlert } from 'lucide-react'
+import { ExternalLinkIcon, SearchIcon, EyeIcon, Ellipsis, CircleAlert } from 'lucide-react'
 import { groupsStyles } from '../groups-styles'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -24,6 +24,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { CustomIconExport } from '../../../ui/svg-icons/custom-icons'
 const columnHeaders = ['Group name', 'Membership type', 'Inherited via', 'Join timestamp']
 
 /**
@@ -571,7 +572,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                         }}
                       >
                         <DropdownMenuItem className="cursor-pointer">
-                          <RotateCwSquare size={20} />
+                          <CustomIconExport />
                           <span>Export results</span>
                         </DropdownMenuItem>
                       </div>
