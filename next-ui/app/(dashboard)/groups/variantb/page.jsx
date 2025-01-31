@@ -300,9 +300,7 @@ function InputForm({ query, setQuery }) {
                       setInputValue(e.target.value)
                       field.onChange(e)
                       //  if (e.target.value !== query && e.target.value !== '') setGoButtonDisabled(false) //the kind variant
-                      e.target.value === query || e.target.value === ''
-                        ? setGoButtonDisabled(true)
-                        : setGoButtonDisabled(false) //the evil variant
+                      e.target.value === query ? setGoButtonDisabled(true) : setGoButtonDisabled(false) //the evil variant
                     }}
                   />
                 </FormControl>
@@ -311,7 +309,7 @@ function InputForm({ query, setQuery }) {
             )}
           />
 
-          <Button className={`${groupsStyles.buttonPadding}`} type="submit" disabled={goButtonDisabled}>
+          <Button className={`${groupsStyles.buttonPadding} self-start`} type="submit" disabled={goButtonDisabled}>
             Go
           </Button>
         </div>
