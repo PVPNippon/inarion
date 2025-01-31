@@ -133,7 +133,7 @@ function NestedGroupsListerVariantB() {
           <ExternalLinkIcon size={14} />
         </a>
       </div>
-      <InputForm query={query} setQuery={setQuery} groupList={groupList} />
+      <InputForm query={query} setQuery={setQuery} />
       {isLoading && <Loader />}
       {!isLoading && !error && query && <TopPanel query={query} groupList={groupList} />}
       {!isLoading && !error && groupList.length > 0 && (
@@ -247,7 +247,10 @@ function HierarchyButton({ groupList, query, className }) {
  * @param {Function} setQuery - A function to update the query state with the submitted email.
  */
 
-function InputForm({ query, setQuery, groupList }) {
+function InputForm({ query, setQuery }) {
+  const [goButtonDisabled, setGoButtonDisabled] = useState(false)
+  const [inputValue, setInputValue] = useState('')
+
   // Define the schema with Zod
   const FormSchema = z.object({
     email: z
@@ -271,12 +274,15 @@ function InputForm({ query, setQuery, groupList }) {
    * @param {Object} data - The form data containing the submitted email.
    */
   function onSubmit(data) {
+    if (goButtonDisabled) return //prevent form from submission by hitting enter
     setQuery(data.email)
+    setGoButtonDisabled(true)
   }
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)}>
-        <div className="flex items-center gap-x-10 mb-5">
+        <div className={`flex gap-x-10 mb-5 items-center`}>
           <FormField
             control={form.control}
             name="email"
@@ -290,6 +296,14 @@ function InputForm({ query, setQuery, groupList }) {
                     placeholder="Enter a group or user email address"
                     hasIcon={true}
                     {...field}
+                    onChange={(e) => {
+                      setInputValue(e.target.value)
+                      field.onChange(e)
+                      //  if (e.target.value !== query && e.target.value !== '') setGoButtonDisabled(false) //the kind variant
+                      e.target.value === query || e.target.value === ''
+                        ? setGoButtonDisabled(true)
+                        : setGoButtonDisabled(false) //the evil variant
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -297,7 +311,7 @@ function InputForm({ query, setQuery, groupList }) {
             )}
           />
 
-          <Button className={`${groupsStyles.buttonPadding}`} type="submit">
+          <Button className={`${groupsStyles.buttonPadding}`} type="submit" disabled={goButtonDisabled}>
             Go
           </Button>
         </div>
@@ -363,7 +377,7 @@ function TopPanel({ query, groupList }) {
       <span className={`text-sm  py-1 px-3 ${groupsStyles.roundBorder} ${groupsStyles.thinShadow}`}>
         Showing nested group membership for <span className="font-semibold">{query}</span>
       </span>
-      <HierarchyButton groupList={groupList} query={query} className="my-[14px]" />
+      <HierarchyButton groupList={groupList} query={query} className="my-[14.5px]" />
     </div>
   )
 }
