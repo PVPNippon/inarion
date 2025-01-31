@@ -11,26 +11,54 @@ const generateTransaction = () => {
   return redisClient.multi() // Creates and returns a new transaction
 }
 
+// Runs the transaction contaning a list of commands
 const executeTransaction = (redisTransaction) => {
-  return redisTransaction.exec() // Runs the transaction contaning a list of commands
+  return redisTransaction.exec()
 }
 
 const getClient = (redisTransaction) => (redisTransaction ? redisTransaction : redisClient)
 
-// Function to scan all keys with enhanced error handling
-const scanKeys = async (redisTransaction = null) => {
+// Function to scan all keys in Redis
+const scanKeys = async (redisTransaction = null, matchPattern = '*', count = 100) => {
+  try {
+    const client = getClient(redisTransaction)
+
+    let cursor = '0'
+    let keys = []
+
+    do {
+      // Perform SCAN operation
+      const result = await client.scan(cursor, { MATCH: matchPattern, COUNT: count })
+      cursor = result[0]
+      keys = keys.concat(result[1])
+    } while (cursor !== '0') // Continue until the cursor is 0
+
+    if (keys.length === 0) {
+      // console.log(`No keys match the pattern: ${matchPattern}`)
+      return []
+    }
+
+    // console.log(`Fetched ${keys.length} keys matching the pattern: ${matchPattern}`)
+    return keys
+  } catch (error) {
+    logger.error('Failed to complete the SCAN operation:', error)
+    throw error
+  }
+}
+
+// Function to scan specific keys
+const scanSpecificKeys = async (cursor, pattern, count, redisTransaction = null) => {
   try {
     const client = getClient(redisTransaction)
 
     // Perform SCAN operation
-    const result = await client.scan('0', { COUNT: 100 })
+    const result = await client.scan(cursor, { MATCH: pattern, COUNT: count })
 
     if (result.keys.length == 0) {
-      logger.debug(`No key exists`)
+      // console.log(`No key exists`)
       return
     }
-    logger.debug('result.keys.length = ', result.keys.length)
-    return result.keys
+    return result
   } catch (error) {
     logger.error('Failed to complete the scan operation:', error)
   }
@@ -46,9 +74,9 @@ const deleteKeyInRedis = async (key, redisTransaction = null) => {
 
     const result = await client.del(key)
     if (result === 1) {
-      logger.debug(`Key "${key}" successfully deleted from Redis.`)
+      // console.log(`Key "${key}" successfully deleted from Redis.`)
     } else {
-      logger.debug(`Key "${key}" not found in Redis.`)
+      // console.log(`Key "${key}" not found in Redis.`)
     }
 
     return result
@@ -69,13 +97,13 @@ const setStringInRedis = async (key, value, redisTransaction = null, ttl) => {
       throw new Error('Invalid parameters: Key and value are required.')
     }
 
-    const jsonString = typeof value === 'object' ? JSON.stringify(value) : value
     if (ttl) {
-      await client.setEx(key, config.TTL, jsonString)
+      // remove the set ex and try using the following
+      await client.setEx(key, config.TTL, value)
     } else {
-      await client.set(key, jsonString)
+      await client.set(key, value)
     }
-    logger.debug(`Value set in Redis for key: "${key}"${ttl ? ` with TTL: ${config.TTL} seconds` : ''}`)
+    // console.log(`Value set in Redis for key: "${key}"${ttl ? ` with TTL: ${config.TTL} seconds` : ''}`)
   } catch (err) {
     logger.error(`Error setting value in Redis for key "${key}":`, err)
     throw err
@@ -88,22 +116,18 @@ const getStringFromRedis = async (key, redisTransaction = null) => {
     const client = getClient(redisTransaction)
 
     if (!key) {
-      logger.debug('Key is required to fetch data.')
+      // console.log('Key is required to fetch data.')
       return null
     } // Fetch data from Redis
 
-    const jsonString = await client.get(key)
-    if (!jsonString) {
-      logger.debug(`No data found in Redis for key: "${key}".`)
+    const fetchedString = await client.get(key)
+    if (!fetchedString) {
+      // console.log(`No data found in Redis for key: "${key}".`)
       return null
     } // Attempt to parse JSON, or return raw string
 
-    try {
-      const parsedData = JSON.parse(jsonString)
-      logger.debug(parsedData)
-    } catch {
-      logger.debug(jsonString)
-    }
+    // console.log(fetchedString)
+    return fetchedString
   } catch (err) {
     logger.error(`Error fetching data from Redis for key "${key}":`, err)
     return null
@@ -125,7 +149,7 @@ const setJsonInRedis = async (key, jsonObject, redisTransaction = null, ttl) => 
 
     if (ttl) {
       await client.expire(key, config.TTL)
-    } // logger.debug(`JSON object set in Redis for key: "${key}"${ttl ? ` with TTL: ${config.TTL} seconds` : ''}`)
+    } // console.log(`JSON object set in Redis for key: "${key}"${ttl ? ` with TTL: ${config.TTL} seconds` : ''}`)
   } catch (err) {
     logger.error(`Error setting JSON in Redis for key "${key}":`, err)
     throw err
@@ -138,12 +162,12 @@ const getJsonFromRedis = async (key, redisTransaction = null) => {
     const client = getClient(redisTransaction)
 
     const jsonObject = await client.json.get(key, '$') // Retrieve entire JSON object
+
     if (!jsonObject) {
-      logger.debug(`No JSON object found in Redis for key: "${key}".`)
+      // console.log(`No JSON object found in Redis for key: "${key}".`)
       return null
     }
 
-    logger.debug(`Retrieved JSON object for key "${key}":`, jsonObject)
     return jsonObject
   } catch (err) {
     logger.error(`Error retrieving JSON object from Redis for key "${key}":`, err)
@@ -158,9 +182,9 @@ const getJsonFieldFromRedis = async (key, path, redisTransaction = null) => {
 
     const value = await client.json.get(key, path) // Retrieve value at a specific path
     if (value === null) {
-      logger.debug(`No data found at path "${path}" for key "${key}".`)
+      // console.log(`No data found at path "${path}" for key "${key}".`)
       return null
-    } //logger.debug(`Retrieved value from JSON object for key "${key}" at path "${path}":`, value)
+    } // console.log(`Retrieved value from JSON object for key "${key}" at path "${path}":`, value)
 
     return value
   } catch (err) {
@@ -179,7 +203,7 @@ const updateJsonFieldInRedis = async (key, path, value, redisTransaction = null)
     } // Use JSON.SET with a path to update a specific field
 
     await client.json.set(key, path, value)
-    logger.debug(`Updated field "${path}" in JSON object for key "${key}" with value:`, value)
+    // console.log(`Updated field "${path}" in JSON object for key "${key}" with value:`, value)
   } catch (err) {
     logger.error(`Error updating JSON field for key "${key}" at path "${path}":`, err)
     throw err
@@ -193,9 +217,9 @@ const deleteJsonFromRedis = async (key, redisTransaction = null) => {
 
     const result = await client.json.del(key) // Delete the JSON object
     if (result === 1) {
-      logger.debug(`JSON object for key "${key}" successfully deleted.`)
+      // console.log(`JSON object for key "${key}" successfully deleted.`)
     } else {
-      logger.debug(`JSON object for key "${key}" not found.`)
+      // console.log(`JSON object for key "${key}" not found.`)
     }
     return result
   } catch (err) {
@@ -232,7 +256,8 @@ const setHashInRedis = async (key, hashObject, redisTransaction = null, ttl) => 
       ])
     )
 
-    await client.hSet(key, sanitizedObject) // logger.debug(`Hash set in Redis for key "${key}" with fields:`, sanitizedObject)
+    await client.hSet(key, sanitizedObject)
+    // console.log(`Hash set in Redis for key "${key}" with fields:`, sanitizedObject)
   } catch (err) {
     logger.error(`Error setting hash in Redis for key "${key}":`, err)
     throw err
@@ -246,11 +271,11 @@ const getHashFromRedis = async (key, redisTransaction = null) => {
 
     const hash = await client.hGetAll(key) // Retrieve all fields in the hash
     if (Object.keys(hash).length === 0) {
-      logger.debug(`No hash found in Redis for key "${key}".`)
+      // console.log(`No hash found in Redis for key "${key}".`)
       return null
     }
 
-    logger.debug(`Retrieved hash for key "${key}":`, hash)
+    //console.log(`Retrieved hash for key "${key}" -> `, hash)
     return hash
   } catch (err) {
     logger.error(`Error retrieving hash from Redis for key "${key}":`, err)
@@ -265,11 +290,11 @@ const getHashFieldFromRedis = async (key, field, redisTransaction = null) => {
 
     const value = await client.hGet(key, field) // Retrieve a specific field
     if (value === null) {
-      logger.debug(`Field "${field}" not found in hash for key "${key}".`)
+      // console.log(`Field "${field}" not found in hash for key "${key}".`)
       return null
     }
 
-    logger.debug(`Retrieved value for field "${field}" in hash for key "${key}":`, value)
+    // console.log(`Retrieved value for field "${field}" in hash for key "${key}":`, value)
     return value
   } catch (err) {
     logger.error(`Error retrieving field "${field}" from hash for key "${key}":`, err)
@@ -283,7 +308,7 @@ const hashFieldExists = async (key, field, redisTransaction = null) => {
     const client = getClient(redisTransaction)
 
     const exists = await client.hExists(key, field) // Check if a field exists
-    logger.debug(`Field "${field}" ${exists ? 'exists' : 'does not exist'} in hash for key "${key}".`)
+    // console.log(`Field "${field}" ${exists ? 'exists' : 'does not exist'} in hash for key "${key}".`)
     return exists
   } catch (err) {
     logger.error(`Error checking existence of field "${field}" in hash for key "${key}":`, err)
@@ -302,7 +327,7 @@ const deleteHashFieldsFromRedis = async (key, fields, redisTransaction = null) =
 
     const deletedCount = await client.hDel(key, fields)
 
-    logger.debug(`Deleted ${deletedCount} field(s) from hash for key "${key}". Fields: ${fields}`)
+    // console.log(`Deleted ${deletedCount} field(s) from hash for key "${key}". Fields: ${fields}`)
     return deletedCount
   } catch (err) {
     logger.error(`Error deleting fields from hash for key "${key}":`, err)
@@ -318,7 +343,7 @@ const addToSetInRedis = async (key, member, redisTransaction = null, ttl) => {
     const client = getClient(redisTransaction)
 
     const addedCount = await client.sAdd(key, member)
-    //logger.debug(`Added ${addedCount} member(s) to set "${key}":`, members)
+    // console.log(`Added ${addedCount} member(s) to set "${key}":`, members)
     return addedCount
   } catch (err) {
     logger.error(`Error adding members to set "${key}":`, err)
@@ -333,11 +358,10 @@ const getSetMembers = async (key, redisTransaction = null) => {
 
     const members = await client.sMembers(key) // Retrieve all members of the set
     if (members.length === 0) {
-      logger.debug(`No members found in set "${key}".`)
+      // console.log(`No members found in set "${key}".`)
       return []
     }
 
-    logger.debug(`Retrieved members of set "${key}":`, members)
     return members
   } catch (err) {
     logger.error(`Error retrieving members of set "${key}":`, err)
@@ -368,7 +392,7 @@ const removeFromSet = async (key, members, redisTransaction = null) => {
     } // Use SREM to remove members from the set
 
     const removedCount = await client.sRem(key, members)
-    logger.debug(`Removed ${removedCount} member(s) from set "${key}":`, members)
+    // console.log(`Removed ${removedCount} member(s) from set "${key}":`, members)
     return removedCount
   } catch (err) {
     logger.error(`Error removing members from set "${key}":`, err)
@@ -386,7 +410,7 @@ const unionOfSets = async (keys, redisTransaction = null) => {
     }
 
     const union = await client.sUnion(keys)
-    logger.debug(`Union of sets ${keys}:`, union)
+    // console.log(`Union of sets ${keys}:`, union)
     return union
   } catch (err) {
     logger.error(`Error performing union operation on sets ${keys}:`, err)
@@ -404,7 +428,7 @@ const intersectionOfSets = async (keys, redisTransaction = null) => {
     }
 
     const intersection = await client.sInter(keys)
-    logger.debug(`Intersection of sets ${keys}:`, intersection)
+    // // console.log(`Intersection of sets ${keys}:`, intersection)
     return intersection
   } catch (err) {
     logger.error(`Error performing intersection operation on sets ${keys}:`, err)
@@ -418,7 +442,7 @@ const getSetSize = async (key, redisTransaction = null) => {
     const client = getClient(redisTransaction)
 
     const size = await client.sCard(key) // Get the number of members in the set
-    logger.debug(`Set "${key}" contains ${size} member(s).`)
+    // console.log(`Set "${key}" contains ${size} member(s).`)
     return size
   } catch (err) {
     logger.error(`Error getting size of set "${key}":`, err)
@@ -430,6 +454,7 @@ const getSetSize = async (key, redisTransaction = null) => {
 
 module.exports = {
   scanKeys,
+  scanSpecificKeys,
   deleteKeyInRedis,
   generateTransaction,
   executeTransaction,
