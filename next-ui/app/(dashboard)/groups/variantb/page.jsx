@@ -309,7 +309,11 @@ function InputForm({ query, setQuery }) {
             )}
           />
 
-          <Button className={`${groupsStyles.buttonPadding} self-start`} type="submit" disabled={goButtonDisabled}>
+          <Button
+            className={`${groupsStyles.buttonPadding} self-start`}
+            type="submit"
+            disabled={goButtonDisabled ? true : !form.formState.isValid}
+          >
             Go
           </Button>
         </div>
