@@ -18,47 +18,67 @@ const executeTransaction = (redisTransaction) => {
 
 const getClient = (redisTransaction) => (redisTransaction ? redisTransaction : redisClient)
 
-// Function to scan all keys in Redis
-const scanKeys = async (redisTransaction = null, matchPattern = '*', count = 100) => {
-  try {
-    const client = getClient(redisTransaction)
+// // Function to scan all keys in Redis
+// const scanKeys = async (redisTransaction = null, matchPattern = '*', count = 100) => {
+//   try {
+//     const client = getClient(redisTransaction)
 
-    let cursor = '0'
-    let keys = []
+//     let cursor = '0'
+//     let keys = []
 
-    do {
-      // Perform SCAN operation
-      const result = await client.scan(cursor, { MATCH: matchPattern, COUNT: count })
-      cursor = result[0]
-      keys = keys.concat(result[1])
-    } while (cursor !== '0') // Continue until the cursor is 0
+//     do {
+//       // Perform SCAN operation
+//       const result = await client.scan(cursor, { MATCH: matchPattern, COUNT: count })
+//       cursor = result[0]
+//       keys = keys.concat(result[1])
+//     } while (cursor !== '0') // Continue until the cursor is 0
 
-    if (keys.length === 0) {
-      // console.log(`No keys match the pattern: ${matchPattern}`)
-      return []
-    }
+//     if (keys.length === 0) {
+//       // console.log(`No keys match the pattern: ${matchPattern}`)
+//       return []
+//     }
 
-    // console.log(`Fetched ${keys.length} keys matching the pattern: ${matchPattern}`)
-    return keys
-  } catch (error) {
-    logger.error('Failed to complete the SCAN operation:', error)
-    throw error
-  }
-}
+//     // console.log(`Fetched ${keys.length} keys matching the pattern: ${matchPattern}`)
+//     return keys
+//   } catch (error) {
+//     logger.error('Failed to complete the SCAN operation:', error)
+//     throw error
+//   }
+// }
 
-// Function to scan specific keys
-const scanSpecificKeys = async (cursor, pattern, count, redisTransaction = null) => {
+// Function to scan all keys with enhanced error handling
+const scanKeys = async (redisTransaction = null) => {
   try {
     const client = getClient(redisTransaction)
 
     // Perform SCAN operation
-    const result = await client.scan(cursor, { MATCH: pattern, COUNT: count })
+    const result = await client.scan('0', { COUNT: 100 })
+
+    if (result.keys.length == 0) {
+      logger.debug('no key')
+      return
+    }
+    logger.debug('result.keys.length = ', result.keys.length)
+    return result.keys
+  } catch (error) {
+    logger.error('Failed to complete the scan operation:', error)
+  }
+}
+
+// Function to scan specific keys
+const scanSpecificKeys = async (pattern, count = 1000, redisTransaction = null) => {
+  try {
+    const client = getClient(redisTransaction)
+
+    // Perform SCAN operation
+    const result = await client.scan('0', { MATCH: pattern, COUNT: count })
 
     if (result.keys.length == 0) {
       // console.log(`No key exists`)
       return
     }
-    return result
+    console.log('result.keys:', result.keys)
+    return result.keys
   } catch (error) {
     logger.error('Failed to complete the scan operation:', error)
   }

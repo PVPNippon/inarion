@@ -100,7 +100,7 @@ function getUsersByIds(userIds) {
 function overwriteIds(emailsToIdsObj) {
   // TODO(m.okamoto): Domain names will eventually stop being hard-coded
   const key = `${config.DOMAIN_TEST}:users:id`
-  const ttl = Number(process.env.TTL)
+  const ttl = Number(config.TTL)
   return cacheService.overwriteHash(key, emailsToIdsObj, ttl)
 }
 
@@ -126,7 +126,7 @@ function setUsers(users) {
     idsToUsersObj[key] = user
   })
 
-  const ttl = Number(process.env.TTL)
+  const ttl = Number(config.TTL)
 
   return cacheService.setJsons(idsToUsersObj, ttl)
 }
