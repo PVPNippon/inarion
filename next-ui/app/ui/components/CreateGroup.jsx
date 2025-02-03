@@ -5,6 +5,10 @@ import { Input } from '@/components/ui/input'
 import { apiClient } from '@/utils/apiClient'
 import axios from 'axios'
 
+/**
+ * A temporary component for dev purposes.
+ * On click of button, create a group and display in div(error or group details)
+ */
 //Please note that it's a temporary UI created hastily for testing/visualization purposes and it's not dev-quality
 function CreateGroup() {
   const [inputValue, setInputValue] = useState('')
@@ -19,7 +23,7 @@ function CreateGroup() {
         if (inputValue === '') {
           return
         }
-        //getting email and token from local storage is a temporary measure, so I'm not refactoring or improving this part
+        //getting email and token from local storage is a temporary measure, will change in the future
         email = window.localStorage.getItem('email')
         console.log('email:', email)
 
@@ -29,6 +33,7 @@ function CreateGroup() {
 
         const response = await axios.post(
           `http://localhost:4000/api/groups/?userEmail=${email}`,
+
           {
             groupEmail: inputValue,
           },

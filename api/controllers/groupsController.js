@@ -476,6 +476,18 @@ exports.deleteMemberFromGroups = async (req, res, next) => {
   next()
 }
 
+/**
+ * Creates a group.
+ *
+ * @param {Object} req - The request object containing `userEmail` in the query parameter and `groupEmail` in the request body.
+ * @param {Object} res - The response object used to return the response from the API, or an error message.
+ * @param {Function} next - The next middleware function in the stack.
+ * @returns {Promise<void>} Responds with the response of the API call, or an error message.
+ * @throws {Error} Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+//N.B. I haven't added the 401 error code because it's returned to FE before this function is called.
+//It happens when jwt token is expired or invalid.
+//The 401 error should be addressed directly in FE.
 exports.createGroup = async (req, res, next) => {
   const { userEmail } = req.query
   const { groupEmail } = req.body
@@ -486,11 +498,29 @@ exports.createGroup = async (req, res, next) => {
       groupEmail,
     })
 
-    console.log(response)
     res.locals.data = response
   } catch (error) {
-    res.locals.statusCode = 500
-    res.locals.data = { message: `Error creating group with email address ${groupEmail}` }
+    if (error.status === 409) {
+      res.locals.statusCode = 409
+      res.locals.data = { message: `Group with email address ${groupEmail} already exists` }
+    } else if (error.status === 403 || error.status === 404) {
+      //the reason why 404 and 403 are grouped is:
+      //google returns 403 if a user is trying to create a group with existing domain but they don't have necessary permissions
+      //google returns 404 if a user is trying to create a group with non existing domain
+      //I hope we can filter out these in FE by validation so that request doesn't reach here
+      res.locals.statusCode = 403
+      res.locals.data = {
+        message: `You do not have necessary permissions to create a group with email address ${groupEmail}`,
+      }
+    } else if (error.status === 400) {
+      //I hope we can filter out these in FE by validation so that request doesn't reach here
+      res.locals.statusCode = 400
+      res.locals.data = { message: `Group email address is empty or invalid` }
+    } else {
+      res.locals.statusCode = 500
+      res.locals.data = { message: `Error creating group with email address ${groupEmail}` }
+    }
+
     logger.error(error)
   }
   next()

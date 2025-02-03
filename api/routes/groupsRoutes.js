@@ -65,6 +65,7 @@ router.delete('/group/:groupEmail/members', groupsController.deleteMembers)
 //route to delete a member from multiple groups
 router.delete('/members/member/:memberEmail', groupsController.deleteMemberFromGroups)
 
+//route to create a group
 router.post('/', groupsController.createGroup)
 
 router.use(encryptResponseMiddleware) // Encrypt request for all routes
