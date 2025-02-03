@@ -809,6 +809,18 @@ async function deleteMemberFromGroupsWithRateLimit({ userEmail, groupEmails, mem
   return { succeededGroups, failedGroups }
 }
 
+async function createGroup({ userEmail, groupEmail, client }) {
+  //Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+  const response = await directory.groups.insert({
+    resource: {
+      email: groupEmail,
+    },
+  })
+
+  return response
+}
+
 module.exports = {
   listGroups,
   getGroupByEmail,
@@ -819,4 +831,5 @@ module.exports = {
   updateGroupSettings,
   deleteMembersWithRateLimit,
   deleteMemberFromGroupsWithRateLimit,
+  createGroup,
 }

@@ -87,7 +87,7 @@ exports.listDirectMembers = async (req, res, next) => {
   if (res.locals.cached) {
     return next()
   }
-  
+
   const { userEmail } = req.query
   const { groupEmail } = req.params
 
@@ -356,7 +356,7 @@ exports.updateGroupSettings = async (req, res, next) => {
     // Else if a group which has `groupEmail` as its email address (primary or alias) does not exist in the customer's organization, `error.status` will be 404
     // I would set 500 as a default error status code
     res.locals.statusCode = error.status ?? 500
-    res.locals.data = { message: 'Error updating the specified group\'s settings' }
+    res.locals.data = { message: "Error updating the specified group's settings" }
     logger.error(error)
   }
   next()
@@ -471,6 +471,26 @@ exports.deleteMemberFromGroups = async (req, res, next) => {
   } catch (error) {
     res.locals.statusCode = 500
     res.locals.data = { message: `Error deleting ${memberEmail} from the requested group(s)` }
+    logger.error(error)
+  }
+  next()
+}
+
+exports.createGroup = async (req, res, next) => {
+  const { userEmail } = req.query
+  const { groupEmail } = req.body
+
+  try {
+    const response = await groupsService.createGroup({
+      userEmail,
+      groupEmail,
+    })
+
+    console.log(response)
+    res.locals.data = response
+  } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: `Error creating group with email address ${groupEmail}` }
     logger.error(error)
   }
   next()
