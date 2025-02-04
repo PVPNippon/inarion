@@ -10,34 +10,38 @@ router.use(validateJWTMiddleware) // Validate JWT for all routes
 router.use(decryptRequestMiddleware) // Decrypt request for all routes
 
 //route to list all groups in customer organization
-router.get('/',
+router.get(
+  '/',
   groupsCacheMiddleware.retrieveAllGroups,
   groupsController.listAllGroups,
-  groupsCacheMiddleware.storeAllGroups,
+  groupsCacheMiddleware.storeAllGroups
 )
 
 //route to get group by its email
-router.get('/group/:groupEmail',
+router.get(
+  '/group/:groupEmail',
   groupsCacheMiddleware.retrieveGroup,
   groupsController.getGroup,
   groupsCacheMiddleware.storeGroup
 )
 
 //route to list direct members of a group
-router.get('/group/:groupEmail/members',
+router.get(
+  '/group/:groupEmail/members',
   groupsCacheMiddleware.retrieveMembers,
   groupsController.listDirectMembers,
   groupsCacheMiddleware.storeMembers
 )
 
 //route to list all members of a group(both direct and indirect)
-router.get('/group/:groupEmail/descendants',
+router.get(
+  '/group/:groupEmail/descendants',
   groupsCacheMiddleware.retrieveDescendants,
   groupsController.listAllMembers,
   groupsCacheMiddleware.storeDescendants
 )
 
-//route to get group activity logs(all group logs for all groups in cx domain) 
+//route to get group activity logs(all group logs for all groups in cx domain)
 router.get('/activities', groupsController.getGroupActivity)
 
 //route to get group joined activity(all "add_member" and "accept_invitation" logs for all groups in cx domain)
@@ -53,16 +57,16 @@ router.get('/target/:targetEmail/hierarchy', groupsController.getGroupHierarchy)
 router.post('/members/export', groupsController.listGroupsMembersInExportFormat)
 
 //route to update a group's settings
-router.put('/group/:groupEmail/settings',
-  groupsController.updateGroupSettings,
-  groupsCacheMiddleware.storeSettings
-)
+router.put('/group/:groupEmail/settings', groupsController.updateGroupSettings, groupsCacheMiddleware.storeSettings)
 
 //route to delete multiple members from a group
 router.delete('/group/:groupEmail/members', groupsController.deleteMembers)
 
 //route to delete a member from multiple groups
 router.delete('/members/member/:memberEmail', groupsController.deleteMemberFromGroups)
+
+//route to create a group
+router.post('/', groupsController.createGroup)
 
 router.use(encryptResponseMiddleware) // Encrypt request for all routes
 

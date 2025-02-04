@@ -809,6 +809,37 @@ async function deleteMemberFromGroupsWithRateLimit({ userEmail, groupEmails, mem
   return { succeededGroups, failedGroups }
 }
 
+/**
+ * Creates a new group using the Google Admin Directory API.
+ *
+ * This function takes the `userEmail`, `groupEmail`, and an optional `client` from the argument object.
+ * It uses these values to make an API call to create a new group with the specified email address.
+ *
+ * @param {Object} params - The parameters needed to create a new group.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {string} params.groupEmail - The email address of the group to be created.
+ * @param {Object} [params.client=null] - An existing impersonated auth client for Directory API.
+ * @returns {Promise<Object>} - A promise that resolves to the response from the API call.
+ * @throws {Error} - Throws an error if there is an issue with the API call or if the client is incorrect.
+ */
+
+async function createGroup({ userEmail, groupEmail, client }) {
+  //Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+
+  //If a wrong client instance type is provided (i.e. "drive" instead of "directory") or something is wrong with the client,
+  //the "directory.groups.insert" method will return an error like "Cannot read properties of undefined (reading 'insert')"
+  //We catch the error in the corresponding groupsController function.
+  //If you are calling this function directly, you should catch the error yourself from wherever you call it.
+  const response = await directory.groups.insert({
+    resource: {
+      email: groupEmail,
+    },
+  })
+
+  return response
+}
+
 module.exports = {
   listGroups,
   getGroupByEmail,
@@ -819,4 +850,5 @@ module.exports = {
   updateGroupSettings,
   deleteMembersWithRateLimit,
   deleteMemberFromGroupsWithRateLimit,
+  createGroup,
 }
