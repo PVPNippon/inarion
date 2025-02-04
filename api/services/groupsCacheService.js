@@ -1,8 +1,9 @@
 const cacheService = require('./cacheService.js')
+const redisCacheService = require('../services/redisCacheService')
 
 /**
  * Retrieves the ID of a group by its email address from the cache.
- * 
+ *
  * @param {string} email - The email address of the group to retrieve the ID for.
  * @returns {Promise<string|null>} A Promise object which resolves to:
  *   - the group ID corresponding to `email` if it is found in the cache
@@ -13,7 +14,8 @@ function getId(email) {
   // TODO (r.hidaka): VALIDATION: `email` should be a string in an email address format
 
   const key = `${process.env.DOMAIN}:groups:id`
-  return cacheService.getHashValue(key, email)
+  // return cacheService.getHashValue(key, email)
+  return redisCacheService.getHashFieldFromRedis(key, email)
 }
 
 /**
@@ -35,7 +37,8 @@ function getIds(emails) {
   // TODO (r.hidaka): VALIDATION: `emails` should be an array of strings in an email address format
 
   const key = `${process.env.DOMAIN}:groups:id`
-  return cacheService.getHashValues(key, emails)
+  // return cacheService.getHashValues(key, emails)
+  return redisCacheService.getHashValues(key, emails)
 }
 
 /**
@@ -43,7 +46,7 @@ function getIds(emails) {
  *
  * This function queries the cache to obtain all group IDs, removing any duplicates and negative cache entries.
  * If `requiresAllGroupsListedBefore` is true, the function checks whether the cache contains all groups previously listed.
- * 
+ *
  * @param {boolean} [requiresAllGroupsListedBefore=false] - Indicates whether to return null if not all groups were listed before.
  *   // TODO (r.hidaka): Come up with a better name for this parameter
  * @returns {Promise<Array<string>|null>} A Promise object that resolves to:
@@ -56,7 +59,8 @@ function getIds(emails) {
  */
 async function getAllIds(requiresAllGroupsListedBefore = false) {
   const key = `${process.env.DOMAIN}:groups:id`
-  const emailsToIdsObj = await cacheService.getHash(key)
+  //const emailsToIdsObj = await cacheService.getHash(key)
+  const emailsToIdsObj = await redisCacheService.getHashFromRedis(key)
 
   // Return null if the cache is empty
   if (emailsToIdsObj === null) {
@@ -92,10 +96,10 @@ async function getAllIds(requiresAllGroupsListedBefore = false) {
 
 /**
  * Stores the mapping of group email to group ID in the cache in the form of a hash.
- * 
+ *
  * If the hash with the key `<DOMAIN>:groups:id` does not exist, it is newly created and a TTL is set to it.
  * If the hash with the key already exists, it is updated, but the existing TTL of the key remains the same.
- * 
+ *
  * @param {Object.<string, string>} emailsToIdsObj - Mapping of group email to group ID.
  *   It is expected to be in the following format:
  *   ```
@@ -118,15 +122,16 @@ async function getAllIds(requiresAllGroupsListedBefore = false) {
 function setIds(emailsToIdsObj) {
   const key = `${process.env.DOMAIN}:groups:id`
   const ttl = Number(process.env.TTL)
-  return cacheService.setHash(key, emailsToIdsObj, ttl, 'NX')
+  //return cacheService.setHash(key, emailsToIdsObj, ttl, 'NX')
+  return redisCacheService.setHashWithTtlMode(key, emailsToIdsObj, ttl, 'NX')
 }
 
 /**
  * Overwrites the mapping of group email to group ID in the cache in the form of a hash.
- * 
+ *
  * This function removes the key `<DOMAIN>:groups:id` first (if it exists in the cache),
  * and then creates a new mapping with the key and sets a TTL to it.
- * 
+ *
  * @param {Object.<string, string>} emailsToIdsObj - Mapping of group email to group ID.
  *   It is expected to be in the following format:
  *   ```
@@ -147,12 +152,13 @@ function setIds(emailsToIdsObj) {
 function overwriteIds(emailsToIdsObj) {
   const key = `${process.env.DOMAIN}:groups:id`
   const ttl = Number(process.env.TTL)
-  return cacheService.overwriteHash(key, emailsToIdsObj, ttl)
+  //return cacheService.overwriteHash(key, emailsToIdsObj, ttl)
+  return redisCacheService.overwriteHash(key, emailsToIdsObj, ttl)
 }
 
 /**
  * Retrieves a {@link https://developers.google.com/admin-sdk/directory/reference/rest/v1/groups#resource:-group|group instance} by its ID from the cache.
- * 
+ *
  * @param {string} groupId - The ID of the group to retrieve.
  * @returns {Promise<Object|null>} A Promise object which resolves to the group instance if found, or null if not found.
  * @see {@link cacheService.getJson|getJson}
@@ -160,7 +166,8 @@ function overwriteIds(emailsToIdsObj) {
 function getGroupById(groupId) {
   // TODO (r.hidaka): VALIDATION: `groupId` should be a non-empty string.
   const key = `${process.env.DOMAIN}:groups:${groupId}:info`
-  return cacheService.getJson(key)
+  //return cacheService.getJson(key)
+  return redisCacheService.getJsonFromRedis(key)
 }
 
 /**
@@ -180,16 +187,17 @@ function getGroupById(groupId) {
  */
 function getGroupsByIds(groupIds) {
   // TODO (r.hidaka): VALIDATION: groupIds should be an array of non-empty strings.
-  const keys = groupIds.map(groupId => `${process.env.DOMAIN}:groups:${groupId}:info`)
-  return cacheService.getJsons(keys)
+  const keys = groupIds.map((groupId) => `${process.env.DOMAIN}:groups:${groupId}:info`)
+  // return cacheService.getJsons(keys)
+  return redisCacheService.getJsons(keys)
 }
 
 /**
  * Stores a {@link https://developers.google.com/admin-sdk/directory/reference/rest/v1/groups#resource:-group|group instance} in the cache.
- * 
+ *
  * The group instance is stored with a key of `<DOMAIN>:groups:<id>:info` and a TTL where `<id>` is the group ID.
  * An old group instance with the same key and an old TTL set to it will be overwritten.
- * 
+ *
  * @param {Object} group - A group instance to store in the cache.
  * @returns {Promise<Array<string|boolean>} A Promise object which resolves to an array whose length is 2.
  *   - The first element of the array is a string 'OK'.
@@ -200,15 +208,16 @@ function setGroup(group) {
   const id = group.id
   const key = `${process.env.DOMAIN}:groups:${id}:info`
   const ttl = Number(process.env.TTL)
-  return cacheService.setJson(key, group, ttl)
+  //return cacheService.setJson(key, group, ttl)
+  return redisCacheService.setJsonInRedis(key, group, null, ttl)
 }
 
 /**
  * Stores multiple {@link https://developers.google.com/admin-sdk/directory/reference/rest/v1/groups#resource:-group|group instances} in the cache.
- * 
+ *
  * Each group instance is stored with a key of `<DOMAIN>:groups:<id>:info` and a TTL where `<id>` is the group ID.
  * An old group instance with the same key and an old TTL set to it will be overwritten.
- * 
+ *
  * @param {Object} groups - An array of group instances to store in the cache.
  * @returns {Promise<Array<string|boolean>} A Promise object which resolves to an array whose length is `N+1`, where `N` is the length of `groups`.
  *   - The first element of the array is a string 'OK'.
@@ -220,7 +229,7 @@ function setGroup(group) {
 function setGroups(groups) {
   const idsToGroupsObj = {}
 
-  groups.forEach(group => {
+  groups.forEach((group) => {
     const id = group.id
     const key = `${process.env.DOMAIN}:groups:${id}:info`
     idsToGroupsObj[key] = group
@@ -228,12 +237,13 @@ function setGroups(groups) {
 
   const ttl = Number(process.env.TTL)
 
-  return cacheService.setJsons(idsToGroupsObj, ttl)
+  // return cacheService.setJsons(idsToGroupsObj, ttl)
+  return redisCacheService.setJsonsWithTtlMode(idsToGroupsObj, ttl)
 }
 
 /**
  * Retrieves an array of members of the group with the given group ID from the cache.
- * 
+ *
  * @param {string} id - The ID of the group to retrieve the members of.
  * @returns {Promise<Array<Object>|null>} A Promise object which resolves to an array of members of the group if found in the cache,
  *   or null if not found.
@@ -242,7 +252,8 @@ function setGroups(groups) {
 async function getMembersById(id) {
   const key = `${process.env.DOMAIN}:groups:${id}:members`
 
-  const rawMembersObj = await cacheService.getHash(key)
+  //const rawMembersObj = await cacheService.getHash(key)
+  const rawMembersObj = await redisCacheService.getHashFromRedis(key)
 
   if (rawMembersObj === null) {
     return null
@@ -250,7 +261,7 @@ async function getMembersById(id) {
 
   delete rawMembersObj['MEMBERS_COUNT']
 
-  const members = Object.values(rawMembersObj).map(rawMember => JSON.parse(rawMember))
+  const members = Object.values(rawMembersObj).map((rawMember) => JSON.parse(rawMember))
 
   return members
 }
@@ -258,13 +269,13 @@ async function getMembersById(id) {
 // Will not use this. Will use overwriteMembersById
 /**
  * Stores the members of a group in the cache in the form of a hash.
- * 
+ *
  * The key is `<DOMAIN>:groups:<id>:members` where `<id>` is the group ID, and the value is an object whose fields (properties) are the IDs of the members
  * and the values are the corresponding group member instances serialized as a JSON string.
- * 
+ *
  * If the hash with the key `<DOMAIN>:groups:<id>:members` does not exist, it is newly created and a TTL is set to it.
  * If the hash with the key already exists, it is updated, but the existing TTL of the key remains the same.
- * 
+ *
  * @param {string} id - The ID of the group whose members are to be stored.
  * @param {Array<Object>} members - The members of the group.
  *   If the hash with the key `<DOMAIN>:groups:<id>:members` does not exist,
@@ -292,9 +303,9 @@ function setMembersById(id, members) {
   // as an empty object cannot be stored in the cache in the form of a hash
   // There may be a better solution to deal with a group with 0 members
   const idsToMembersObj = {
-    'MEMBERS_COUNT': `${members.length}`
+    MEMBERS_COUNT: `${members.length}`,
   }
-  members.forEach(member => idsToMembersObj[member.id] = JSON.stringify(member))
+  members.forEach((member) => (idsToMembersObj[member.id] = JSON.stringify(member)))
 
   const ttl = Number(process.env.TTL)
 
@@ -303,13 +314,13 @@ function setMembersById(id, members) {
 
 /**
  * Overwrites the members of a group in the cache in the form of a hash.
- * 
+ *
  * The key is `<DOMAIN>:groups:<id>:members` where `<id>` is the group ID, and the value is an object whose fields (properties) are the IDs of the members
  * and the values are the corresponding group member instances serialized as a JSON string.
- * 
+ *
  * This function removes the key `<DOMAIN>:groups:<id>:members` first (if it exists in the cache),
  * and then creates a new hash with the key and sets a TTL to it.
- * 
+ *
  * @param {string} id - The ID of the group whose members are to be stored.
  * @param {Array<Object>} members - The members of the group.
  *   The hash to be associated with the key `<DOMAIN>:groups:<id>:members` is the following object (`N = members.length`):
@@ -335,9 +346,9 @@ function overwriteMembersById(id, members) {
   // as an empty object cannot be stored in the cache in the form of a hash
   // There may be a better solution to deal with a group with 0 members
   const idsToMembersObj = {
-    'MEMBERS_COUNT': `${members.length}`
+    MEMBERS_COUNT: `${members.length}`,
   }
-  members.forEach(member => idsToMembersObj[member.id] = JSON.stringify(member))
+  members.forEach((member) => (idsToMembersObj[member.id] = JSON.stringify(member)))
 
   const ttl = Number(process.env.TTL)
 
@@ -346,7 +357,7 @@ function overwriteMembersById(id, members) {
 
 /**
  * Retrieves an array of descendants (all direct and indirect members) of the group with the given group ID from the cache.
- * 
+ *
  * @param {string} id - The ID of the group to retrieve the descendants of.
  * @returns {Promise<Array<Object>|null>} A Promise object which resolves to an array of descendants of the group if found in the cache,
  *   or null if not found.
@@ -363,7 +374,7 @@ async function getDescendantsById(id) {
 
   delete rawDescendantsObj['DESCENDANTS_COUNT']
 
-  const descendants = Object.values(rawDescendantsObj).map(rawDescendant => JSON.parse(rawDescendant))
+  const descendants = Object.values(rawDescendantsObj).map((rawDescendant) => JSON.parse(rawDescendant))
 
   return descendants
 }
@@ -371,13 +382,13 @@ async function getDescendantsById(id) {
 // Will not use this. Will use overwriteDescendantsById
 /**
  * Stores the descendants (all direct and indirect members) of a group in the cache in the form of a hash.
- * 
+ *
  * The key is `<DOMAIN>:groups:<id>:descendants` where `<id>` is the group ID, and the value is an object whose fields (properties) are the IDs of the descendants
  * and the values are the corresponding group descendant instances serialized as a JSON string.
- * 
+ *
  * If the hash with the key `<DOMAIN>:groups:<id>:descendants` does not exist, it is newly created and a TTL is set to it.
  * If the hash with the key already exists, it is updated, but the existing TTL of the key remains the same.
- * 
+ *
  * @param {string} id - The ID of the group whose descendants are to be stored.
  * @param {Array<Object>} descendants - The descendants of the group.
  *   If the hash with the key `<DOMAIN>:groups:<id>:descendants` does not exist,
@@ -402,9 +413,9 @@ function setDescendantsById(id, descendants) {
   const key = `${process.env.DOMAIN}:groups:${id}:descendants`
 
   const idsToDescendantsObj = {
-    'DESCENDANTS_COUNT': `${descendants.length}`
+    DESCENDANTS_COUNT: `${descendants.length}`,
   }
-  descendants.forEach(descendant => idsToDescendantsObj[descendant.id] = JSON.stringify(descendant))
+  descendants.forEach((descendant) => (idsToDescendantsObj[descendant.id] = JSON.stringify(descendant)))
 
   const ttl = Number(process.env.TTL)
 
@@ -413,13 +424,13 @@ function setDescendantsById(id, descendants) {
 
 /**
  * Overwrites the descendants (all direct and indirect members) of a group in the cache in the form of a hash.
- * 
+ *
  * The key is `<DOMAIN>:groups:<id>:descendants` where `<id>` is the group ID, and the value is an object whose fields (properties) are the IDs of the descendants
  * and the values are the corresponding group descendant instances serialized as a JSON string.
- * 
+ *
  * This function removes the key `<DOMAIN>:groups:<id>:descendants` first (if it exists in the cache),
  * and then creates a new hash with the key and sets a TTL to it.
- * 
+ *
  * @param {string} id - The ID of the group whose descendants are to be stored.
  * @param {Array<Object>} descendants - The descendants of the group.
  *   If the hash with the key `<DOMAIN>:groups:<id>:descendants` does not exist,
@@ -443,9 +454,9 @@ function overwriteDescendantsById(id, descendants) {
   const key = `${process.env.DOMAIN}:groups:${id}:descendants`
 
   const idsToDescendantsObj = {
-    'DESCENDANTS_COUNT': `${descendants.length}`
+    DESCENDANTS_COUNT: `${descendants.length}`,
   }
-  descendants.forEach(descendant => idsToDescendantsObj[descendant.id] = JSON.stringify(descendant))
+  descendants.forEach((descendant) => (idsToDescendantsObj[descendant.id] = JSON.stringify(descendant)))
 
   const ttl = Number(process.env.TTL)
 
@@ -453,23 +464,17 @@ function overwriteDescendantsById(id, descendants) {
 }
 
 // TODO (r.hidaka): Implement this after creating a corresponding controller
-function getParentsById(id) {
-
-}
+function getParentsById(id) {}
 
 // TODO (r.hidaka): Implement this after creating a corresponding controller
-function setParentsById(id, parents) {
-
-}
+function setParentsById(id, parents) {}
 
 // TODO (r.hidaka): Implement this after creating a corresponding controller
-function overwriteParentsById(id, parents) {
-
-}
+function overwriteParentsById(id, parents) {}
 
 /**
  * Retrieves the settings of the group with the given group ID from the cache.
- * 
+ *
  * @param {string} id - The ID of the group to retrieve the settings of.
  * @returns {Promise<Object|null>} A Promise object which resolves to the settings of the group if found in the cache,
  *   or null if not found.
@@ -482,14 +487,14 @@ function getSettingsById(id) {
 
 /**
  * Stores the settings of a group in the cache in the form of a hash.
- * 
+ *
  * The key is `<DOMAIN>:groups:<id>:settings` where `<id>` is the group ID, and the value is
  * the {@link https://developers.google.com/admin-sdk/groups-settings/v1/reference/groups#resource-representations|settings object}.
- * 
+ *
  * If the hash with the key `<DOMAIN>:groups:<id>:settings` does not exist, it is newly created.
  * If the hash with the key already exists, it is updated.
  * In both cases, a new TTL is set to the key.
- * 
+ *
  * @param {string} id - The ID of the group whose settings are to be stored.
  * @param {Object} settings - The settings of the group.
  * @returns {Promise<Array<number|boolean>>} A Promise object which resolves to an array whose length is 2.
@@ -509,13 +514,13 @@ function setSettingsById(id, settings) {
 // Will not use this. Will use setSettingsById instead.
 /**
  * Overwrites the settings of a group in the cache in the form of a hash.
- * 
+ *
  * The key is `<DOMAIN>:groups:<id>:settings` where `<id>` is the group ID, and the value is
  * the {@link https://developers.google.com/admin-sdk/groups-settings/v1/reference/groups#resource-representations|settings object}.
- * 
+ *
  * This function removes the key `<DOMAIN>:groups:<id>:settings` first (if it exists in the cache),
  * and then creates a new hash with the key and sets a TTL to it.
- * 
+ *
  * @param {string} id - The ID of the group whose settings are to be stored.
  * @param {Object} settings - The settings of the group.
  * @returns {Promise<Array<number|boolean>>} A Promise object which resolves to an array whose length is 3.
@@ -539,7 +544,7 @@ module.exports = {
   getAllIds,
   setIds,
   overwriteIds,
-  
+
   /* Group Instances */
   getGroupById,
   getGroupsByIds,
@@ -557,7 +562,7 @@ module.exports = {
   /* Group Parents */
   // getParentsById,
   // overwriteParentsById,
-  
+
   /* Group Settings */
   getSettingsById,
   setSettingsById,
