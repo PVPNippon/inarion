@@ -525,3 +525,31 @@ exports.createGroup = async (req, res, next) => {
   }
   next()
 }
+
+/**
+ * Retrieves a group's settings.
+ *
+ * @param {Object} req - The request object containing `userEmail` in the query parameter and `groupEmail` in the path parameter.
+ * @param {Object} res - The response object used to return the response from the API, or an error message.
+ * @param {Function} next - The next middleware function in the stack.
+ * @returns {Promise<void>} Responds with the response of the API call, or an error message.
+ * @throws {Error} Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+exports.getSettings = async (req, res, next) => {
+  const { userEmail } = req.query
+  const { groupEmail } = req.params
+
+  try {
+    const response = await groupsService.getSettings({
+      userEmail,
+      groupEmail,
+    })
+
+    res.locals.data = response.data
+  } catch (error) {
+    res.locals.statusCode = error.status ?? 500
+    res.locals.data = { message: "Error getting the specified group's settings" }
+    logger.error(error)
+  }
+  next()
+}
