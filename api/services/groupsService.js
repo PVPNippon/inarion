@@ -840,6 +840,31 @@ async function createGroup({ userEmail, groupEmail, client }) {
   return response
 }
 
+/**
+ * Retrieves the settings of a group using the Google Groups Settings API.
+ *
+ * @param {Object} params - The parameters needed to retrieve group settings.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {string} params.groupEmail - The email address of the group to retrieve settings for.
+ * @param {Object} [params.client=null] - An existing impersonated auth client for GroupsSettings API.
+ * @returns {Promise<Object>} - A promise that resolves to the group settings or an error message.
+ * @throws {Error} - Throws an error if there is an issue with the API call or if the client is incorrect.
+ */
+//Note: if you have a client instance already, you can pass it to this function.
+//Only "groups" type of instance can be used, otherwise the authModule will return an error:
+//cannot read properties of undefined (reading 'get')
+async function getSettings({ userEmail, groupEmail, client }) {
+  //Retrieve an existing impersonated auth client for GroupsSettings API or create a new one
+  const groupsSettings = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'groups'))
+
+  const response = await groupsSettings.groups.get({
+    groupUniqueId: groupEmail,
+    alt: 'json', //need to specify json, because default data format is xml (just why, google..)
+  })
+
+  return response
+}
+
 module.exports = {
   listGroups,
   getGroupByEmail,
@@ -851,4 +876,5 @@ module.exports = {
   deleteMembersWithRateLimit,
   deleteMemberFromGroupsWithRateLimit,
   createGroup,
+  getSettings,
 }
