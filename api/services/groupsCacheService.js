@@ -512,7 +512,8 @@ function getSettingsById(id) {
 function setSettingsById(id, settings) {
   const key = `${process.env.DOMAIN}:groups:${id}:settings`
   const ttl = Number(process.env.TTL)
-  return cacheService.setHash(key, settings, ttl)
+  // return cacheService.setHash(key, settings, ttl)
+  return redisCacheService.setHashWithTtlMode(key, settings, ttl)
 }
 
 // Will not use this. Will use setSettingsById instead.

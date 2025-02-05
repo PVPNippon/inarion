@@ -536,6 +536,10 @@ exports.createGroup = async (req, res, next) => {
  * @throws {Error} Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 exports.getSettings = async (req, res, next) => {
+  if (res.locals.cached) {
+    return next()
+  }
+
   const { userEmail } = req.query
   const { groupEmail } = req.params
 
