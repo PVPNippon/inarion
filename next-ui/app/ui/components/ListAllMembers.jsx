@@ -69,7 +69,7 @@ function ListAllMembers() {
         console.log('TOKEN', token)
 
         const response = await axios.get(
-          `http://localhost:4000/api/groups/group/${inputValue}/members?userEmail=${email}`,
+          `http://localhost:4000/api/groups/group/${inputValue}/descendants?userEmail=${email}`,
 
           {
             headers: {

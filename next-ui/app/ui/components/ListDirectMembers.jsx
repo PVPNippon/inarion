@@ -60,7 +60,7 @@ function ListDirectMembers() {
         console.log('TOKEN', token)
 
         const response = await axios.get(
-          `http://localhost:4000/api/groups/group/${inputValue}/descendants?userEmail=${email}`,
+          `http://localhost:4000/api/groups/group/${inputValue}/members?userEmail=${email}`,
 
           {
             headers: {

@@ -3,6 +3,46 @@ const redisClient = require('../config/redis.js')
 const logger = require('../logger/logger.js')(__filename, 'Redis Cache Service')
 
 /**
+ * Returns the remaining TTL (seconds) of `key`.
+ *
+ * @param {string} key - The key whose TTL to retrieve.
+ * @returns {Promise<number>} A Promise object which resolves to:
+ *   - The remaining TTL (seconds) of `key` if it has one.
+ *   - `-2` if `key` does not exist.
+ *   - `-1` if `key` exists but does not have a TTL.
+ * @throws {Error} The returned Promise object resolves to an error if `key` is not a string.
+ * @see {@link https://redis.io/docs/latest/commands/ttl/}
+ */
+function getTtl(key) {
+  return redisClient.ttl(key)
+}
+
+/**
+ * Sets a TTL (seconds) to `key`.
+ *
+ * @param {string} key - The key whose TTL to set.
+ * @param {number} ttl - The TTL in seconds to set.
+ * @param {string} [ttlMode] - An optional string specifying the mode for the TTL.
+ *   If `ttl` is not specified as an integer, `ttlMode` is ignored.
+ *   If specified, `ttlMode` is expected to be one of the following (case-insensitive):
+ *   - `NX` (only set the TTL if the key has no existing TTL)
+ *   - `XX` (only set the TTL if the key already has an existing TTL)
+ *   - `GT` (only set the TTL if the new TTL is greater than the existing TTL)
+ *   - `LT` (only set the TTL if the new TTL is less than the existing TTL)
+ *
+ *   If `ttlMode` is not one of the above, it is treated as `undefined`.
+ *   If `ttlMode` is (treated as) `undefined`, the TTL is set to `key` without any condition.
+ *   See {@link formatTtlMode}.
+ * @returns {Promise<boolean>} A Promise object which resolves to `true` if the TTL is set to `key`,
+ *   or `false` if the TTL is not set to `key` for some reason (e.g. `key` does not exist).
+ * @throws {Error} The returned Promise object resolves to an error if `key` is not a string, or `ttl` is not an integer.
+ * @see {@link https://redis.io/docs/latest/commands/expire/}
+ */
+function setTtl(key, ttl, ttlMode) {
+  return redisClient.expire(key, ttl, formatTtlMode(ttlMode))
+}
+
+/**
  * Returns a string representing a Redis TTL mode.
  *
  * The TTL mode is one of the following:
@@ -135,6 +175,25 @@ const deleteKeyInRedis = async (key, redisTransaction = null) => {
   }
 }
 
+// TODO (r.hidaka): Consider splitting this function into two functions: deleteKey(key) and deleteKeys(keys).
+/**
+ * Deletes keys in Redis.
+ *
+ * @param {string|Array<string>} keys - A string which represents a key to be deleted in Redis, or an array of strings which represent keys to be deleted in Redis.
+ * @returns {Promise<number>} A Promise object which resolves to the number of keys deleted by this operation (non-existent keys are ignored).
+ * @throws {Error} The returned Promise object resolves to an error if `keys` is not a string or an array.
+ * @see {@link https://redis.io/docs/latest/commands/del/}
+ */
+function deleteKeys(keys) {
+  // If `keys` is an empty array, del(keys) returns a Promise object which resolves to an error.
+  // I prefer the returned Promise object to resolve to 0 in that case.
+  if (Array.isArray(keys) && keys.length === 0) {
+    return Promise.resolve(0)
+  }
+
+  return redisClient.del(keys)
+}
+
 // String
 
 // Generic function to set a value in Redis with optional TTL
@@ -203,6 +262,59 @@ const setJsonInRedis = async (key, jsonObject, redisTransaction = null, ttl) => 
     logger.error(`Error setting JSON in Redis for key "${key}":`, err)
     throw err
   }
+}
+
+/**
+ * Sets a JSON object associated with `key` in Redis, and optionally sets a TTL to it.
+ *
+ * If `key` does not exist, or it exists and the data associated with it is a JSON,
+ * `key` is associated with a new JSON object represented by `jsonObj`.
+ *
+ * If `ttl` is given as an integer, a TTL represented by it is set to `key` with a mode represented by `ttlMode`.
+ * If `key` already has a TTL and `ttl` is not an integer, the existing TTL is not changed.
+ *
+ * @param {string} key - The key associated with the JSON object to set.
+ * @param {Object} jsonObj - An object to set with `key`.
+ *
+ * // TODO (r.hidaka): Technically, even if `jsonObj` is an empty object, null, a string, a number or an array, this function can store it in Redis with no errors.
+ * //                  Consider throwing an error if `jsonObj` is not a non-empty object to be consistent with {@link setHash} and {@link overwriteHash}.
+ *
+ * @param {number} [ttl] - An optional integer specifying the TTL in seconds for the key.
+ * @param {string} [ttlMode] - An optional string specifying the mode for the TTL.
+ *   If `ttl` is not specified as an integer, `ttlMode` is ignored.
+ *   If specified, `ttlMode` is expected to be one of the following (case-insensitive):
+ *   - `NX` (only set the TTL if the key has no existing TTL)
+ *   - `XX` (only set the TTL if the key already has an existing TTL)
+ *   - `GT` (only set the TTL if the new TTL is greater than the existing TTL)
+ *   - `LT` (only set the TTL if the new TTL is less than the existing TTL)
+ *
+ *   If `ttlMode` is not one of the above, it is treated as `undefined`.
+ *   If `ttlMode` is (treated as) `undefined`, the TTL is set to `key` without any condition.
+ *   See {@link formatTtlMode}.
+ * @returns {Promise<Array<number|boolean>>} A Promise object which resolves to an array whose length is 1 if `ttl` is not an integer, or 2 if `ttl` is an integer.
+ *   - The first element of the array is a string 'OK'.
+ *   - The second element, if applicable, is `true` if a TTL represented by `ttl` was set to `key` with a mode represented by `ttlMode`,
+ *     or `false` if the TTL was not set to `key` for some reason (e.g. `key` already had an existing TTL and `ttlMode` was `NX`).
+ * @throws {Error} The returned Promise object resolves to an error if:
+ *   - `key` is not a string.
+ *   - `key` exists but the data associated with `key` is not a JSON.
+ * @see {@link https://redis.io/docs/latest/commands/multi/},
+ *      {@link https://redis.io/docs/latest/commands/json/set/},
+ *      {@link https://redis.io/docs/latest/commands/expire/},
+ *      {@link https://redis.io/docs/latest/commands/exec/}
+ */
+function setJsonWithTtlMode(key, jsonObj, ttl, ttlMode) {
+  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
+
+  const multi = redisClient.multi()
+
+  multi.json.set(key, '$', jsonObj)
+
+  if (Number.isInteger(ttl)) {
+    multi.expire(key, ttl, formatTtlMode(ttlMode))
+  }
+
+  return multi.exec()
 }
 
 /**
@@ -462,6 +574,66 @@ function setHashWithTtlMode(key, hashObj, ttl, ttlMode) {
   return multi.exec()
 }
 
+/**
+ * Sets multiple hashes in Redis, each associated with a key, and optionally sets a TTL for each key.
+ *
+ * @param {Object.<string, Object.<string, string>>} keysToHashesObj - An object containing keys and corresponding hash objects to set in Redis.
+ *   It is expected to be in the following format:
+ *   ```
+ *   {
+ *     key_1: hashObj_1,
+ *     key_2: hashObj_2,
+ *     ...,
+ *     key_N: hashObj_N
+ *   }
+ *   ```
+ *   For each `1 <= i <= N`, if `key_i` does not exist in Redis, a new hash associated with the key is created
+ *   and all fields in `hashObj_i` are added to the hash with their values.
+ *   If `key_i` already exists and is associated with a hash, for each field in `hashObj_i`,:
+ *   - If the field does not exist in the hash, the field is newly added to the hash with its value.
+ *   - If the field already exists in the hash, the field is updated with its value.
+ * @param {number} [ttl] - An optional integer specifying the TTL in seconds for the keys.
+ * @param {string} [ttlMode] - An optional string specifying the mode for the TTL.
+ *   If `ttl` is not specified as an integer, `ttlMode` is ignored.
+ *   If specified, `ttlMode` is expected to be one of the following (case-insensitive):
+ *   - `NX` (only set the TTL if the key has no existing TTL)
+ *   - `XX` (only set the TTL if the key already has an existing TTL)
+ *   - `GT` (only set the TTL if the new TTL is greater than the existing TTL)
+ *   - `LT` (only set the TTL if the new TTL is less than the existing TTL)
+ *
+ *   If `ttlMode` is not one of the above, it is treated as `undefined`.
+ *   If `ttlMode` is (treated as) `undefined`, the TTL is set to all the keys without any condition.
+ *   See {@link formatTtlMode}.
+ * @returns {Promise<Array<number|boolean>>} A Promise object which resolves to an array whose length is 0, or `N` where `N` is the size of `keysToHashesObj` if `ttl` is not an integer,
+ *   or `2N` if `ttl` is an integer.
+ *   - The length of the array is 0 if and only if `keysToHashesObj` is empty (`{}`).
+ *   - The i-th element (`1 <= i <= N`) of the array is a number of fields which were newly added to the hash associated with `key_i`.
+ *   - The i+N-th element (`1 <= i <= N`), if applicable, is `true` if a TTL represented by `ttl` was set to `key_i` with a mode represented by `ttlMode`,
+ *     or `false` if the TTL was not set to `key_i` for some reason (e.g. `key_i` already had an existing TTL and `ttlMode` was `NX`).
+ * @throws {Error} The returned Promise object resolves to an error if:
+ *   - Some of the keys in `keysToHashesObj` are not strings.
+ *   - Some of the keys in `keysToHashesObj` exist but the data associated with them are not hashes.
+ *   - Some of the values in `keysToHashesObj` are not objects or are empty (`{}`).
+ * @see {@link https://redis.io/docs/latest/commands/multi/},
+ *      {@link https://redis.io/docs/latest/commands/hset/},
+ *      {@link https://redis.io/docs/latest/commands/expire/},
+ *      {@link https://redis.io/docs/latest/commands/exec/}
+ */
+function setHashesWithTtlMode(keysToHashesObj, ttl, ttlMode) {
+  // TODO (r.hidaka): VALIDATION: Check the format of `keysToHashesObj`
+
+  const multi = redisClient.multi()
+
+  Object.entries(keysToHashesObj).forEach(([key, hash]) => multi.hSet(key, hash))
+
+  if (Number.isInteger(ttl)) {
+    const formattedTtlMode = formatTtlMode(ttlMode)
+    Object.keys(keysToHashesObj).forEach((key) => multi.expire(key, ttl, formattedTtlMode))
+  }
+
+  return multi.exec()
+}
+
 // Function to get an entire hash from Redis
 const getHashFromRedis = async (key, redisTransaction = null) => {
   try {
@@ -525,6 +697,72 @@ function getHashValues(key, fields) {
     return Promise.resolve([])
   }
   return redisClient.hmGet(key, fields)
+}
+
+/**
+ * Retrieves all values in the hash associated with `key` from Redis.
+ *
+ * @param {string} key - The key associated with the hash to retrieve values from.
+ * @returns {Promise<Array<string>>} A Promise object which resolves to:
+ *   - An array consisting of all values in the hash associated with `key`.
+ *   - An empty array (`[]`) if `key` does not exist.
+ * @throws {Error} The returned Promise object resolves to an error if:
+ *   - `key` is not a string.
+ *   - `key` exists but the data associated with it is not a hash.
+ * @see {@link https://redis.io/docs/latest/commands/hvals/}
+ */
+function getAllHashValues(key) {
+  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
+
+  return redisClient.hVals(key)
+}
+
+/**
+ * Retrieves all fields in the hash associated with `key` from Redis.
+ *
+ * @param {string} key - The key associated with the hash to retrieve fields from.
+ * @returns {Promise<Array<string>>} A Promise object which resolves to an array of all fields in the hash associated with `key`.
+ *   If `key` does not exist, the returned Promise object resolves to an empty array (`[]`).
+ * @throws {Error} The returned Promise object resolves to an error if:
+ *   - `key` is not a string.
+ *   - `key` exists but the data associated with it is not a hash.
+ * @see {@link https://redis.io/docs/latest/commands/hkeys/}
+ */
+function getAllHashFields(key) {
+  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
+
+  return redisClient.hKeys(key)
+}
+
+/**
+ * Retrieves the entire hashes associated with each key in `keys` from Redis.
+ *
+ * @param {Array<string>} keys - An array of keys associated with the hashes to retrieve.
+ * @returns {Promise<Array<Object.<string, string>|null>>} A Promise object which resolves to an array (let's call it `hashes`) whose length is the same as that of `keys`.
+ *   So if `keys` is empty (`[]`), `hashes` is also empty.
+ *   If `keys` is not empty, for each `0 <= i < keys.length`, `hashes[i]` is:
+ *   - A hash associated with `keys[i]`.
+ *   - `null` if `keys[i]` does not exist.
+ * @throws {Error} The returned Promise object resolves to an error if:
+ *   - `keys` is not an array.
+ *   - `keys` is an array which has a non-string element.
+ *   - A key in `keys` exists but the data associated with it is not a hash.
+ * @see {@link https://redis.io/docs/latest/commands/multi/},
+ *      {@link https://redis.io/docs/latest/commands/hgetall/},
+ *      {@link https://redis.io/docs/latest/commands/exec/}
+ */
+function getHashes(keys) {
+  // TODO (r.hidaka): VALIDATION: `keys` should be an array of non-empty strings
+
+  if (keys.length === 0) {
+    return Promise.resolve([])
+  }
+
+  const multi = redisClient.multi()
+
+  keys.forEach((key) => multi.hGetAll(key))
+
+  return multi.exec().then((hashes) => hashes.map((hash) => (Object.keys(hash).length > 0 ? hash : null)))
 }
 
 // Function to check if a field exists in a hash
@@ -602,6 +840,58 @@ function overwriteHash(key, hashObj, ttl) {
 
   if (Number.isInteger(ttl)) {
     multi.expire(key, ttl)
+  }
+
+  return multi.exec()
+}
+
+/**
+ * Removes any data associated with the given keys from Redis if they exist,
+ * and then creates new hashes associated with the keys.
+ * Optionally sets a TTL to each key.
+ *
+ * @param {Object.<string, Object.<string, string>>} keysToHashesObj - An object containing keys and corresponding hash objects to set in Redis.
+ *   It is expected to be in the following format:
+ *   ```
+ *   {
+ *     key_1: hashObj_1,
+ *     key_2: hashObj_2,
+ *     ...,
+ *     key_N: hashObj_N
+ *   }
+ *   ```
+ * @param {number} [ttl] - An optional integer specifying the TTL in seconds for the keys.
+ * @returns {Promise<Array<number|boolean>>} A Promise object which resolves to an array whose length is 0, or `N+1` where `N` is the size of `keysToHashesObj` if `ttl` is not an integer,
+ *   or `2N+1` if `ttl` is an integer.
+ *   - The length of the array is 0 if and only if `keysToHashesObj` is empty (`{}`).
+ *   - The first element of the array is the number of the keys that were removed from Redis.
+ *   - The i+1-th element (`1 <= i <= N`) of the array is a number of fields which were newly added to the hash associated with `key_i`.
+ *   - The i+N+1-th element (`1 <= i <= N`), if applicable, is `true` if a TTL represented by `ttl` was set to `key_i`,
+ *     or `false` if the TTL was not set to `key_i` for some reason.
+ * @throws {Error} The returned Promise object resolves to an error if:
+ *   - Some of the keys in `keysToHashesObj` are not strings.
+ *   - Some of the values in `keysToHashesObj` are not objects or are empty.
+ * @see {@link https://redis.io/docs/latest/commands/multi/},
+ *      {@link https://redis.io/docs/latest/commands/del/},
+ *      {@link https://redis.io/docs/latest/commands/hset/},
+ *      {@link https://redis.io/docs/latest/commands/expire/},
+ *      {@link https://redis.io/docs/latest/commands/exec/}
+ */
+function overwriteHashes(keysToHashesObj, ttl) {
+  // TODO (r.hidaka): VALIDATION: Check the format of `keysToHashesObj`
+
+  const multi = redisClient.multi()
+
+  const keys = Object.keys(keysToHashesObj)
+
+  if (keys.length > 0) {
+    multi.del(keys)
+  }
+
+  Object.entries(keysToHashesObj).forEach(([key, hash]) => multi.hSet(key, hash))
+
+  if (Number.isInteger(ttl)) {
+    keys.forEach((key) => multi.expire(key, ttl))
   }
 
   return multi.exec()
@@ -728,8 +1018,11 @@ module.exports = {
   scanKeys,
   scanSpecificKeys,
   deleteKeyInRedis,
+  deleteKeys, //migrated from cacheService
   generateTransaction,
   executeTransaction,
+  getTtl, //migrated from cacheService
+  setTtl, //migrated from cacheService
 
   //String
   getStringFromRedis,
@@ -737,22 +1030,28 @@ module.exports = {
 
   //JSON
   setJsonInRedis,
-  getJsonFromRedis,
+  getJsonFromRedis, //replaced getJson from cacheService
   getJsonFieldFromRedis,
   updateJsonFieldInRedis,
   deleteJsonFromRedis,
-  getJsons,
-  setJsonsWithTtlMode,
+  getJsons, //migrated from cacheService
+  setJsonWithTtlMode, //migrated from cacheService(formerly setJson)
+  setJsonsWithTtlMode, //migrated from cacheService(formerly setJsons)
 
   //Hashes
   setHashInRedis,
-  getHashFromRedis,
-  getHashFieldFromRedis,
+  getHashFromRedis, //replaced getHash from cacheService
+  getHashFieldFromRedis, //replaced getHashValue from cacheService
   hashFieldExists,
   deleteHashFieldsFromRedis,
-  getHashValues,
-  setHashWithTtlMode,
-  overwriteHash,
+  getHashValues, //migrated from cacheService
+  setHashWithTtlMode, //migrated from cacheService(formerly setHash)
+  setHashesWithTtlMode, //migrated from cacheService(formerly setHashes)
+  overwriteHash, //migrated from cacheService
+  overwriteHashes, //migrated from cacheService
+  getAllHashFields, //migrated from cacheService
+  getAllHashValues, //migrated from cacheService
+  getHashes, //migrated from cacheService
 
   //Set
   addToSetInRedis,
