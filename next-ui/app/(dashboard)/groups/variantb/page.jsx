@@ -276,6 +276,7 @@ function InputForm({ query, setQuery }) {
   function onSubmit(data) {
     if (goButtonDisabled) return //prevent form from submission by hitting enter
     setQuery(data.email)
+    setInputValue('')
     setGoButtonDisabled(true)
   }
 
@@ -290,17 +291,17 @@ function InputForm({ query, setQuery }) {
               <FormItem>
                 <FormControl>
                   <Input
-                    className={`text-muted-foreground ${groupsStyles.searchBarWidthVariantB} `}
+                    className={`text-foreground ${groupsStyles.searchBarWidthVariantB} `}
                     type="email"
                     name="email"
                     placeholder="Enter a group or user email address"
                     hasIcon={true}
                     {...field}
+                    value={inputValue}
                     onChange={(e) => {
                       setInputValue(e.target.value)
                       field.onChange(e)
-                      //  if (e.target.value !== query && e.target.value !== '') setGoButtonDisabled(false) //the kind variant
-                      e.target.value === query ? setGoButtonDisabled(true) : setGoButtonDisabled(false) //the evil variant
+                      if (e.target.value !== '') setGoButtonDisabled(false)
                     }}
                   />
                 </FormControl>
