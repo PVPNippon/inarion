@@ -68,6 +68,9 @@ router.delete('/members/member/:memberEmail', groupsController.deleteMemberFromG
 //route to create a group
 router.post('/', groupsController.createGroup)
 
+//route to get a group's settings
+router.get('/group/:groupEmail/settings', groupsController.getSettings)
+
 router.use(encryptResponseMiddleware) // Encrypt request for all routes
 
 module.exports = router
