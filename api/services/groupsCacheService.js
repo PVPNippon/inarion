@@ -352,7 +352,8 @@ function overwriteMembersById(id, members) {
 
   const ttl = Number(process.env.TTL)
 
-  return cacheService.overwriteHash(key, idsToMembersObj, ttl)
+  //return cacheService.overwriteHash(key, idsToMembersObj, ttl)
+  return redisCacheService.overwriteHash(key, idsToMembersObj, ttl)
 }
 
 /**
@@ -366,7 +367,8 @@ function overwriteMembersById(id, members) {
 async function getDescendantsById(id) {
   const key = `${process.env.DOMAIN}:groups:${id}:descendants`
 
-  const rawDescendantsObj = await cacheService.getHash(key)
+  //const rawDescendantsObj = await cacheService.getHash(key)
+  const rawDescendantsObj = await redisCacheService.getHashFromRedis(key)
 
   if (rawDescendantsObj === null) {
     return null
@@ -460,7 +462,8 @@ function overwriteDescendantsById(id, descendants) {
 
   const ttl = Number(process.env.TTL)
 
-  return cacheService.overwriteHash(key, idsToDescendantsObj, ttl)
+  // return cacheService.overwriteHash(key, idsToDescendantsObj, ttl)
+  return redisCacheService.overwriteHash(key, idsToDescendantsObj, ttl)
 }
 
 // TODO (r.hidaka): Implement this after creating a corresponding controller
@@ -482,7 +485,8 @@ function overwriteParentsById(id, parents) {}
  */
 function getSettingsById(id) {
   const key = `${process.env.DOMAIN}:groups:${id}:settings`
-  return cacheService.getHash(key)
+  // return cacheService.getHash(key)
+  return redisCacheService.getHashFromRedis(key)
 }
 
 /**
