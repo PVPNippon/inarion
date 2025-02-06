@@ -1,4 +1,3 @@
-//const cacheService = require('./cacheService.js')
 const redisCacheService = require('../services/redisCacheService')
 
 /**
@@ -8,13 +7,12 @@ const redisCacheService = require('../services/redisCacheService')
  * @returns {Promise<string|null>} A Promise object which resolves to:
  *   - the group ID corresponding to `email` if it is found in the cache
  *   - `null` if the group ID corresponding to `email` is not found in the cache.
- * @see {@link cacheService.getHashValue|getHashValue}
+ * @see {@link redisCacheService.getHashFieldFromRedis|getHashFieldFromRedis} (formerly getHashValue)
  */
 function getId(email) {
   // TODO (r.hidaka): VALIDATION: `email` should be a string in an email address format
 
   const key = `${process.env.DOMAIN}:groups:id`
-  // return cacheService.getHashValue(key, email)
   return redisCacheService.getHashFieldFromRedis(key, email)
 }
 
@@ -31,13 +29,12 @@ function getId(email) {
  *   If `emails` is not empty, for each `0 <= i < emails.length`, `ids[i]` is:
  *   - The group ID corresponding to `emails[i]` if it is found in the cache.
  *   - `null` if the group ID corresponding to `emails[i]` is not found in the cache.
- * @see {@link cacheService.getHashValues|getHashValues}
+ * @see {@link redisCacheService.getHashValues|getHashValues}
  */
 function getIds(emails) {
   // TODO (r.hidaka): VALIDATION: `emails` should be an array of strings in an email address format
 
   const key = `${process.env.DOMAIN}:groups:id`
-  // return cacheService.getHashValues(key, emails)
   return redisCacheService.getHashValues(key, emails)
 }
 
@@ -55,11 +52,10 @@ function getIds(emails) {
  *   - `null` if (A) the cache is empty,
  *     or (B) `requiresAllGroupsListedBefore` is true and all groups were not listed before,
  *     or (C) all groups were not listed before and only negative cache entries are in the cache.
- * @see {@link cacheService.getHash|getHash}
+ * @see {@link redisCacheService.getHashFromRedis|getHashFromRedis} (formerly getHash)
  */
 async function getAllIds(requiresAllGroupsListedBefore = false) {
   const key = `${process.env.DOMAIN}:groups:id`
-  //const emailsToIdsObj = await cacheService.getHash(key)
   const emailsToIdsObj = await redisCacheService.getHashFromRedis(key)
 
   // Return null if the cache is empty
@@ -117,12 +113,11 @@ async function getAllIds(requiresAllGroupsListedBefore = false) {
  *   - The first element of the array is a number of fields which were newly added to the hash (so the range is from 0 to N inclusive).
  *   - The second element is `true` if the key does not exist, or `false` if the key already exists.
  * @throws {Error} - The returned Promise object resolves to an error if `emailsToIdsObj` is not an object or is empty ({}).
- * @see {@link cacheService.setHash|setHash}
+ * @see {@link redisCacheService.setHashWithTtlMode|setHashWithTtlMode} (formerly setHash)
  */
 function setIds(emailsToIdsObj) {
   const key = `${process.env.DOMAIN}:groups:id`
   const ttl = Number(process.env.TTL)
-  //return cacheService.setHash(key, emailsToIdsObj, ttl, 'NX')
   return redisCacheService.setHashWithTtlMode(key, emailsToIdsObj, ttl, 'NX')
 }
 
@@ -147,12 +142,11 @@ function setIds(emailsToIdsObj) {
  *   - The second element is a number of fields which were newly added to the hash (so it should be `N`).
  *   - The third element is `true` (the meaning of this value is that the TTL was set to the key).
  * @throws {Error} - The returned Promise object resolves to an error if `emailsToIdsObj` is not an object or is empty ({}).
- * @see {@link cacheService.overwriteHash|overwriteHash}
+ * @see {@link redisCacheService.overwriteHash|overwriteHash}
  */
 function overwriteIds(emailsToIdsObj) {
   const key = `${process.env.DOMAIN}:groups:id`
   const ttl = Number(process.env.TTL)
-  //return cacheService.overwriteHash(key, emailsToIdsObj, ttl)
   return redisCacheService.overwriteHash(key, emailsToIdsObj, ttl)
 }
 
@@ -161,12 +155,11 @@ function overwriteIds(emailsToIdsObj) {
  *
  * @param {string} groupId - The ID of the group to retrieve.
  * @returns {Promise<Object|null>} A Promise object which resolves to the group instance if found, or null if not found.
- * @see {@link cacheService.getJson|getJson}
+ * @see {@link redisCacheService.getJsonFromRedis|getJsonFromRedis} (formerly getJson)
  */
 function getGroupById(groupId) {
   // TODO (r.hidaka): VALIDATION: `groupId` should be a non-empty string.
   const key = `${process.env.DOMAIN}:groups:${groupId}:info`
-  //return cacheService.getJson(key)
   return redisCacheService.getJsonFromRedis(key)
 }
 
@@ -183,12 +176,11 @@ function getGroupById(groupId) {
  *   If `groupIds` is not empty, for each `0 <= i < groupIds.length`, `groups[i]` is:
  *   - The group instance which has `groupIds[i]` as its group ID if it is found in the cache
  *   - `null` if no group instance which has `groupIds[i]` as its group ID is found in the cache
- * @see {@link cacheService.getJsons|getJsons}
+ * @see {@link redisCacheService.getJsons|getJsons}
  */
 function getGroupsByIds(groupIds) {
   // TODO (r.hidaka): VALIDATION: groupIds should be an array of non-empty strings.
   const keys = groupIds.map((groupId) => `${process.env.DOMAIN}:groups:${groupId}:info`)
-  // return cacheService.getJsons(keys)
   return redisCacheService.getJsons(keys)
 }
 
@@ -202,13 +194,12 @@ function getGroupsByIds(groupIds) {
  * @returns {Promise<Array<string|boolean>} A Promise object which resolves to an array whose length is 2.
  *   - The first element of the array is a string 'OK'.
  *   - The second element is `true` (the meaning of this value is that the TTL was set to the key).
- * @see {@link cacheService.setJson|setJson}
+ * @see {@link redisCacheService.setJsonInRedis|setJsonInRedis} (formerly setJson)
  */
 function setGroup(group) {
   const id = group.id
   const key = `${process.env.DOMAIN}:groups:${id}:info`
   const ttl = Number(process.env.TTL)
-  //return cacheService.setJson(key, group, ttl)
   return redisCacheService.setJsonInRedis(key, group, null, ttl)
 }
 
@@ -224,7 +215,7 @@ function setGroup(group) {
  *   - The `i+2`-th element (`0 <= i < N`) is `true` (the meaning of this value is that the TTL was set to the key of `groups[i]`).
  * @throws {Error} The returned Promise object resolves to an error if `groups` is empty ([]).
  *   // TODO (r.hidaka): Consider changing the behavior in this case
- * @see {@link cacheService.setJsons|setJsons}
+ * @see {@link redisCacheService.setJsons|setJsons}
  */
 function setGroups(groups) {
   const idsToGroupsObj = {}
@@ -237,7 +228,6 @@ function setGroups(groups) {
 
   const ttl = Number(process.env.TTL)
 
-  // return cacheService.setJsons(idsToGroupsObj, ttl)
   return redisCacheService.setJsonsWithTtlMode(idsToGroupsObj, ttl)
 }
 
@@ -247,12 +237,11 @@ function setGroups(groups) {
  * @param {string} id - The ID of the group to retrieve the members of.
  * @returns {Promise<Array<Object>|null>} A Promise object which resolves to an array of members of the group if found in the cache,
  *   or null if not found.
- * @see {@link cacheService.getHash|getHash}
+ * @see {@link redisCacheService.getHashFromRedis|getHashFromRedis} (formerly getHash)
  */
 async function getMembersById(id) {
   const key = `${process.env.DOMAIN}:groups:${id}:members`
 
-  //const rawMembersObj = await cacheService.getHash(key)
   const rawMembersObj = await redisCacheService.getHashFromRedis(key)
 
   if (rawMembersObj === null) {
@@ -296,6 +285,8 @@ async function getMembersById(id) {
  *   - The second element is `true` if the TTL was set to the key, or `false` if the TTL was not set to the key for some reason (e.g. the key already existed and had a TTL).
  * @see {@link cacheService.setHash|setHash}
  */
+//Note:since this function is not in use, it wasn't rewritten to use redisCacheService.
+//If you want to use this function, you need to rewrite it to use redisCacheService.
 function setMembersById(id, members) {
   const key = `${process.env.DOMAIN}:groups:${id}:members`
 
@@ -337,7 +328,7 @@ function setMembersById(id, members) {
  *   - The first element of the array is `1` if the key existed and was removed, or `0` if the key did not exist.
  *   - The second element is a number of fields which were newly added to the hash (so it should be `N+1`).
  *   - The third element is `true` (the meaning of this value is that the TTL was set to the key).
- * @see {@link cacheService.overwriteHash|overwriteHash}
+ * @see {@link redisCacheService.overwriteHash|overwriteHash}
  */
 function overwriteMembersById(id, members) {
   const key = `${process.env.DOMAIN}:groups:${id}:members`
@@ -352,7 +343,6 @@ function overwriteMembersById(id, members) {
 
   const ttl = Number(process.env.TTL)
 
-  //return cacheService.overwriteHash(key, idsToMembersObj, ttl)
   return redisCacheService.overwriteHash(key, idsToMembersObj, ttl)
 }
 
@@ -362,12 +352,11 @@ function overwriteMembersById(id, members) {
  * @param {string} id - The ID of the group to retrieve the descendants of.
  * @returns {Promise<Array<Object>|null>} A Promise object which resolves to an array of descendants of the group if found in the cache,
  *   or null if not found.
- * @see {@link cacheService.getHash|getHash}
+ * @see {@link redisCacheService.getHashFromRedis|getHashFromRedis} (formerly getHash)
  */
 async function getDescendantsById(id) {
   const key = `${process.env.DOMAIN}:groups:${id}:descendants`
 
-  //const rawDescendantsObj = await cacheService.getHash(key)
   const rawDescendantsObj = await redisCacheService.getHashFromRedis(key)
 
   if (rawDescendantsObj === null) {
@@ -411,6 +400,8 @@ async function getDescendantsById(id) {
  *   - The second element is `true` if the TTL was set to the key, or `false` if the TTL was not set to the key for some reason (e.g. the key already existed and had a TTL).
  * @see {@link cacheService.setHash|setHash}
  */
+//Note:since this function is not in use, it wasn't rewritten to use redisCacheService.
+//If you want to use this function, you need to rewrite it to use redisCacheService.
 function setDescendantsById(id, descendants) {
   const key = `${process.env.DOMAIN}:groups:${id}:descendants`
 
@@ -450,7 +441,7 @@ function setDescendantsById(id, descendants) {
  *   - The first element of the array is `1` if the key existed and was removed, or `0` if the key did not exist.
  *   - The second element is a number of fields which were newly added to the hash (so it should be `N+1`).
  *   - The third element is `true` (the meaning of this value is that the TTL was set to the key).
- * @see {@link cacheService.overwriteHash|overwriteHash}
+ * @see {@link redisCacheService.overwriteHash|overwriteHash}
  */
 function overwriteDescendantsById(id, descendants) {
   const key = `${process.env.DOMAIN}:groups:${id}:descendants`
@@ -462,7 +453,6 @@ function overwriteDescendantsById(id, descendants) {
 
   const ttl = Number(process.env.TTL)
 
-  // return cacheService.overwriteHash(key, idsToDescendantsObj, ttl)
   return redisCacheService.overwriteHash(key, idsToDescendantsObj, ttl)
 }
 
@@ -481,11 +471,10 @@ function overwriteParentsById(id, parents) {}
  * @param {string} id - The ID of the group to retrieve the settings of.
  * @returns {Promise<Object|null>} A Promise object which resolves to the settings of the group if found in the cache,
  *   or null if not found.
- * @see {@link cacheService.getHash|getHash}
+ * @see {@link redisCacheService.getHashFromRedis|getHashFromRedis} (formerly getHash)
  */
 function getSettingsById(id) {
   const key = `${process.env.DOMAIN}:groups:${id}:settings`
-  // return cacheService.getHash(key)
   return redisCacheService.getHashFromRedis(key)
 }
 
@@ -507,12 +496,11 @@ function getSettingsById(id) {
  *   - The second element is `true` (the meaning of this value is that the TTL was set to the key).
  * @throws {Error} The returned Promise object resolves to an error if `settings` is not an object or is empty ({}).
  *   // TODO (r.hidaka): Consider adding a validation for `settings`, or changing the behavior in this case
- * @see {@link cacheService.setHash|setHash}
+ * @see {@link redisCacheService.setHashWithTtlMode|setHashWithTtlMode} (formerly setHash)
  */
 function setSettingsById(id, settings) {
   const key = `${process.env.DOMAIN}:groups:${id}:settings`
   const ttl = Number(process.env.TTL)
-  // return cacheService.setHash(key, settings, ttl)
   return redisCacheService.setHashWithTtlMode(key, settings, ttl)
 }
 
@@ -536,6 +524,8 @@ function setSettingsById(id, settings) {
  *   // TODO (r.hidaka): Consider adding a validation for `settings`, or changing the behavior in this case
  * @see {@link cacheService.overwriteHash|overwriteHash}
  */
+//Note:since this function is not in use, it wasn't rewritten to use redisCacheService.
+//If you want to use this function, you need to rewrite it to use redisCacheService.
 function overwriteSettingsById(id, settings) {
   const key = `${process.env.DOMAIN}:groups:${id}:settings`
   const ttl = Number(process.env.TTL)
