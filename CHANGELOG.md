@@ -15,6 +15,26 @@ Ensure the following files are up-to-date:
 
 ## Breaking Changes
 
+### February 6, 2025 - Redis-related utility functions merged
+
+**Summary**:
+
+- Merged redis related utility functions from 2 files: api/services/redisCacheService.js and api/services/cacheService.js.
+- Existing groupsCacheService.js functions has been rewritten to use redisCacheService.js.
+- Some UI for group-related functions has been fixed, but to use it some steps need to be taken.
+
+**Impact**:
+
+- No immediate impact, but Action required if your logic is using current cacheService.js. It's a heads up to migrate your logic to use redisCacheService.js instead of cacheService.js. All cacheService.js functions have been migrated to redisCacheService.js, but some names have changed(for details see the module.exports at the bottom of redisCacheService.js). cacheService.js will be deleted when its owner is back and it's been confirmed that all logic has been migrated to use redisCacheService.js.
+
+**Steps to take if you want to use group-related UI in localhost:3000/groups**:
+
+- in api/.env set CRYPTO to DISABLE
+- in api/.env, make sure that PROJECT_NAME is set to "new-proj" if you are connected to pi(if connected to your local DB, make sure that the PROJECT_NAME matches the one stored in your db in Projects table)
+- access localhost:3000 and click "Login with google"
+- we temporary store jwt token in local storage which expires in 1 hour. When started getting 401 errors, logout and log back in.
+- For now, only UI for these feature has been fixed: list all groups, fetch a group, fetch direct/all members, fetch group settings, create group
+
 ### January 23, 2025 - Login Changes
 
 **Summary**:
