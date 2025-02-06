@@ -1,4 +1,9 @@
 const redisClient = require('../config/redis.js')
+//Important! This file will be deprecated.
+//Please use api/services/redisCacheService.js instead.
+//Some overlapping functions from here were replaced with functions from api/services/redisCacheService.js.
+//However, most functions from here were migrated as-is, but some function names changed.
+//Please see explanations in module.exports statement at the bottom of api/services/redisCacheService.js.
 
 /**
  * Retrieves the entire hash associated with `key` from Redis.
@@ -17,7 +22,7 @@ function getHash(key) {
 
   // If `key` does not exist, hGetAll(key) returns a Promise object which resolves to an empty object ({}).
   // I prefer the returned Promise object to resolve to null in that case.
-  return redisClient.hGetAll(key).then(hash => Object.keys(hash).length > 0 ? hash : null)
+  return redisClient.hGetAll(key).then((hash) => (Object.keys(hash).length > 0 ? hash : null))
 }
 
 /**
@@ -128,19 +133,19 @@ function getHashes(keys) {
 
   const multi = redisClient.multi()
 
-  keys.forEach(key => multi.hGetAll(key))
+  keys.forEach((key) => multi.hGetAll(key))
 
-  return multi.exec().then(hashes => hashes.map(hash => Object.keys(hash).length > 0 ? hash : null))
+  return multi.exec().then((hashes) => hashes.map((hash) => (Object.keys(hash).length > 0 ? hash : null)))
 }
 
 /**
  * Sets a hash associated with `key` in Redis, and optionally sets a TTL to it.
- * 
+ *
  * If `key` does not exist, a new hash associated with `key` is created.
  * If `key` already exists and is associated with a hash, for each field in `hashObj`:
  * - If the field does not exist in the hash, the field is newly added to the hash with its value.
  * - If the field already exists in the hash, the field is updated with its value.
- * 
+ *
  * @param {string} key - The key associated with the hash to set.
  * @param {Object.<string, string>} hashObj - An object containing the fields and values to set in the hash.
  *   It is expected to be in the following format:
@@ -160,7 +165,7 @@ function getHashes(keys) {
  *   - `XX` (only set the TTL if the key already has an existing TTL)
  *   - `GT` (only set the TTL if the new TTL is greater than the existing TTL)
  *   - `LT` (only set the TTL if the new TTL is less than the existing TTL)
- * 
+ *
  *   If `ttlMode` is not one of the above, it is treated as `undefined`.
  *   If `ttlMode` is (treated as) `undefined`, the TTL is set to `key` without any condition.
  *   See {@link formatTtlMode}.
@@ -195,7 +200,7 @@ function setHash(key, hashObj, ttl, ttlMode) {
 /**
  * Removes any data associated with `key` from Redis if it exists, and then creates a new hash associated with `key`.
  * Optionally sets a TTL to `key`.
- * 
+ *
  * @param {string} key - The key associated with the hash to set.
  * @param {Object.<string, string>} hashObj - An object containing the fields and values to set in the hash.
  *   It is expected to be in the following format:
@@ -241,7 +246,7 @@ function overwriteHash(key, hashObj, ttl) {
 
 /**
  * Sets multiple hashes in Redis, each associated with a key, and optionally sets a TTL for each key.
- * 
+ *
  * @param {Object.<string, Object.<string, string>>} keysToHashesObj - An object containing keys and corresponding hash objects to set in Redis.
  *   It is expected to be in the following format:
  *   ```
@@ -265,7 +270,7 @@ function overwriteHash(key, hashObj, ttl) {
  *   - `XX` (only set the TTL if the key already has an existing TTL)
  *   - `GT` (only set the TTL if the new TTL is greater than the existing TTL)
  *   - `LT` (only set the TTL if the new TTL is less than the existing TTL)
- * 
+ *
  *   If `ttlMode` is not one of the above, it is treated as `undefined`.
  *   If `ttlMode` is (treated as) `undefined`, the TTL is set to all the keys without any condition.
  *   See {@link formatTtlMode}.
@@ -293,7 +298,7 @@ function setHashes(keysToHashesObj, ttl, ttlMode) {
 
   if (Number.isInteger(ttl)) {
     const formattedTtlMode = formatTtlMode(ttlMode)
-    Object.keys(keysToHashesObj).forEach(key => multi.expire(key, ttl, formattedTtlMode))
+    Object.keys(keysToHashesObj).forEach((key) => multi.expire(key, ttl, formattedTtlMode))
   }
 
   return multi.exec()
@@ -303,7 +308,7 @@ function setHashes(keysToHashesObj, ttl, ttlMode) {
  * Removes any data associated with the given keys from Redis if they exist,
  * and then creates new hashes associated with the keys.
  * Optionally sets a TTL to each key.
- * 
+ *
  * @param {Object.<string, Object.<string, string>>} keysToHashesObj - An object containing keys and corresponding hash objects to set in Redis.
  *   It is expected to be in the following format:
  *   ```
@@ -345,7 +350,7 @@ function overwriteHashes(keysToHashesObj, ttl) {
   Object.entries(keysToHashesObj).forEach(([key, hash]) => multi.hSet(key, hash))
 
   if (Number.isInteger(ttl)) {
-    keys.forEach(key => multi.expire(key, ttl))
+    keys.forEach((key) => multi.expire(key, ttl))
   }
 
   return multi.exec()
@@ -389,24 +394,24 @@ function getJsons(keys) {
   if (keys.length === 0) {
     return Promise.resolve([])
   }
-  return redisClient.json.mGet(keys, '$').then(rawJsons => rawJsons.flat())
+  return redisClient.json.mGet(keys, '$').then((rawJsons) => rawJsons.flat())
 }
 
 /**
  * Sets a JSON object associated with `key` in Redis, and optionally sets a TTL to it.
- * 
+ *
  * If `key` does not exist, or it exists and the data associated with it is a JSON,
  * `key` is associated with a new JSON object represented by `jsonObj`.
  *
  * If `ttl` is given as an integer, a TTL represented by it is set to `key` with a mode represented by `ttlMode`.
  * If `key` already has a TTL and `ttl` is not an integer, the existing TTL is not changed.
- * 
+ *
  * @param {string} key - The key associated with the JSON object to set.
  * @param {Object} jsonObj - An object to set with `key`.
- * 
+ *
  * // TODO (r.hidaka): Technically, even if `jsonObj` is an empty object, null, a string, a number or an array, this function can store it in Redis with no errors.
  * //                  Consider throwing an error if `jsonObj` is not a non-empty object to be consistent with {@link setHash} and {@link overwriteHash}.
- * 
+ *
  * @param {number} [ttl] - An optional integer specifying the TTL in seconds for the key.
  * @param {string} [ttlMode] - An optional string specifying the mode for the TTL.
  *   If `ttl` is not specified as an integer, `ttlMode` is ignored.
@@ -415,7 +420,7 @@ function getJsons(keys) {
  *   - `XX` (only set the TTL if the key already has an existing TTL)
  *   - `GT` (only set the TTL if the new TTL is greater than the existing TTL)
  *   - `LT` (only set the TTL if the new TTL is less than the existing TTL)
- * 
+ *
  *   If `ttlMode` is not one of the above, it is treated as `undefined`.
  *   If `ttlMode` is (treated as) `undefined`, the TTL is set to `key` without any condition.
  *   See {@link formatTtlMode}.
@@ -447,13 +452,13 @@ function setJson(key, jsonObj, ttl, ttlMode) {
 
 /**
  * Sets multiple JSON objects associated with keys in Redis, and optionally sets a TTL to them.
- * 
+ *
  * If some of the keys do not exist, or they exist and the data associated with them are a JSON,
  * the keys are associated with new JSON objects in `keysToJsonsObj`.
  *
  * If `ttl` is given as an integer, a TTL represented by it is set to the keys with a mode represented by `ttlMode`.
  * If some of the keys already have TTLs and `ttl` is not an integer, the existing TTLs are not changed.
- * 
+ *
  * @param {Object.<string, Object>} keysToJsonsObj - An object containing the keys and JSON objects to set in Redis.
  *   It is expected to be in the following format:
  *   ```
@@ -466,7 +471,7 @@ function setJson(key, jsonObj, ttl, ttlMode) {
  *   ```
  * // TODO (r.hidaka): Technically, even if `jsonObj_i` (i = 1, ..., N) is an empty object, null, a string, a number or an array, this function can store it in Redis with no errors.
  * //                  Consider throwing an error if they are not a non-empty object to be consistent with {@link setHash} and {@link overwriteHash}.
- * 
+ *
  * @param {number} [ttl] - An optional integer specifying the TTL in seconds for all the keys.
  * @param {string} [ttlMode] - An optional string specifying the mode for the TTL.
  *   If `ttl` is not specified as an integer, `ttlMode` is ignored.
@@ -475,7 +480,7 @@ function setJson(key, jsonObj, ttl, ttlMode) {
  *   - `XX` (only set the TTL if the key already has an existing TTL)
  *   - `GT` (only set the TTL if the new TTL is greater than the existing TTL)
  *   - `LT` (only set the TTL if the new TTL is less than the existing TTL)
- * 
+ *
  *   If `ttlMode` is not one of the above, it is treated as `undefined`.
  *   If `ttlMode` is (treated as) `undefined`, the TTL is set to all the keys without any condition.
  *   See {@link formatTtlMode}.
@@ -499,14 +504,14 @@ function setJsons(keysToJsonsObj, ttl, ttlMode) {
   const items = Object.entries(keysToJsonsObj).map(([key, value]) => ({
     key,
     value,
-    path: '$'
+    path: '$',
   }))
 
   multi.json.mSet(items)
 
   if (Number.isInteger(ttl)) {
     const formattedTtlMode = formatTtlMode(ttlMode)
-    Object.keys(keysToJsonsObj).forEach(key => multi.expire(key, ttl, formattedTtlMode))
+    Object.keys(keysToJsonsObj).forEach((key) => multi.expire(key, ttl, formattedTtlMode))
   }
 
   return multi.exec()
@@ -515,7 +520,7 @@ function setJsons(keysToJsonsObj, ttl, ttlMode) {
 // TODO (r.hidaka): Consider splitting this function into two functions: deleteKey(key) and deleteKeys(keys).
 /**
  * Deletes keys in Redis.
- * 
+ *
  * @param {string|Array<string>} keys - A string which represents a key to be deleted in Redis, or an array of strings which represent keys to be deleted in Redis.
  * @returns {Promise<number>} A Promise object which resolves to the number of keys deleted by this operation (non-existent keys are ignored).
  * @throws {Error} The returned Promise object resolves to an error if `keys` is not a string or an array.
@@ -533,7 +538,7 @@ function deleteKeys(keys) {
 
 /**
  * Returns the remaining TTL (seconds) of `key`.
- * 
+ *
  * @param {string} key - The key whose TTL to retrieve.
  * @returns {Promise<number>} A Promise object which resolves to:
  *   - The remaining TTL (seconds) of `key` if it has one.
@@ -548,7 +553,7 @@ function getTtl(key) {
 
 /**
  * Sets a TTL (seconds) to `key`.
- * 
+ *
  * @param {string} key - The key whose TTL to set.
  * @param {number} ttl - The TTL in seconds to set.
  * @param {string} [ttlMode] - An optional string specifying the mode for the TTL.
@@ -558,7 +563,7 @@ function getTtl(key) {
  *   - `XX` (only set the TTL if the key already has an existing TTL)
  *   - `GT` (only set the TTL if the new TTL is greater than the existing TTL)
  *   - `LT` (only set the TTL if the new TTL is less than the existing TTL)
- * 
+ *
  *   If `ttlMode` is not one of the above, it is treated as `undefined`.
  *   If `ttlMode` is (treated as) `undefined`, the TTL is set to `key` without any condition.
  *   See {@link formatTtlMode}.

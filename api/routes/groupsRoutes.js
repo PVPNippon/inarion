@@ -69,7 +69,12 @@ router.delete('/members/member/:memberEmail', groupsController.deleteMemberFromG
 router.post('/', groupsController.createGroup)
 
 //route to get a group's settings
-router.get('/group/:groupEmail/settings', groupsController.getSettings)
+router.get(
+  '/group/:groupEmail/settings',
+  groupsCacheMiddleware.retrieveSettings,
+  groupsController.getSettings,
+  groupsCacheMiddleware.storeSettings
+)
 
 router.use(encryptResponseMiddleware) // Encrypt request for all routes
 
