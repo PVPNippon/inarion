@@ -523,7 +523,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
   return (
     <Table ref={tableRef}>
       <TableHeader className="sticky top-0 bg-background custom-shadow">
-        <TableRow className="leading-4 text-foreground hover:bg-background text-inherit sm:text-nowrap">
+        <TableRow className="leading-4 text-foreground hover:bg-background sm:text-nowrap">
           <TableHead className={`${groupsStyles.tableHeaderText} px-0 rounded-tl-lg`}></TableHead>
           <TableHead className={`${groupsStyles.tableHeaderText} ps-4`}>{columnHeaders[0] /* Group name */}</TableHead>
           <TableHead className={`${groupsStyles.tableHeaderText}`}>{columnHeaders[1] /* Membership type */}</TableHead>
