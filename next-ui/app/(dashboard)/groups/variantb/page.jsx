@@ -27,7 +27,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { CustomIconExport } from '../../../ui/svg-icons/custom-icons'
 
 //constants
-const columnHeaders = ['Group name', 'Membership type', 'Inherited via', 'Join timestamp']
+const columnHeaders = ['Group email', 'Membership type', 'Inherited via', 'Join timestamp']
 const rowsOnFirstLoad = 30 //number of table rows to load on first load
 const rowLoadIncrement = 10 //number of table rows to load on scroll
 const visibleInheritedViaCutOffValue = 100 //maximum number of characters -1 to display in the "inherited via" column
@@ -106,6 +106,7 @@ function NestedGroupsListerVariantB() {
           //  const responseData = JSON.parse(response)
           const responseData = await response.json()
           responseData.length === 0 ? setEmptyResult(true) : setGroupList(responseData)
+          console.log('RESPONSE FROM BACKEND', responseData)
         }
       } catch (error) {
         setError(error)
@@ -388,37 +389,45 @@ function TopPanel({ query, groupList }) {
 function ExpandableInheritedViaList({ inheritedVia }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [inheritedViaText, setInheritedViaText] = useState('')
+  console.log('inheritedVia', inheritedVia)
+  let inheritedViaArray
 
-  useEffect(() => {
-    if (isExpanded) return
-    // If the string is longer than the cutoff value and contains a comma, only display the part before the last comma
-    const visiblePartBase = inheritedVia.slice(0, visibleInheritedViaCutOffValue)
-    const lastOccurence = visiblePartBase.lastIndexOf(',')
-    if (lastOccurence >= 0) {
-      setInheritedViaText(inheritedVia.slice(0, lastOccurence))
-    } else {
-      //if the comma is not found, only display the first characters equal the cutoff value
-      //no commas means that there is a very long email address(the limit as per RFC is 320 so technically it's possible
-      //in this case the email address will be truncated and the last part will be hidden behind the icon
-      setInheritedViaText(visiblePartBase)
-    }
-  }, [inheritedViaText])
+  if (Array.isArray(inheritedVia)) {
+    inheritedViaArray = inheritedVia
+  } else {
+    inheritedViaArray = inheritedVia.split(',')
+  }
+  // useEffect(() => {
+  //   if (isExpanded) return
+  //   // If the string is longer than the cutoff value and contains a comma, only display the part before the last comma
+  //   const visiblePartBase = inheritedVia.slice(0, visibleInheritedViaCutOffValue)
+  //   const lastOccurence = visiblePartBase.lastIndexOf(',')
+  //   if (lastOccurence >= 0) {
+  //     setInheritedViaText(inheritedVia.slice(0, lastOccurence))
+  //   } else {
+  //     //if the comma is not found, only display the first characters equal the cutoff value
+  //     //no commas means that there is a very long email address(the limit as per RFC is 320 so technically it's possible
+  //     //in this case the email address will be truncated and the last part will be hidden behind the icon
+  //     setInheritedViaText(visiblePartBase)
+  //   }
+  // }, [inheritedViaText])
   return (
-    <span>
-      {inheritedViaText}
-      {!isExpanded && (
-        <Ellipsis
-          className={`ms-2 cursor-pointer hover:stroke-primary active:stroke-primary focus:stroke-primary inline ${
-            isExpanded ? 'hidden' : ''
-          }`}
-          size={20}
-          onClick={() => {
-            setIsExpanded(true)
-            setInheritedViaText(inheritedVia)
-          }}
-        />
-      )}
-    </span>
+    // <span>
+    //   {inheritedViaText}
+    //   {!isExpanded && (
+    //     <Ellipsis
+    //       className={`ms-2 cursor-pointer hover:stroke-primary active:stroke-primary focus:stroke-primary inline ${
+    //         isExpanded ? 'hidden' : ''
+    //       }`}
+    //       size={20}
+    //       onClick={() => {
+    //         setIsExpanded(true)
+    //         setInheritedViaText(inheritedVia)
+    //       }}
+    //     />
+    //   )}
+    // </span>
+    <span>{inheritedVia}</span>
   )
 }
 
