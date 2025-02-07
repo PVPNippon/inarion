@@ -33,7 +33,12 @@ import {
   CustomTableHead,
 } from '@/components/ui/custom-table'
 
-import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
+import {
+  CustomListAccordion,
+  CustomListAccordionItem,
+  CustomListAccordionTrigger,
+  CustomListAccordionContent,
+} from '@/components/ui/custom-list-accordion'
 
 //constants
 const columnHeaders = ['Group email', 'Membership type', 'Inherited via', 'Join timestamp']
@@ -410,23 +415,27 @@ function ExpandableInheritedViaList({ inheritedVia, groupId }) {
   }
 
   return (
-    <Accordion type="single " collapsible value={isExpanded} onValueChange={setIsExpanded}>
-      <AccordionItem value={groupId} className="text-sm">
-        <AccordionTrigger>
-          {/* <AccordionContent>
-            {inheritedViaArray.map((inheritedVia) => (
-              <div>{inheritedVia}</div>
-            ))}
-          </AccordionContent> */}
-          {isExpanded === groupId ? 'Show less' : `${inheritedViaArray[0]} + ${inheritedViaArray.length - 1} more`}
-        </AccordionTrigger>
-        <AccordionContent>
+    <CustomListAccordion type="single " collapsible value={isExpanded} onValueChange={setIsExpanded}>
+      <CustomListAccordionItem value={groupId} className="text-sm">
+        <CustomListAccordionContent>
           {inheritedViaArray.map((inheritedVia) => (
-            <div>{inheritedVia}</div>
+            <div key={inheritedVia}>{inheritedVia}</div>
           ))}
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
+        </CustomListAccordionContent>
+        <CustomListAccordionTrigger>
+          {isExpanded === groupId ? (
+            <span className={`${groupsStyles.secondaryTextChart5}`}>Show less</span>
+          ) : (
+            <span>
+              <span style={{ pointerEvents: 'none' }}>{inheritedViaArray[0]}</span>
+              <span className={`${groupsStyles.secondaryTextChart5}`}>
+                {` + ${inheritedViaArray.length - 1} more`}{' '}
+              </span>{' '}
+            </span>
+          )}
+        </CustomListAccordionTrigger>
+      </CustomListAccordionItem>
+    </CustomListAccordion>
   )
 }
 
