@@ -33,6 +33,8 @@ import {
   CustomTableHead,
 } from '@/components/ui/custom-table'
 
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
+
 //constants
 const columnHeaders = ['Group email', 'Membership type', 'Inherited via', 'Join timestamp']
 const rowsOnFirstLoad = 30 //number of table rows to load on first load
@@ -113,7 +115,6 @@ function NestedGroupsListerVariantB() {
           //  const responseData = JSON.parse(response)
           const responseData = await response.json()
           responseData.length === 0 ? setEmptyResult(true) : setGroupList(responseData)
-          console.log('RESPONSE FROM BACKEND', responseData)
         }
       } catch (error) {
         setError(error)
@@ -393,10 +394,9 @@ function TopPanel({ query, groupList }) {
   )
 }
 
-function ExpandableInheritedViaList({ inheritedVia }) {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [inheritedViaText, setInheritedViaText] = useState('')
-  console.log('inheritedVia', inheritedVia)
+function ExpandableInheritedViaList({ inheritedVia, groupId }) {
+  const [isExpanded, setIsExpanded] = useState('')
+
   let inheritedViaArray
 
   if (Array.isArray(inheritedVia)) {
@@ -404,37 +404,29 @@ function ExpandableInheritedViaList({ inheritedVia }) {
   } else {
     inheritedViaArray = inheritedVia.split(',')
   }
-  // useEffect(() => {
-  //   if (isExpanded) return
-  //   // If the string is longer than the cutoff value and contains a comma, only display the part before the last comma
-  //   const visiblePartBase = inheritedVia.slice(0, visibleInheritedViaCutOffValue)
-  //   const lastOccurence = visiblePartBase.lastIndexOf(',')
-  //   if (lastOccurence >= 0) {
-  //     setInheritedViaText(inheritedVia.slice(0, lastOccurence))
-  //   } else {
-  //     //if the comma is not found, only display the first characters equal the cutoff value
-  //     //no commas means that there is a very long email address(the limit as per RFC is 320 so technically it's possible
-  //     //in this case the email address will be truncated and the last part will be hidden behind the icon
-  //     setInheritedViaText(visiblePartBase)
-  //   }
-  // }, [inheritedViaText])
+
+  if (inheritedViaArray.length === 1) {
+    return <span>{inheritedViaArray[0]}</span>
+  }
+
   return (
-    // <span>
-    //   {inheritedViaText}
-    //   {!isExpanded && (
-    //     <Ellipsis
-    //       className={`ms-2 cursor-pointer hover:stroke-primary active:stroke-primary focus:stroke-primary inline ${
-    //         isExpanded ? 'hidden' : ''
-    //       }`}
-    //       size={20}
-    //       onClick={() => {
-    //         setIsExpanded(true)
-    //         setInheritedViaText(inheritedVia)
-    //       }}
-    //     />
-    //   )}
-    // </span>
-    <span>{inheritedVia}</span>
+    <Accordion type="single " collapsible value={isExpanded} onValueChange={setIsExpanded}>
+      <AccordionItem value={groupId} className="text-sm">
+        <AccordionTrigger>
+          {/* <AccordionContent>
+            {inheritedViaArray.map((inheritedVia) => (
+              <div>{inheritedVia}</div>
+            ))}
+          </AccordionContent> */}
+          {isExpanded === groupId ? 'Show less' : `${inheritedViaArray[0]} + ${inheritedViaArray.length - 1} more`}
+        </AccordionTrigger>
+        <AccordionContent>
+          {inheritedViaArray.map((inheritedVia) => (
+            <div>{inheritedVia}</div>
+          ))}
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   )
 }
 
@@ -503,7 +495,6 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
     //it imitates "lazy loading" by displaying 30 rows by default and loading additional rows on scroll, 10 rows at a time
     const handleScroll = () => {
       if (parentDiv.scrollTop + parentDiv.offsetHeight >= parentDiv.scrollHeight) {
-        console.log('SCROLL SCROLL')
         setDisplayedGroups(() => {
           return displayedGroups.length === groups.length
             ? displayedGroups
@@ -658,11 +649,12 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
               </CustomTableCell>
               <CustomTableCell className={`${groupsStyles.tableRowPadding}`}>{group.membership}</CustomTableCell>
               <CustomTableCell className={`${groupsStyles.tableRowPadding}`}>
-                {group.inherited.length < visibleInheritedViaCutOffValue ? (
+                {/* {group.inherited.length < visibleInheritedViaCutOffValue ? (
                   group.inherited
                 ) : (
-                  <ExpandableInheritedViaList inheritedVia={group.inherited} />
-                )}
+                  // <ExpandableInheritedViaList inheritedVia={group.inherited} />
+                )} */}
+                <ExpandableInheritedViaList inheritedVia={group.inherited} groupId={group.email} />
               </CustomTableCell>
               <CustomTableCell className={`${groupsStyles.tableRowPadding} sm:text-nowrap`}>
                 {convertTimestamp(group.timestamp)}
