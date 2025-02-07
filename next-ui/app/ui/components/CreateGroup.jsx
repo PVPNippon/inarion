@@ -1,6 +1,5 @@
 'use client'
 import React, { useState, useEffect, useContext } from 'react'
-
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { apiClient } from '@/utils/apiClient'
@@ -8,9 +7,10 @@ import axios from 'axios'
 
 /**
  * A temporary component for dev purposes.
- * On click of button, fetch group details and display in div(error or group details)
+ * On click of button, create a group and display in div(error or group details)
  */
-function GetGroup() {
+//Please note that it's a temporary UI created hastily for testing/visualization purposes and it's not dev-quality
+function CreateGroup() {
   const [inputValue, setInputValue] = useState('')
   const [group, setGroup] = useState(null)
   const [clickCount, setClickCount] = useState(0)
@@ -18,28 +18,11 @@ function GetGroup() {
   let email
 
   useEffect(() => {
-    const fetchGroup = async (req, res) => {
+    const createGroup = async (req, res) => {
       try {
         if (inputValue === '') {
           return
         }
-        console.log('fetching group...')
-
-        // const response = await apiClient(
-        //   '/api/groups/get', // Endpoint path relative to API_BASE_URL
-        //   'POST', // HTTP method
-        //   {
-        //     userEmail: email,
-        //     groupEmail: inputValue,
-        //   },
-        //   {}, // Additional headers, if any
-        //   true // withCredentials flag
-        // )
-        // //WARNING:if you need to use the response data as an array or object, you need to parse it with JSON.parse()
-        // //I'm not doing it here because I only display the response data as is for now.
-        // setGroup(response)
-
-        //Temporary bypass encryption
         //getting email and token from local storage is a temporary measure, will change in the future
         email = window.localStorage.getItem('email')
         console.log('email:', email)
@@ -48,9 +31,12 @@ function GetGroup() {
         const token = localStorage.getItem('jwtToken')
         console.log('TOKEN', token)
 
-        const response = await axios.get(
-          `http://localhost:4000/api/groups/group/${inputValue}/?userEmail=${email}`,
+        const response = await axios.post(
+          `http://localhost:4000/api/groups/?userEmail=${email}`,
 
+          {
+            groupEmail: inputValue,
+          },
           {
             headers: {
               Authorization: `Bearer ${token}`, // Pass the token in the Authorization header
@@ -66,11 +52,11 @@ function GetGroup() {
     }
     setError(null)
     setGroup(null)
-    fetchGroup()
+    createGroup()
   }, [clickCount])
   return (
     <div className="ms-5">
-      <h1 className="my-6">Group's details</h1>
+      <h1 className="my-6">Greate group</h1>
       <div className="flex w-full max-w-sm items-center space-x-2 mb-7">
         <Input
           type="email"
@@ -84,11 +70,11 @@ function GetGroup() {
           Go
         </Button>
       </div>
-      <div className="border border-input">{group && JSON.stringify(group)}</div>
+      <div>{group && JSON.stringify(group)}</div>
       <p>{error && error.message}</p>
       {/* <div>{group && group}</div> */}
     </div>
   )
 }
 
-export default GetGroup
+export default CreateGroup

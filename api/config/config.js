@@ -17,6 +17,10 @@ module.exports = {
   OWNER: process.env.OWNER,
   GENERAL_ACCESS: process.env.GENERAL_ACCESS,
   FILES: process.env.FILES,
+  FILE_COUNT: process.env.FILE_COUNT,
+  DRIVE_STRUCTURE: process.env.DRIVE_STRUCTURE,
+  DIRECT_PATH: process.env.DIRECT_PATH,
+  ALL_DRIVES_DATA: process.env.ALL_DRIVES_DATA,
   DRIVE: process.env.DRIVE,
   INITIAL_DEPTH: process.env.INITIAL_DEPTH,
   PERSONAL_DRIVE: process.env.PERSONAL_DRIVE,
@@ -51,5 +55,6 @@ module.exports = {
     'https://www.googleapis.com/auth/apps.groups.settings',
     'https://www.googleapis.com/auth/admin.directory.user.security',
   ],
+  CRYPTO: process.env.CRYPTO,
   PROJECT_NAME: process.env.PROJECT_NAME,
 }

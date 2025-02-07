@@ -1,9 +1,12 @@
 const { google } = require('googleapis')
+const config = require('../config/config')
 const redisCacheService = require('../services/redisCacheService')
 const ServiceAccountKeys = require('../models/ServiceAccountKeys')
 const Users = require('../models/User')
 const Projects = require('../models/Project')
 const ServiceAccounts = require('../models/ServiceAccount')
+const { createRedisKey } = require('../utility/utilityFunctions')
+const { storeDataInCache } = require('../controllers/cacheController')
 const instanceStore = require('..').instanceStore
 const logger = require('../logger/logger')(__filename, 'AuthModule')
 const instanceArray = ['drive', 'reports', 'directory', 'groups'] // Needs to be updated every time a new instance type is added to the getInstance function
@@ -52,7 +55,7 @@ async function getCredentials(userEmail) {
     throw new Error('Unable to retrieve domain from user email.') //Throw error to stop the function execution because without a valid userDomain, no service account credentials can be retrieved
   }
 
-  const serviceAccountCredentialsKey = userDomain + '_SA_credentials' // Create a Redis key for the service account credentials
+  const serviceAccountCredentialsKey = createRedisKey(userDomain, 'SA-credentials') // Create a Redis key for the service account credentials
   // Error handling of serviceAccountCredentialsKey
   if (serviceAccountCredentialsKey) {
     logger.debug(`Service Account Credentials Key for Redis created successfully: ${serviceAccountCredentialsKey}`)
@@ -112,9 +115,14 @@ async function getCredentials(userEmail) {
 
     try {
       // Store the service account email and key in Redis
-      redisCacheService.setJsonInRedis(serviceAccountCredentialsKey, {
-        serviceAccountEmail: serviceAccountKeyInDB.serviceAccountEmail,
-        privateKeyData: serviceAccountKeyInDB.privateKeyData,
+      storeDataInCache({
+        key: serviceAccountCredentialsKey,
+        data: {
+          serviceAccountEmail: serviceAccountKeyInDB.serviceAccountEmail,
+          privateKeyData: serviceAccountKeyInDB.privateKeyData,
+        },
+        dataType: config.JSON,
+        ttl: null,
       })
     } catch (error) {
       logger.error(error)
@@ -190,6 +198,7 @@ async function initializeGoogleAuth(credentials) {
         'https://www.googleapis.com/auth/apps.groups.settings',
         'https://www.googleapis.com/auth/admin.directory.user.security',
         'https://www.googleapis.com/auth/admin.directory.user',
+        'https://www.googleapis.com/auth/admin.directory.domain',
       ],
     })
     logger.debug(`GoogleAuth client initialized successfully.`)
@@ -498,7 +507,6 @@ async function getImpersonatedClientInstanceForAdmin(impersonatedUser, typeOfIns
  */
 async function getImpersonatedClientInstanceForUser({ impersonatedUser, typeOfInstance, auth, adminEmail }) {
   //impersonatedUser and typeOfInstance are required to be provided by the caller function
-
   // Error handling of impersonatedUser
   if (!impersonatedUser) {
     logger.error(`Impersonated user has not been provided.`)

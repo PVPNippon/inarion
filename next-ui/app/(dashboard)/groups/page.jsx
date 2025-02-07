@@ -10,6 +10,8 @@ import ListGroupJoinedActivities from '../../ui/components/ListGroupJoinedActivi
 import ExportGroups from '../../ui/components/ExportGroups'
 import DeleteMembersViaCsv from '../../ui/components/DeleteMembersViaCsv'
 import DeleteMemberFromGroups from '../../ui/components/DeleteMemberFromGroups'
+import CreateGroup from '../../ui/components/CreateGroup'
+import ListGroupSettings from '../../ui/components/ListGroupSettings'
 
 /**
  * A component that displays a Google Groups page.
@@ -24,7 +26,7 @@ function GroupsDashboard() {
   return (
     <LoggedInUserProvider>
       <ProjectDataProvider>
-        <main>
+        <main className="overflow-auto">
           <h2>Google Groups Page</h2>
           <p>This is a placeholder for the groups page.</p>
           <ListGroups></ListGroups>
@@ -36,6 +38,8 @@ function GroupsDashboard() {
           <ExportGroups></ExportGroups>
           <DeleteMembersViaCsv></DeleteMembersViaCsv>
           <DeleteMemberFromGroups></DeleteMemberFromGroups>
+          <CreateGroup></CreateGroup>
+          <ListGroupSettings></ListGroupSettings>
         </main>
       </ProjectDataProvider>
     </LoggedInUserProvider>
