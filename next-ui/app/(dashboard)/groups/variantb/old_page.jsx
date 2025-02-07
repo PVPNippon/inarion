@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiClient } from '@/utils/apiClient'
 import { ExternalLinkIcon, SearchIcon, EyeIcon, Ellipsis, CircleAlert } from 'lucide-react'
 import { groupsStyles } from '../groups-styles'
@@ -24,14 +25,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { CustomIconExport } from '../../../ui/svg-icons/custom-icons'
-import {
-  CustomTable,
-  CustomTableHeader,
-  CustomTableBody,
-  CustomTableRow,
-  CustomTableCell,
-  CustomTableHead,
-} from '@/components/ui/custom-table'
 
 //constants
 const columnHeaders = ['Group email', 'Membership type', 'Inherited via', 'Join timestamp']
@@ -477,11 +470,29 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
 
   useEffect(() => {
     if (tableRef.current) {
-      const parentDiv = tableRef.current.parentElement.parentElement.parentElement
+      const parentDiv = tableRef.current.parentElement
 
-      parentDiv.classList.remove('h-[200px]')
+      parentDiv.classList.remove('overflow-auto')
 
-      parentDiv.classList.add(groups.length > rowsOnFirstLoad && 'h-[80vh]', 'mt-3', 'mb-7')
+      parentDiv.classList.add(
+        //display the scrollbar only when there are more groups than the number of rows on first load
+        groups.length > rowsOnFirstLoad ? 'overflow-y-scroll' : 'overflow-y-clip',
+        groups.length > rowsOnFirstLoad && 'h-[80vh]',
+        'overflow-x-auto',
+        'mt-3',
+        'mb-7',
+        'relative',
+        'md:w-full',
+        'w-fit',
+        'border',
+        'border-input',
+        'rounded-md'
+      )
+
+      const tableHead = tableRef.current.children[0]
+      const row = tableHead.children[0]
+      row.classList.remove('border-foreground/30')
+      row.classList.add('border-input')
     }
   }, [])
 
@@ -489,8 +500,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
 
   useEffect(() => {
     if (!tableRef.current) return
-    // const parentDiv = tableRef.current.parentElement
-    const parentDiv = tableRef.current.parentElement.parentElement.parentElement.children[1]
+    const parentDiv = tableRef.current.parentElement
 
     /**
      * An event handler for the scroll event on the table container.
@@ -503,7 +513,6 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
     //it imitates "lazy loading" by displaying 30 rows by default and loading additional rows on scroll, 10 rows at a time
     const handleScroll = () => {
       if (parentDiv.scrollTop + parentDiv.offsetHeight >= parentDiv.scrollHeight) {
-        console.log('SCROLL SCROLL')
         setDisplayedGroups(() => {
           return displayedGroups.length === groups.length
             ? displayedGroups
@@ -517,16 +526,14 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
     }
   }, [displayedGroups])
   return (
-    <CustomTable ref={tableRef}>
-      <CustomTableHeader>
-        <CustomTableRow className="sm:text-nowrap">
-          <CustomTableHead className={`${groupsStyles.tableHeaderText} px-0`}></CustomTableHead>
-          <CustomTableHead className={`${groupsStyles.tableHeaderText} ps-4`}>
-            {columnHeaders[0] /* Group email */}
-          </CustomTableHead>
-          <CustomTableHead>{columnHeaders[1] /* Membership type */}</CustomTableHead>
-          <CustomTableHead>{columnHeaders[2] /* Inherited via */}</CustomTableHead>
-          <CustomTableHead>
+    <Table ref={tableRef}>
+      <TableHeader className="sticky top-0 bg-background custom-shadow">
+        <TableRow className="leading-4 text-foreground hover:bg-background text-inherit sm:text-nowrap">
+          <TableHead className={`${groupsStyles.tableHeaderText} px-0 rounded-tl-lg`}></TableHead>
+          <TableHead className={`${groupsStyles.tableHeaderText} ps-4`}>{columnHeaders[0] /* Group email */}</TableHead>
+          <TableHead className={`${groupsStyles.tableHeaderText}`}>{columnHeaders[1] /* Membership type */}</TableHead>
+          <TableHead className={`${groupsStyles.tableHeaderText}`}>{columnHeaders[2] /* Inherited via */}</TableHead>
+          <TableHead className={`${groupsStyles.tableHeaderText} `}>
             {/* I split the header because I want to put them in different spans to prevent the icon from wrapping to the 3rd line */}
             <span>{columnHeaders[3].split(' ')[0] + ' ' /* Join */}</span>
             <span className="text-nowrap">
@@ -546,8 +553,8 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                 </Tooltip>
               </TooltipProvider>
             </span>
-          </CustomTableHead>
-          <CustomTableHead className="pe-2.5">
+          </TableHead>
+          <TableHead className="text-inherit pe-2.5 rounded-tr-lg">
             <Dialog>
               <DropdownMenu open={isMenuOpen} onOpenChange={(open) => setIsMenuOpen(open)}>
                 <DropdownMenuTrigger asChild>
@@ -640,44 +647,40 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                 </DialogContent>
               </DialogPortal>
             </Dialog>
-          </CustomTableHead>
-        </CustomTableRow>
-      </CustomTableHeader>
-      <CustomTableBody>
-        <CustomTableRow className={`py-0`}>
-          <CustomTableCell className={`text-[8px] py-0 leading-none`}>&nbsp;</CustomTableCell>
-        </CustomTableRow>
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow className={`border-none py-0`}>
+          <TableCell className={`text-[8px] py-0 leading-none`}>&nbsp;</TableCell>
+        </TableRow>
         {displayedGroups &&
           displayedGroups.map((group) => (
-            <CustomTableRow className={`border-none hover:bg-accent min-w-2xl`} key={group.email}>
-              <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>
-                &nbsp;
-              </CustomTableCell>
-              <CustomTableCell className={`${groupsStyles.tableRowPadding} ps-4 font-normal rounded-l-md`}>
+            <TableRow className={`border-none hover:bg-accent min-w-2xl`} key={group.email}>
+              <TableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>&nbsp;</TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding} ps-4 font-normal rounded-l-md`}>
                 {group.email}
-              </CustomTableCell>
-              <CustomTableCell className={`${groupsStyles.tableRowPadding}`}>{group.membership}</CustomTableCell>
-              <CustomTableCell className={`${groupsStyles.tableRowPadding}`}>
+              </TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.membership}</TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding}`}>
                 {group.inherited.length < visibleInheritedViaCutOffValue ? (
                   group.inherited
                 ) : (
                   <ExpandableInheritedViaList inheritedVia={group.inherited} />
                 )}
-              </CustomTableCell>
-              <CustomTableCell className={`${groupsStyles.tableRowPadding} sm:text-nowrap`}>
+              </TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding} sm:text-nowrap`}>
                 {convertTimestamp(group.timestamp)}
-              </CustomTableCell>
-              <CustomTableCell className={`${groupsStyles.tableRowPadding} rounded-r-md`}> </CustomTableCell>
-              <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background leading-none`}>
-                &nbsp;
-              </CustomTableCell>
-            </CustomTableRow>
+              </TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding} rounded-r-md`}> </TableCell>
+              <TableCell className={`!w-[4px] !bg-background !hover:bg-background leading-none`}>&nbsp;</TableCell>
+            </TableRow>
           ))}
         {/* A dummy row at the end for the sake of the radius and padding */}
-        <CustomTableRow className={`border-none rounded-b-md py-0`}>
-          <CustomTableCell className={`text-[8px] py-0 leading-none`}>&nbsp;</CustomTableCell>
-        </CustomTableRow>
-      </CustomTableBody>
-    </CustomTable>
+        <TableRow className={`border-none rounded-b-md py-0`}>
+          <TableCell className={`text-[8px] py-0 leading-none`}>&nbsp;</TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
   )
 }
