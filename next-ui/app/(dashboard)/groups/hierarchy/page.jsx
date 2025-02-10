@@ -40,6 +40,8 @@ import {
   CustomListAccordionContent,
 } from '@/components/ui/custom-list-accordion'
 
+import { getDomainList } from '@/utils/getDomains'
+
 //constants
 const columnHeaders = ['Group email', 'Membership type', 'Inherited via', 'Join timestamp'] //column headers
 const rowsOnFirstLoad = 30 //number of table rows to load on first load
@@ -272,9 +274,14 @@ function InputForm({ query, setQuery }) {
         message: 'This field cannot be empty',
       })
       .email('Please input a valid email address')
-      .refine((e) => e.split('@')[1] === 'pvp-test-domain2.com', {
-        message: 'Cannot query email address outside customer domains',
-      }),
+      .refine(
+        async (e) => {
+          return await checkIfDomainIsValid(e.split('@')[1])
+        },
+        {
+          message: 'Cannot query email address outside customer domains',
+        }
+      ),
   })
 
   // Initialize the form using react-hook-form and Zod resolver for validation
@@ -285,6 +292,20 @@ function InputForm({ query, setQuery }) {
     },
   })
 
+  async function checkIfDomainIsValid(domain) {
+    const email = window.localStorage.getItem('email')
+    console.log('email:', email)
+
+    const token = localStorage.getItem('jwtToken')
+    console.log('TOKEN', token)
+
+    const domains = await getDomainList(email, token)
+    if (domains.includes(domain)) {
+      return true
+    } else {
+      return false
+    }
+  }
   /**
    * Handles the form submission by calling the setQuery function with the submitted email.
    * @param {Object} data - The form data containing the submitted email.
