@@ -271,7 +271,10 @@ function InputForm({ query, setQuery }) {
       .min(1, {
         message: 'This field cannot be empty',
       })
-      .email('Please input a valid email address'),
+      .email('Please input a valid email address')
+      .refine((e) => e.split('@')[1] === 'pvp-test-domain2.com', {
+        message: 'Cannot query email address outside customer domains',
+      }),
   })
 
   // Initialize the form using react-hook-form and Zod resolver for validation
