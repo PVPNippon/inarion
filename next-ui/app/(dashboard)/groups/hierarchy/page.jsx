@@ -570,7 +570,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
               </TooltipProvider>
             </span>
           </CustomTableHead>
-          <CustomTableHead className="pe-2.5">
+          <CustomTableHead className="w-[25px] pe-2.5">
             <Dialog>
               <DropdownMenu open={isMenuOpen} onOpenChange={(open) => setIsMenuOpen(open)}>
                 <DropdownMenuTrigger asChild>
@@ -668,7 +668,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
       </CustomTableHeader>
       <CustomTableBody>
         <CustomTableRow className={`py-0`}>
-          <CustomTableCell className={`text-[8px] py-0 leading-none`}>&nbsp;</CustomTableCell>
+          <CustomTableCell className={`text-[8px] py-0 leading-none bg-background`}>&nbsp;</CustomTableCell>
         </CustomTableRow>
         {displayedGroups &&
           displayedGroups.map((group) => (
@@ -694,7 +694,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
           ))}
         {/* A dummy row at the end for the sake of the radius and padding */}
         <CustomTableRow className={`border-none rounded-b-md py-0`}>
-          <CustomTableCell className={`text-[8px] py-0 leading-none`}>&nbsp;</CustomTableCell>
+          <CustomTableCell className={`text-[8px] py-0 leading-none bg-background`}>&nbsp;</CustomTableCell>
         </CustomTableRow>
       </CustomTableBody>
     </CustomTable>
