@@ -374,8 +374,64 @@ async function deleteUsersWithRateLimit({ userEmail, client, deleteUserEmails })
   return { deletedUsers, undeletedUsers }
 }
 
+async function listRoleNames({ userEmail, client }) {
+  logger.debug('Reached listRoleNames endpoint.')
+  //Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+  const roleNames = [] // Container for all role names retrieved
+  let roleNamesResponse // Response from the API
+
+  // create request object
+  const requestObj = {
+    customer: 'my_customer',
+    maxResults: 100, // seems to be max allowed value regarding error message
+  }
+
+  // Fetch all role names
+  do {
+    // Fetch role names
+    roleNamesResponse = await directory.roles.list(requestObj)
+
+    roleNames.push(...roleNamesResponse.data.items)
+
+    //repeat until there are no more pages(i.e. no nextPageToken returned by google)
+  } while ((requestObj.pageToken = roleNamesResponse.data.nextPageToken))
+
+  return roleNames // Return the role names
+}
+
+async function listRoleAssignments({ userEmail, client }) {
+  logger.debug('Reached listRoleAssignments endpoint.')
+  //Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+  const roleAssignments = [] // Container for all role assignments retrieved
+  let pageToken = null // In roleAssignments.list, there seems to be no limit to maxResult, so I set the pageToken myself.
+  let roleAssignmentsResponse // Response from the API
+
+  // create request object
+  const requestObj = {
+    customer: 'my_customer',
+    maxResults: 100, // set the same value as maxResults in roles.list
+    pageToken: pageToken,
+  }
+
+  // Fetch all role assignments
+  do {
+    // Fetch role assignments
+    roleAssignmentsResponse = await directory.roleAssignments.list(requestObj)
+
+    roleAssignments.push(...roleAssignmentsResponse.data.items)
+
+    //repeat until there are no more pages(i.e. no nextPageToken returned by google)
+  } while ((requestObj.pageToken = roleAssignmentsResponse.data.nextPageToken))
+
+  return roleAssignments // Return the role assignments
+}
+
 module.exports = {
   listUsers,
   turnOffTwoSVForUsersWithRateLimit,
   deleteUsersWithRateLimit,
+  listRoleNames,
+  listRoleAssignments,
 }

@@ -1,5 +1,6 @@
 const usersService = require('../services/usersService')
 const logger = require('../logger/logger')(__filename, 'Users Controller')
+const usersUtilityFunctions = require('../utility/usersUtilityFunctions')
 
 /**
  * Retrieves the list of all users in the organization.
@@ -15,23 +16,102 @@ const logger = require('../logger/logger')(__filename, 'Users Controller')
  * @throws {Error} - Sends a 500 status code if there is an error fetching users.
  */
 exports.listAllUsers = async (req, res, next) => {
-  if (res.locals.cached) {
-    // TODO:(m.okamoto): If you want to add a filter, process the response of listAllUsers and pass it here.
-    return next()
-  }
-
   // TODO(m.okamoto): Will it be possible to get the logged-in email address from Redis/session in the future?
   // Retrieve the userEmail from the query parameter
   const { userEmail } = req.query
 
+  if (res.locals.cached) {
+    // TODO:(m.okamoto): If you want to add a filter, process the response of listAllUsers and pass it here.
+    const users = res.locals.data
+    let filteredUsers = users
+    if (req.query.orgUnitPath) {
+      logger.debug(`Filtering users by orgUnitPath: ${req.query.orgUnitPath}`)
+      filteredUsers = usersUtilityFunctions.filterUsersByOrgUnitPath(filteredUsers, req.query.orgUnitPath)
+    }
+    if (req.query.isEnrolledIn2Sv) {
+      logger.debug(`Filtering users by isEnrolledIn2Sv: ${req.query.isEnrolledIn2Sv}`)
+      filteredUsers = usersUtilityFunctions.filterUsersIf2svEnrolled(
+        filteredUsers,
+        req.query.isEnrolledIn2Sv === 'true'
+      )
+    }
+    if (req.query.isEnforcedIn2Sv) {
+      logger.debug(`Filtering users by isEnforcedIn2Sv: ${req.query.isEnforcedIn2Sv}`)
+      filteredUsers = usersUtilityFunctions.filterUsersIf2svEnforced(
+        filteredUsers,
+        req.query.isEnforcedIn2Sv === 'true'
+      )
+    }
+    if (req.query.domain) {
+      logger.debug(`Filtering users by domain: ${req.query.domain}`)
+      filteredUsers = usersUtilityFunctions.filterUsersByDomain(filteredUsers, req.query.domain)
+    }
+    if (req.query.groupEmail) {
+      logger.debug(`Filtering users by group: ${req.query.groupEmail}`)
+      filteredUsers = await usersUtilityFunctions.filterUsersByGroup(filteredUsers, req.query.groupEmail, userEmail)
+    }
+    if (req.query.roleName) {
+      logger.debug(`Filtering users by roleName: ${req.query.roleName}`)
+      filteredUsers = await usersUtilityFunctions.filterUsersByRoleName(filteredUsers, req.query.roleName, userEmail)
+    }
+    res.locals.data = filteredUsers
+    return next()
+  }
+
   try {
     // Get an array with all users in the organization
     const users = await usersService.listUsers({ userEmail })
-    logger.debug(`Fetched ${users.length} users from the domain.`)
+    logger.debug(`Fetched ${users.length} users from the domain in backend.`)
 
     // TODO:(m.okamoto): If you want to add a filter, process the response of listAllUsers and pass it here.
-    // Pass the list of all organization's users
-    res.locals.data = users
+    res.locals.dataToBeCached = users // Pass the list of all organization's users
+
+    if (
+      !req.query.orgUnitPath &&
+      !req.query.isEnrolledIn2Sv &&
+      !req.query.isEnforcedIn2Sv &&
+      !req.query.domain &&
+      !req.query.groupEmail &&
+      !req.query.roleName
+    ) {
+      res.locals.data = users
+    } else {
+      let filteredUsers = users
+      if (req.query.orgUnitPath) {
+        logger.debug(`Filtering users by orgUnitPath: ${req.query.orgUnitPath}`)
+        filteredUsers = usersUtilityFunctions.filterUsersByOrgUnitPath(filteredUsers, req.query.orgUnitPath)
+      }
+      if (req.query.isEnrolledIn2Sv) {
+        logger.debug(`Filtering users by isEnrolledIn2Sv: ${req.query.isEnrolledIn2Sv}`)
+        filteredUsers = usersUtilityFunctions.filterUsersIf2svEnrolled(
+          filteredUsers,
+          req.query.isEnrolledIn2Sv === 'true'
+        )
+      }
+      if (req.query.isEnforcedIn2Sv) {
+        logger.debug(`Filtering users by isEnforcedIn2Sv: ${req.query.isEnforcedIn2Sv}`)
+        filteredUsers = usersUtilityFunctions.filterUsersIf2svEnforced(
+          filteredUsers,
+          req.query.isEnforcedIn2Sv === 'true'
+        )
+      }
+      if (req.query.domain) {
+        logger.debug(`Filtering users by domain: ${req.query.domain}`)
+        filteredUsers = usersUtilityFunctions.filterUsersByDomain(filteredUsers, req.query.domain)
+      }
+      if (req.query.groupEmail) {
+        logger.debug(`Filtering users by group: ${req.query.groupEmail}`)
+        // Since filterUsersByGroup calls group API, need to pass userEmail for Auth module
+        filteredUsers = await usersUtilityFunctions.filterUsersByGroup(filteredUsers, req.query.groupEmail, userEmail)
+      }
+      if (req.query.roleName) {
+        logger.debug(`Filtering users by roleName: ${req.query.roleName}`)
+        // Since filterUsersByRoleName calls role-related API, need to pass userEmail for Auth module
+        filteredUsers = await usersUtilityFunctions.filterUsersByRoleName(filteredUsers, req.query.roleName, userEmail)
+      }
+      res.locals.data = filteredUsers
+    }
+
     logger.debug('Returning list of users.')
   } catch (error) {
     res.locals.statusCode = 500
@@ -166,3 +246,40 @@ exports.deleteUsers = async (req, res, next) => {
   }
   next()
 }
+
+// Currently listRoleNames and listRoleAssignments are only used to filter listAllUsers.
+// Because filtering calls functions in usersService directly, the code below will not be run in the current implementation..
+exports.listRoleNames = async (req, res, next) => {
+  const { userEmail } = req.query
+
+  try {
+    const roleNames = await usersService.listRoleNames({ userEmail })
+    logger.debug(`Fetched ${roleNames.length} role names from the domain.`)
+
+    res.locals.data = roleNames
+    logger.debug('Returning list of roleNames.')
+  } catch (error) {
+    logger.error(error)
+    res.status(500).json({ message: 'Error fetching roleNames.' })
+  }
+  next()
+}
+
+exports.listRoleAssignments = async (req, res, next) => {
+  const { userEmail } = req.query
+
+  try {
+    // Get an array with all domains in the organization
+    const roleAssignments = await usersService.listRoleAssignments({ userEmail })
+    logger.debug(`Fetched ${roleAssignments.length} role assignments from the domain.`)
+
+    // Pass the list of all organization's domains
+    res.locals.data = roleAssignments
+    logger.debug('Returning list of roleAssignments.')
+  } catch (error) {
+    logger.error(error)
+    res.status(500).json({ message: 'Error fetching roleAssignments.' })
+  }
+  next()
+}
+//

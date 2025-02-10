@@ -54,6 +54,7 @@ module.exports = {
     'https://www.googleapis.com/auth/admin.reports.audit.readonly',
     'https://www.googleapis.com/auth/apps.groups.settings',
     'https://www.googleapis.com/auth/admin.directory.user.security',
+    'https://www.googleapis.com/auth/admin.directory.rolemanagement',
   ],
   CRYPTO: process.env.CRYPTO,
   PROJECT_NAME: process.env.PROJECT_NAME,
