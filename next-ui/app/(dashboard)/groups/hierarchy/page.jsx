@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiClient } from '@/utils/apiClient'
 import { ExternalLinkIcon, SearchIcon, EyeIcon, Ellipsis, CircleAlert } from 'lucide-react'
 import { groupsStyles } from '../groups-styles'
@@ -25,12 +24,26 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { CustomIconExport } from '../../../ui/svg-icons/custom-icons'
+import {
+  CustomTable,
+  CustomTableHeader,
+  CustomTableBody,
+  CustomTableRow,
+  CustomTableCell,
+  CustomTableHead,
+} from '@/components/ui/custom-table'
+
+import {
+  CustomListAccordion,
+  CustomListAccordionItem,
+  CustomListAccordionTrigger,
+  CustomListAccordionContent,
+} from '@/components/ui/custom-list-accordion'
 
 //constants
-const columnHeaders = ['Group name', 'Membership type', 'Inherited via', 'Join timestamp']
+const columnHeaders = ['Group email', 'Membership type', 'Inherited via', 'Join timestamp']
 const rowsOnFirstLoad = 30 //number of table rows to load on first load
 const rowLoadIncrement = 10 //number of table rows to load on scroll
-const visibleInheritedViaCutOffValue = 100 //maximum number of characters -1 to display in the "inherited via" column
 
 /**
  * A component that displays a table with nested group membership details.
@@ -48,7 +61,6 @@ function NestedGroupsLister() {
   const [isLoading, setIsLoading] = useState(false)
   const [emptyResult, setEmptyResult] = useState(false)
   const [query, setQuery] = useState('')
-  const [hiddenClass, setHiddenClass] = useState('')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [fileName, setFileName] = useState('')
   let email
@@ -107,7 +119,6 @@ function NestedGroupsLister() {
           //  const responseData = JSON.parse(response)
           const responseData = await response.json()
           responseData.length === 0 ? setEmptyResult(true) : setGroupList(responseData)
-          setHiddenClass('hidden')
         }
       } catch (error) {
         setError(error)
@@ -135,11 +146,9 @@ function NestedGroupsLister() {
           <ExternalLinkIcon size={14} />
         </a>
       </div>
-      <InputForm query={query} setQuery={setQuery} hiddenClass={hiddenClass} groupList={groupList} />
+      <InputForm query={query} setQuery={setQuery} />
       {isLoading && <Loader />}
-      {!isLoading && !error && query && (
-        <TopPanel query={query} hiddenClass={hiddenClass} setHiddenClass={setHiddenClass} groupList={groupList} />
-      )}
+      {!isLoading && !error && query && <TopPanel query={query} groupList={groupList} />}
       {!isLoading && !error && groupList.length > 0 && (
         <NestedGroupsTable
           groups={groupList}
@@ -170,7 +179,7 @@ export default NestedGroupsLister
  * @param {string} query - The email address being queried for nested group memberships.
  * @throws {Error} - If there is an issue with the API call or if the hierarchy cannot be fetched.
  */
-function HierarchyButton({ groupList, query }) {
+function HierarchyButton({ groupList, query, className }) {
   /**
    * Handles the button click event.
    * Removes any existing graph from the local storage.
@@ -231,7 +240,7 @@ function HierarchyButton({ groupList, query }) {
     <Button
       type="button"
       variant="outline"
-      className={`${groupsStyles.buttonPadding}`}
+      className={`${groupsStyles.buttonPadding} ${className}`}
       disabled={groupList && groupList.length === 0}
       onClick={handleClick}
     >
@@ -251,7 +260,10 @@ function HierarchyButton({ groupList, query }) {
  * @param {Function} setQuery - A function to update the query state with the submitted email.
  */
 
-function InputForm({ query, setQuery, hiddenClass, groupList }) {
+function InputForm({ query, setQuery }) {
+  const [goButtonDisabled, setGoButtonDisabled] = useState(false)
+  const [inputValue, setInputValue] = useState('')
+
   // Define the schema with Zod
   const FormSchema = z.object({
     email: z
@@ -275,35 +287,49 @@ function InputForm({ query, setQuery, hiddenClass, groupList }) {
    * @param {Object} data - The form data containing the submitted email.
    */
   function onSubmit(data) {
+    if (goButtonDisabled) return //prevent form from submission by hitting enter
     setQuery(data.email)
+    setInputValue('')
+    setGoButtonDisabled(true)
   }
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className={hiddenClass}>
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <Input
-                  className={`text-muted-foreground ${groupsStyles.searchBarWidth} `}
-                  type="email"
-                  name="email"
-                  placeholder="Enter a group or user email address"
-                  hasIcon={true}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="flex gap-x-4 my-6">
-          <Button className={`${groupsStyles.buttonPadding}`} type="submit">
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <div className={`flex gap-x-10 mb-5 items-center`}>
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Input
+                    className={`text-foreground ${groupsStyles.searchBarWidthVariantB} `}
+                    type="email"
+                    name="email"
+                    placeholder="Enter a group or user email address"
+                    hasIcon={true}
+                    {...field}
+                    value={inputValue}
+                    onChange={(e) => {
+                      setInputValue(e.target.value)
+                      field.onChange(e)
+                      if (e.target.value !== '') setGoButtonDisabled(false)
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button
+            className={`${groupsStyles.buttonPadding} self-start`}
+            type="submit"
+            disabled={goButtonDisabled ? true : !form.formState.isValid}
+          >
             Go
           </Button>
-          {groupList.length > 0 && <HierarchyButton groupList={groupList} query={query} />}
         </div>
       </form>
     </Form>
@@ -354,75 +380,61 @@ function EmptyResult() {
  * A component that renders a top panel displaying information about the nested group membership query.
  *
  * This panel includes a message showing the email address being queried and provides a button to
- * analyze another group or user. It also includes a button to visualize the hierarchy if the group list is not empty.
+ * visualize the hierarchy if the group list is not empty.
  *
  * @param {string} query - The email address being queried for nested group memberships.
- * @param {string} hiddenClass - A string that controls the visibility of the panel.
- * @param {Function} setHiddenClass - A function to update the hiddenClass state.
  * @param {Object[]} groupList - An array containing details about the group memberships.
  *
- * @returns {JSX.Element} A JSX element representing the top panel of the nested group membership view.
+ * @returns {JSX.Element} The JSX element representing the top panel of the nested group membership view.
  */
-
-function TopPanel({ query, hiddenClass, setHiddenClass, groupList }) {
+function TopPanel({ query, groupList }) {
   return (
-    <div className={`flex items-center justify-between ${hiddenClass === 'hidden' ? '' : 'hidden'}`}>
-      <div className={`py-3 px-4`}>
-        <span className={`text-sm my-3 py-1 px-3 ${groupsStyles.roundBorder} ${groupsStyles.thinShadow}`}>
-          Showing nested group membership for <span className="font-semibold">{query}</span>
-        </span>
-      </div>
-      <div className="flex flex-col lg:flex-row gap-x-4">
-        <Button
-          className={`${groupsStyles.buttonPadding}`}
-          onClick={() => {
-            if (hiddenClass === 'hidden') {
-              setHiddenClass('')
-            }
-          }}
-        >
-          Analyze another group or user
-        </Button>
-        <HierarchyButton groupList={groupList} query={query} />
-      </div>
+    <div className={`flex items-center justify-between ${groupsStyles.roundBorder} px-4`}>
+      <span className={`text-sm  py-1 px-3 ${groupsStyles.roundBorder} ${groupsStyles.thinShadow}`}>
+        Showing nested group membership for <span className="font-semibold">{query}</span>
+      </span>
+      <HierarchyButton groupList={groupList} query={query} className="my-[14.5px]" />
     </div>
   )
 }
 
-function ExpandableInheritedViaList({ inheritedVia }) {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [inheritedViaText, setInheritedViaText] = useState('')
+function ExpandableInheritedViaList({ inheritedVia, groupId }) {
+  const [isExpanded, setIsExpanded] = useState('')
 
-  useEffect(() => {
-    if (isExpanded) return
-    // If the string is longer than the cutoff value and contains a comma, only display the part before the last comma
-    const visiblePartBase = inheritedVia.slice(0, visibleInheritedViaCutOffValue)
-    const lastOccurence = visiblePartBase.lastIndexOf(',')
-    if (lastOccurence >= 0) {
-      setInheritedViaText(inheritedVia.slice(0, lastOccurence))
-    } else {
-      //if the comma is not found, only display the first characters equal the cutoff value
-      //no commas means that there is a very long email address(the limit as per RFC is 320 so technically it's possible
-      //in this case the email address will be truncated and the last part will be hidden behind the icon
-      setInheritedViaText(visiblePartBase)
-    }
-  }, [inheritedViaText])
+  let inheritedViaArray
+
+  if (Array.isArray(inheritedVia)) {
+    inheritedViaArray = inheritedVia
+  } else {
+    inheritedViaArray = inheritedVia.split(',')
+  }
+
+  if (inheritedViaArray.length === 1) {
+    return <span>{inheritedViaArray[0]}</span>
+  }
+
   return (
-    <span>
-      {inheritedViaText}
-      {!isExpanded && (
-        <Ellipsis
-          className={`ms-2 cursor-pointer hover:stroke-primary active:stroke-primary focus:stroke-primary inline ${
-            isExpanded ? 'hidden' : ''
-          }`}
-          size={20}
-          onClick={() => {
-            setIsExpanded(true)
-            setInheritedViaText(inheritedVia)
-          }}
-        />
-      )}
-    </span>
+    <CustomListAccordion type="single " collapsible value={isExpanded} onValueChange={setIsExpanded}>
+      <CustomListAccordionItem value={groupId} className="text-sm">
+        <CustomListAccordionContent>
+          {inheritedViaArray.map((inheritedVia) => (
+            <div key={inheritedVia}>{inheritedVia}</div>
+          ))}
+        </CustomListAccordionContent>
+        <CustomListAccordionTrigger>
+          {isExpanded === groupId ? (
+            <span className={`${groupsStyles.secondaryTextChart5}`}>Show less</span>
+          ) : (
+            <span>
+              <span style={{ pointerEvents: 'none' }}>{inheritedViaArray[0]}</span>
+              <span className={`${groupsStyles.secondaryTextChart5}`}>
+                {` + ${inheritedViaArray.length - 1} more`}{' '}
+              </span>{' '}
+            </span>
+          )}
+        </CustomListAccordionTrigger>
+      </CustomListAccordionItem>
+    </CustomListAccordion>
   )
 }
 
@@ -465,29 +477,11 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
 
   useEffect(() => {
     if (tableRef.current) {
-      const parentDiv = tableRef.current.parentElement
+      const parentDiv = tableRef.current.parentElement.parentElement.parentElement
 
-      parentDiv.classList.remove('overflow-auto')
+      parentDiv.classList.remove('h-[200px]')
 
-      parentDiv.classList.add(
-        //display the scrollbar only when there are more groups than the number of rows on first load
-        groups.length > rowsOnFirstLoad ? 'overflow-y-scroll' : 'overflow-y-clip',
-        groups.length > rowsOnFirstLoad && 'h-[80vh]',
-        'overflow-x-auto',
-        'mt-3',
-        'mb-7',
-        'relative',
-        'md:w-full',
-        'w-fit',
-        'border',
-        'border-input',
-        'rounded-md'
-      )
-
-      const tableHead = tableRef.current.children[0]
-      const row = tableHead.children[0]
-      row.classList.remove('border-foreground/30')
-      row.classList.add('border-input')
+      parentDiv.classList.add(groups.length > rowsOnFirstLoad && 'h-[80vh]', 'mt-3', 'mb-7')
     }
   }, [])
 
@@ -495,7 +489,8 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
 
   useEffect(() => {
     if (!tableRef.current) return
-    const parentDiv = tableRef.current.parentElement
+    // const parentDiv = tableRef.current.parentElement
+    const parentDiv = tableRef.current.parentElement.parentElement.parentElement.children[1]
 
     /**
      * An event handler for the scroll event on the table container.
@@ -521,14 +516,16 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
     }
   }, [displayedGroups])
   return (
-    <Table ref={tableRef}>
-      <TableHeader className="sticky top-0 bg-background custom-shadow">
-        <TableRow className="leading-4 text-foreground hover:bg-background sm:text-nowrap">
-          <TableHead className={`${groupsStyles.tableHeaderText} px-0 rounded-tl-lg`}></TableHead>
-          <TableHead className={`${groupsStyles.tableHeaderText} ps-4`}>{columnHeaders[0] /* Group name */}</TableHead>
-          <TableHead className={`${groupsStyles.tableHeaderText}`}>{columnHeaders[1] /* Membership type */}</TableHead>
-          <TableHead className={`${groupsStyles.tableHeaderText}`}>{columnHeaders[2] /* Inherited via */}</TableHead>
-          <TableHead className={`${groupsStyles.tableHeaderText} `}>
+    <CustomTable ref={tableRef}>
+      <CustomTableHeader>
+        <CustomTableRow className="sm:text-nowrap">
+          <CustomTableHead className={`${groupsStyles.tableHeaderText} px-0`}></CustomTableHead>
+          <CustomTableHead className={`${groupsStyles.tableHeaderText} ps-4 md:pe-[100px]`}>
+            {columnHeaders[0] /* Group email */}
+          </CustomTableHead>
+          <CustomTableHead className={`md:pe-[100px]`}>{columnHeaders[1] /* Membership type */}</CustomTableHead>
+          <CustomTableHead className={`md:pe-[100px]`}>{columnHeaders[2] /* Inherited via */}</CustomTableHead>
+          <CustomTableHead className={`md:pe-[100px]`}>
             {/* I split the header because I want to put them in different spans to prevent the icon from wrapping to the 3rd line */}
             <span>{columnHeaders[3].split(' ')[0] + ' ' /* Join */}</span>
             <span className="text-nowrap">
@@ -548,8 +545,8 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                 </Tooltip>
               </TooltipProvider>
             </span>
-          </TableHead>
-          <TableHead className="text-inherit pe-2.5 rounded-tr-lg">
+          </CustomTableHead>
+          <CustomTableHead className="pe-2.5">
             <Dialog>
               <DropdownMenu open={isMenuOpen} onOpenChange={(open) => setIsMenuOpen(open)}>
                 <DropdownMenuTrigger asChild>
@@ -642,40 +639,40 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                 </DialogContent>
               </DialogPortal>
             </Dialog>
-          </TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        <TableRow className={`border-none py-0`}>
-          <TableCell className={`text-[8px] py-0 leading-none`}>&nbsp;</TableCell>
-        </TableRow>
+          </CustomTableHead>
+        </CustomTableRow>
+      </CustomTableHeader>
+      <CustomTableBody>
+        <CustomTableRow className={`py-0`}>
+          <CustomTableCell className={`text-[8px] py-0 leading-none`}>&nbsp;</CustomTableCell>
+        </CustomTableRow>
         {displayedGroups &&
           displayedGroups.map((group) => (
-            <TableRow className={`border-none hover:bg-accent min-w-2xl`} key={group.email}>
-              <TableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>&nbsp;</TableCell>
-              <TableCell className={`${groupsStyles.tableRowPadding} ps-4 font-normal rounded-l-md`}>
+            <CustomTableRow className={`border-none hover:bg-accent min-w-2xl`} key={group.email}>
+              <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>
+                &nbsp;
+              </CustomTableCell>
+              <CustomTableCell className={`${groupsStyles.tableRowPadding} ps-4 font-normal rounded-l-md`}>
                 {group.email}
-              </TableCell>
-              <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.membership}</TableCell>
-              <TableCell className={`${groupsStyles.tableRowPadding}`}>
-                {group.inherited.length < visibleInheritedViaCutOffValue ? (
-                  group.inherited
-                ) : (
-                  <ExpandableInheritedViaList inheritedVia={group.inherited} />
-                )}
-              </TableCell>
-              <TableCell className={`${groupsStyles.tableRowPadding} sm:text-nowrap`}>
+              </CustomTableCell>
+              <CustomTableCell className={`${groupsStyles.tableRowPadding}`}>{group.membership}</CustomTableCell>
+              <CustomTableCell className={`${groupsStyles.tableRowPadding}`}>
+                <ExpandableInheritedViaList inheritedVia={group.inherited} groupId={group.email} />
+              </CustomTableCell>
+              <CustomTableCell className={`${groupsStyles.tableRowPadding} sm:text-nowrap`}>
                 {convertTimestamp(group.timestamp)}
-              </TableCell>
-              <TableCell className={`${groupsStyles.tableRowPadding} rounded-r-md`}> </TableCell>
-              <TableCell className={`!w-[4px] !bg-background !hover:bg-background leading-none`}>&nbsp;</TableCell>
-            </TableRow>
+              </CustomTableCell>
+              <CustomTableCell className={`${groupsStyles.tableRowPadding} rounded-r-md`}> </CustomTableCell>
+              <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background leading-none`}>
+                &nbsp;
+              </CustomTableCell>
+            </CustomTableRow>
           ))}
         {/* A dummy row at the end for the sake of the radius and padding */}
-        <TableRow className={`border-none rounded-b-md py-0`}>
-          <TableCell className={`text-[8px] py-0 leading-none`}>&nbsp;</TableCell>
-        </TableRow>
-      </TableBody>
-    </Table>
+        <CustomTableRow className={`border-none rounded-b-md py-0`}>
+          <CustomTableCell className={`text-[8px] py-0 leading-none`}>&nbsp;</CustomTableCell>
+        </CustomTableRow>
+      </CustomTableBody>
+    </CustomTable>
   )
 }
