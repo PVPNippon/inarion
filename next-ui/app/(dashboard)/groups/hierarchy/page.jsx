@@ -41,7 +41,7 @@ import {
 } from '@/components/ui/custom-list-accordion'
 
 //constants
-const columnHeaders = ['Group email', 'Membership type', 'Inherited via', 'Join timestamp']
+const columnHeaders = ['Group email', 'Membership type', 'Inherited via', 'Join timestamp'] //column headers
 const rowsOnFirstLoad = 30 //number of table rows to load on first load
 const rowLoadIncrement = 10 //number of table rows to load on scroll
 
@@ -66,7 +66,7 @@ function NestedGroupsLister() {
   let email
 
   useEffect(() => {
-    const controller = new AbortController()
+    const controller = new AbortController() // Create a new AbortController to abort fetch request if a similar request is already in progress
     /**
      * Fetches the nested membership of a given group or user.
      * Sets the `groupList` state to the response data if it is not empty, otherwise sets the `emptyResult` state to true.
@@ -91,6 +91,7 @@ function NestedGroupsLister() {
         const token = localStorage.getItem('jwtToken')
         console.log('TOKEN', token)
 
+        //temporary disabled apiClient because encryption logic is not ready for get requrests
         // const response = await apiClient(
         //   '/api/groups/get-nested-membership', // Endpoint path relative to API_BASE_URL
         //   'POST', // HTTP method
@@ -116,7 +117,7 @@ function NestedGroupsLister() {
 
         // if emtpy table is returned, set error 'No memberships found', otherwise set groupList
         if (response) {
-          //  const responseData = JSON.parse(response)
+          //  const responseData = JSON.parse(response) //to use when apiClient is back
           const responseData = await response.json()
           responseData.length === 0 ? setEmptyResult(true) : setGroupList(responseData)
         }
@@ -134,9 +135,8 @@ function NestedGroupsLister() {
     }
   }, [query])
   return (
-    <div style={{ height: emptyResult && `calc(100vh - 288px)` }} className="mx-8 mb-6">
-      {' '}
-      {/* apply custom height only when emptyResult is displayed(maybe it should also be set when there is an error screen in the future) */}
+    //apply custom height only when emptyResult is displayed (maybe it should also be set when there is an error screen in the future). The height depends on the height of components above it.
+    <div style={{ height: emptyResult && `calc(100vh - 372px)` }} className="mx-8 mb-6">
       <p className="mb-3.5 text-2xl font-medium leading-7">Nested Group Membership</p>
       <p className="text-lg text-muted-foreground mb-3 leading-5">View the ancestry of a group or user</p>
       <div className={`flex text-xs gap-x-1 ${groupsStyles.secondaryTextChart5} mb-3`}>
