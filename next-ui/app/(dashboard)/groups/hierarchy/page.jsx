@@ -584,21 +584,20 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                   />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" alignOffset={-194} avoidCollisions="true" hideWhenDetached="true">
-                  <DialogTrigger>
-                    <div className={`flex items-center py-3 px-2 w-[204px]`}>
-                      <div
-                        className="flex items-center  py-1 px-2 gap-3 bg-accent rounded-md text-s w-[188px]"
-                        role="button"
-                        onClick={() => {
-                          setFileName(`memberships_for_${query}`)
-                        }}
-                      >
-                        <DropdownMenuItem className="cursor-pointer">
+                  <DialogTrigger asChild>
+                    <DropdownMenuItem
+                      className="focus:bg-background hover:bg-background cursor-pointer"
+                      onClick={() => {
+                        setFileName(`memberships_for_${query}`)
+                      }}
+                    >
+                      <div className={`flex items-center my-1 mx-0 py-2 px-1 bg-accent rounded-md`}>
+                        <div className="flex items-center py-1 px-2 gap-3 text-s w-[188px] bg-accent">
                           <CustomIconExport />
                           <span>Export results</span>
-                        </DropdownMenuItem>
+                        </div>
                       </div>
-                    </div>
+                    </DropdownMenuItem>
                   </DialogTrigger>
                 </DropdownMenuContent>
               </DropdownMenu>
