@@ -603,17 +603,17 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                 </DropdownMenuContent>
               </DropdownMenu>
               <DialogPortal>
-                <DialogContent className="[&>button]:hidden" aria-describedby={undefined}>
+                <DialogContent className="[&>button]:hidden p-8" aria-describedby={undefined}>
                   <DialogHeader>
-                    <DialogTitle className="text-2xl/6">Export Nested Group Membership</DialogTitle>
-                    <p className="text-base/5">Name your export</p>
+                    <DialogTitle className="text-2xl/6 mb-6">Export Search Results</DialogTitle>
+                    <div className="text-base/5 font-medium pb-4">Name your export</div>
                     <Input
-                      className="text-muted-foreground"
+                      className="text-foreground mb-7"
                       placeholder="Add a name"
                       value={fileName}
                       onChange={(e) => setFileName(e.target.value)}
                     />
-                    <p className="text-base/5">Choose a format</p>
+                    <div className="text-base/5 font-medium pb-4">Choose a format</div>
                     <RadioGroup defaultValue="csvFormat" className="border border-input rounded-md p-4 gap-y-4">
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="option-one" id="googlesheetFormat" disabled />
@@ -626,7 +626,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                         <Label htmlFor="option-two">CSV</Label>
                       </div>
                     </RadioGroup>
-                    <div className="flex flex-col items-center justify-center sm:flex-row sm:justify-end sm:gap-x-4">
+                    <div className="flex flex-col items-center justify-center sm:flex-row sm:justify-end sm:gap-x-4 pt-8">
                       <DialogClose asChild>
                         <Button
                           id="close-export-dialog"
