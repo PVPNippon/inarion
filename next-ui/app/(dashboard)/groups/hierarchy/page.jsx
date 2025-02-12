@@ -300,12 +300,14 @@ function InputForm({ query, setQuery }) {
     console.log('TOKEN', token)
 
     const domains = await getDomainList(email, token)
+
     if (domains.includes(domain)) {
       return true
     } else {
       return false
     }
   }
+
   /**
    * Handles the form submission by calling the setQuery function with the submitted email.
    * @param {Object} data - The form data containing the submitted email.

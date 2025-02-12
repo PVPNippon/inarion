@@ -4,7 +4,11 @@ import { cn } from '@/lib/utils'
 import { ScrollArea, ScrollBar } from './scroll-area'
 
 const CustomTable = React.forwardRef(({ className, ...props }, ref) => (
-  <ScrollArea className="relative w-full overflow-auto border rounded-lg border-[#E4E4E7] h-[200px]" disableScrollbar>
+  <ScrollArea
+    type="scroll" //if you need the scroll bar to be displayed all the time, change the type to "always"
+    className="relative w-full overflow-auto border rounded-lg border-[#E4E4E7] h-[200px]"
+    disableScrollbar
+  >
     <table ref={ref} className={cn(' w-full caption-bottom text-sm', className)} {...props} />
   </ScrollArea>
 ))
