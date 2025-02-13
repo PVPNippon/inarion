@@ -69,20 +69,35 @@ function NestedGroupsLister() {
   let email
 
   /**
-   * Prepares CSV column data by formatting the 'inherited' property of each group.
-   * If the 'inherited' property is non-empty, it splits the string by commas, trims each item, and joins them with a line separator.
+   * Takes an array of objects and formats the "inherited" property
+   * for proper CSV export.
    *
-   * @param {Array<Object>} groups - An array of group objects to be formatted.
-   * @returns {Array<Object>} - A new array of group objects with formatted 'inherited' properties.
+   * If the "inherited" property is an array, it joins the array
+   * elements with a line separator character.
+   *
+   * If the "inherited" property is a string, it splits the string
+   * into an array using the comma as a separator, trims each element,
+   * and then joins the array elements with a line separator character.
+   *
+   * @param {Object[]} groups - An array of objects, each representing
+   * a group membership.
+   *
+   * @returns {Object[]} An array of objects, with the "inherited" property
+   * formatted for proper CSV export.
    */
   function prepareCsvColumnData(groups) {
     const formattedGroups = [...groups] //looks like overkill, but it's better to be safe than sorry
     for (let g of formattedGroups) {
+      //fallback for when inherited comes as an array from backend
       if (g.inherited.length > 0) {
-        g.inherited = g.inherited
-          .split(',')
-          .map((item) => item.trim())
-          .join('\u2028') //line separator, because '\n' was not working
+        if (Array.isArray(g.inherited)) {
+          g.inherited = g.inherited.map((item) => item.trim()).join('\u2028') //line separator
+        } else {
+          g.inherited = g.inherited
+            .split(',')
+            .map((item) => item.trim())
+            .join('\u2028') //line separator, because '\n' was not working
+        }
       }
     }
 
