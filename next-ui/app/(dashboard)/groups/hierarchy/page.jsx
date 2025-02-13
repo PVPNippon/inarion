@@ -360,6 +360,7 @@ function InputForm({ query, setQuery }) {
 
   // Initialize the form using react-hook-form and Zod resolver for validation
   const form = useForm({
+    mode: 'all', //needed to specify this to display validation errors before the first form has been submitted
     resolver: zodResolver(FormSchema),
     defaultValues: {
       email: '',
