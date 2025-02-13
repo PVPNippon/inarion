@@ -65,7 +65,29 @@ function NestedGroupsLister() {
   const [query, setQuery] = useState('')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [fileName, setFileName] = useState('')
+  const [csvGroups, setCsvGroups] = useState([])
   let email
+
+  /**
+   * Prepares CSV column data by formatting the 'inherited' property of each group.
+   * If the 'inherited' property is non-empty, it splits the string by commas, trims each item, and joins them with a line separator.
+   *
+   * @param {Array<Object>} groups - An array of group objects to be formatted.
+   * @returns {Array<Object>} - A new array of group objects with formatted 'inherited' properties.
+   */
+  function prepareCsvColumnData(groups) {
+    const formattedGroups = [...groups] //looks like overkill, but it's better to be safe than sorry
+    for (let g of formattedGroups) {
+      if (g.inherited.length > 0) {
+        g.inherited = g.inherited
+          .split(',')
+          .map((item) => item.trim())
+          .join('\u2028') //line separator, because '\n' was not working
+      }
+    }
+
+    return formattedGroups
+  }
 
   useEffect(() => {
     const controller = new AbortController() // Create a new AbortController to abort fetch request if a similar request is already in progress
@@ -84,6 +106,8 @@ function NestedGroupsLister() {
         setError('')
         setGroupList([])
         setEmptyResult(false)
+        setFileName('')
+        setCsvGroups([])
 
         //getting email and token from local storage is a temporary measure, so I'm not refactoring or improving this part
         email = window.localStorage.getItem('email')
@@ -121,7 +145,22 @@ function NestedGroupsLister() {
         if (response) {
           //  const responseData = JSON.parse(response) //to use when apiClient is back
           const responseData = await response.json()
-          responseData.length === 0 ? setEmptyResult(true) : setGroupList(responseData)
+
+          if (responseData.length === 0) {
+            setEmptyResult(true)
+          } else {
+            setGroupList(responseData)
+            //create a separate array with groups for csv column data
+            const csvGroups = responseData.map((group) => {
+              return {
+                email: group.email,
+                membership: group.membership,
+                inherited: group.inherited,
+                timestamp: group.timestamp,
+              }
+            })
+            setCsvGroups(prepareCsvColumnData(csvGroups))
+          }
         }
       } catch (error) {
         setError(error)
@@ -153,6 +192,7 @@ function NestedGroupsLister() {
       {!isLoading && !error && query && <TopPanel query={query} groupList={groupList} />}
       {!isLoading && !error && groupList.length > 0 && (
         <NestedGroupsTable
+          csvGroups={csvGroups}
           groups={groupList}
           query={query}
           isMenuOpen={isMenuOpen}
@@ -424,6 +464,15 @@ function TopPanel({ query, groupList }) {
   )
 }
 
+/**
+ * A component that renders a collapsible list of inherited via paths.
+ *
+ * @param {{ inheritedVia: string | string[], groupId: string }} props The props object.
+ * @prop {string | string[]} inheritedVia The inherited via paths that will be displayed in the list.
+ * @prop {string} groupId The ID of the group that the inherited via paths belong to.
+ *
+ * @returns {JSX.Element} The JSX element representing the collapsible list of inherited via paths.
+ */
 function ExpandableInheritedViaList({ inheritedVia, groupId }) {
   const [isExpanded, setIsExpanded] = useState('')
 
@@ -432,7 +481,7 @@ function ExpandableInheritedViaList({ inheritedVia, groupId }) {
   if (Array.isArray(inheritedVia)) {
     inheritedViaArray = inheritedVia
   } else {
-    inheritedViaArray = inheritedVia.split(',')
+    inheritedViaArray = inheritedVia.split(',').map((x) => x.trim())
   }
 
   if (inheritedViaArray.length === 1) {
@@ -479,7 +528,7 @@ function ExpandableInheritedViaList({ inheritedVia, groupId }) {
  * @returns {JSX.Element} A JSX element representing the table of nested group memberships.
  */
 
-function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName, setFileName }) {
+function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName, setFileName, csvGroups }) {
   /**
    * A function that takes a timestamp string and returns it in a slightly more user-friendly format.
    * If the timestamp string includes 'GMT', it is split and 'JST' is appended to the end.
@@ -515,7 +564,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
 
   useEffect(() => {
     if (!tableRef.current) return
-    // const parentDiv = tableRef.current.parentElement
+
     const parentDiv = tableRef.current.parentElement.parentElement.parentElement.children[1]
 
     /**
@@ -541,6 +590,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
       parentDiv.removeEventListener('scroll', handleScroll)
     }
   }, [displayedGroups])
+
   return (
     <CustomTable ref={tableRef}>
       <CustomTableHeader>
@@ -559,7 +609,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger>
-                    <CircleAlert size={16} className="inline align-middle ms-1 stroke-destructive" />
+                    <CircleAlert size={16} className="inline align-middle ms-[9px] stroke-destructive" />
                   </TooltipTrigger>
                   <TooltipContent sideOffset={28} align="start" alignOffset={-250}>
                     {/* I had to separate the tooltip content into into paragraphs because the escape characters were ignored.
@@ -638,7 +688,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                       </DialogClose>
 
                       <CsvDownloadButton
-                        data={[...groups]}
+                        data={csvGroups}
                         headers={columnHeaders}
                         filename={fileName === '' ? `memberships_for_${query}` : fileName}
                         className="hidden"
