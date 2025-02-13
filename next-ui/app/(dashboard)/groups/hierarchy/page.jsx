@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/custom-list-accordion'
 
 import { getDomainList } from '@/utils/getDomains'
+import { checkIfDomainIsValid } from '@/utils/checkIfDomainIsValid'
 
 //constants
 const columnHeaders = ['Group email', 'Membership type', 'Inherited via', 'Join timestamp'] //column headers
@@ -311,15 +312,33 @@ function HierarchyButton({ groupList, query, className }) {
  * A form component for entering an email address to query nested group memberships.
  *
  * This form uses Zod for schema validation and react-hook-form for form management.
- * It validates that the email field is not empty and contains a valid email address.
+ * It validates that the email field is not empty, contains a valid email address, and is from a domain within the customer's domains.
  * Upon successful submission, it updates the query state with the input email.
  *
  * @param {Function} setQuery - A function to update the query state with the submitted email.
  */
-
 function InputForm({ query, setQuery }) {
   const [goButtonDisabled, setGoButtonDisabled] = useState(false)
   const [inputValue, setInputValue] = useState('')
+  const [domainList, setDomainList] = useState([])
+
+  useEffect(() => {
+    async function fetchDomains() {
+      try {
+        const domains = await getDomainList(localStorage.getItem('email'), localStorage.getItem('jwtToken'))
+        setDomainList(domains)
+      } catch (error) {
+        console.error('Error fetching domains:', error)
+      }
+    }
+    fetchDomains()
+
+    // Cleanup function
+    return () => {
+      // Code to be executed when the component unmounts or the effect is re-run
+      setDomainList([]) // Reset the domain list
+    }
+  }, [query])
 
   // Define the schema with Zod
   const FormSchema = z.object({
@@ -331,7 +350,7 @@ function InputForm({ query, setQuery }) {
       .email('Please input a valid email address')
       .refine(
         async (e) => {
-          return await checkIfDomainIsValid(e.split('@')[1])
+          return await checkIfDomainIsValid({ domain: e.split('@')[1], domainList })
         },
         {
           message: 'Cannot query email address outside customer domains',
@@ -347,24 +366,9 @@ function InputForm({ query, setQuery }) {
     },
   })
 
-  async function checkIfDomainIsValid(domain) {
-    const email = window.localStorage.getItem('email')
-    console.log('email:', email)
-
-    const token = localStorage.getItem('jwtToken')
-    console.log('TOKEN', token)
-
-    const domains = await getDomainList(email, token)
-
-    if (domains.includes(domain)) {
-      return true
-    } else {
-      return false
-    }
-  }
-
   /**
    * Handles the form submission by calling the setQuery function with the submitted email.
+   * Prevents the form from submission by hitting enter, and resets the domain list.
    * @param {Object} data - The form data containing the submitted email.
    */
   function onSubmit(data) {

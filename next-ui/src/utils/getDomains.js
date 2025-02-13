@@ -1,3 +1,12 @@
+'use server'
+
+/**
+ * Retrieves a list of domains from the backend server in JSON format. (the response from google admin sdk)
+ * @param {string} email - The email address of the user.
+ * @param {string} token - The authentication token. //not used for now, but will probably be used in the future
+ * @returns {Promise<Object[]>} A Promise object which resolves to an array of domain objects.
+ * @throws {Error} - Throws an error if the network request fails.
+ */
 export const getDomainListAsJson = async (email, token) => {
   let currentController
   if (currentController) {
@@ -13,6 +22,7 @@ export const getDomainListAsJson = async (email, token) => {
       // },
       // Accept: 'application/json',
       signal,
+      next: { revalidate: 300 }, // revalidate every 5 minutes
     })
     if (response.ok) {
       const responseData = await response.json()
@@ -23,11 +33,22 @@ export const getDomainListAsJson = async (email, token) => {
   }
 }
 
+/**
+ * Retrieves a list of domains from the backend server and flattens the result into an array
+ * of strings.
+ * @param {string} email - The email address of the user.
+ * @param {string} token - The authentication token. //not used for now, but will probably be used in the future
+ * @returns {Promise<string[]>} A Promise object which resolves to an array of domain names.
+ * @throws {Error} - Throws an error if the network request fails.
+ */
 export const getDomainList = async (email, token) => {
   try {
     let domainList = []
-    const domains = await getDomainListAsJson(email, token)
-    console.log('DOMAINS', domains)
+    const domains = await getDomainListAsJson(email, token) //get the list of domains
+
+    //if domain is primary, get its and all its aliases' names,
+    //otherwise, get only its domain name
+
     for (let domain of domains) {
       if (domain.isPrimary === true) {
         domainList = [...domainList, domain.domainName]
