@@ -1,53 +1,63 @@
-'use server'
+'use client'
+import { useState, useEffect } from 'react'
 
 /**
- * Retrieves a list of domains from the backend server in JSON format. (the response from google admin sdk)
- * @param {string} email - The email address of the user.
- * @param {string} token - The authentication token. //not used for now, but will probably be used in the future
- * @returns {Promise<Object[]>} A Promise object which resolves to an array of domain objects.
- * @throws {Error} - Throws an error if the network request fails.
+ * Custom React hook to fetch and manage a list of domains associated with the current user.
+ *
+ * This hook retrieves the email and authentication token from local storage and
+ * uses them to fetch the domain list from the backend server. The fetched domain
+ * list is then processed and stored in the component's state.
+ *
+ * @returns {Object} An object containing the domain list array.
  */
-export const getDomainListAsJson = async (email, token) => {
-  let currentController
-  if (currentController) {
-    currentController.abort()
-  }
 
-  currentController = new AbortController()
-  const signal = currentController.signal
-  try {
-    const response = await fetch(`http://localhost:4000/api/domains/?userEmail=${email}`, {
-      // headers: {
-      //   Authorization: `Bearer ${token}`,
-      // },
-      // Accept: 'application/json',
-      signal,
-      next: { revalidate: 60 }, // revalidate every 60 seconds
-    })
+export function useDomainList() {
+  const [domainList, setDomainList] = useState([])
 
-    if (response.ok) {
-      const responseData = await response.json()
+  useEffect(() => {
+    const fetchDomainList = async () => {
+      try {
+        const email = window.localStorage.getItem('email')
+        console.log('email:', email)
 
-      return responseData
+        const token = localStorage.getItem('jwtToken')
+        console.log('TOKEN', token)
+
+        const response = await fetch(`http://localhost:4000/api/domains/?userEmail=${email}`, {
+          headers: {
+            Authorization: `Bearer ${token}`, //Note: the domains module doesn't require the token for now, but it will probably need it in the future.
+          },
+        })
+
+        if (response.ok) {
+          const responseData = await response.json()
+          setDomainList(createDomainList(responseData))
+        } else {
+          setDomainList([]) //in case of error set empty list, because now displaying the table is priotity. If no domains, the request will be sent regardless of domain validation
+        }
+      } catch (error) {
+        console.log(error)
+      }
     }
-  } catch (error) {
-    console.log(error)
-    throw new Error('Network request failed to fetch domains: ' + error.message)
-  }
+
+    fetchDomainList()
+  }, [])
+  return { domainList }
 }
 
 /**
- * Retrieves a list of domains from the backend server and flattens the result into an array
- * of strings.
- * @param {string} email - The email address of the user.
- * @param {string} token - The authentication token. //not used for now, but will probably be used in the future
- * @returns {Promise<string[]>} A Promise object which resolves to an array of domain names.
- * @throws {Error} - Throws an error if the network request fails.
+ * Processes the JSON response from the backend server and creates an array of domain names.
+ *
+ * If a domain is primary, it adds its name and all its aliases' names to the array.
+ * If a domain is not primary, it adds only its name to the array.
+ *
+ * @param {Object} jsonResponse - The JSON response from the backend server.
+ * @returns {Array<string>} An array of domain names.
  */
-export const getDomainList = async (email, token) => {
+export function createDomainList(jsonResponse) {
   try {
     let domainList = []
-    const domains = await getDomainListAsJson(email, token) //get the list of domains
+    const domains = jsonResponse
 
     //if domain is primary, get its and all its aliases' names,
     //otherwise, get only its domain name

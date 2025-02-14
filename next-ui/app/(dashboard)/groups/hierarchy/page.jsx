@@ -40,8 +40,8 @@ import {
   CustomListAccordionContent,
 } from '@/components/ui/custom-list-accordion'
 
-import { getDomainList } from '@/utils/getDomains'
 import { checkIfDomainIsValid } from '@/utils/checkIfDomainIsValid'
+import { useDomainList } from '@/utils/getDomains'
 
 //constants
 const columnHeaders = ['Group email', 'Membership type', 'Inherited via', 'Join timestamp'] //column headers
@@ -67,6 +67,7 @@ function NestedGroupsLister() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [fileName, setFileName] = useState('')
   const [csvGroups, setCsvGroups] = useState([])
+  const { domainList } = useDomainList()
   let email
 
   /**
@@ -205,7 +206,7 @@ function NestedGroupsLister() {
           <ExternalLinkIcon size={14} />
         </a>
       </div>
-      <InputForm query={query} setQuery={setQuery} />
+      <InputForm query={query} setQuery={setQuery} domainList={domainList} />
       {isLoading && <Loader />}
       {!isLoading && !error && query && <TopPanel query={query} groupList={groupList} />}
       {!isLoading && !error && groupList.length > 0 && (
@@ -311,45 +312,19 @@ function HierarchyButton({ groupList, query, className }) {
 }
 
 /**
- * A form component for entering an email address to query nested group memberships.
+ * A form component for submitting an email address to query nested group memberships.
  *
- * This form uses Zod for schema validation and react-hook-form for form management.
- * It validates that the email field is not empty, contains a valid email address, and is from a domain within the customer's domains.
- * Upon successful submission, it updates the query state with the input email.
+ * This component uses Zod for schema validation and react-hook-form for form management.
+ * It validates the email field to ensure it is not empty, contains a valid email address,
+ * and belongs to the specified customer domains. The "Go" button is disabled until all
+ * validation criteria are met.
  *
  * @param {Function} setQuery - A function to update the query state with the submitted email.
+ * @param {Array} domainList - A list of valid domains to validate the email address against.
  */
-function InputForm({ query, setQuery }) {
+function InputForm({ setQuery, domainList }) {
   const [goButtonDisabled, setGoButtonDisabled] = useState(false)
   const [inputValue, setInputValue] = useState('')
-  const [domainList, setDomainList] = useState([])
-
-  useEffect(() => {
-    /**
-     * Fetches the list of domains associated with the user's email and authentication token.
-     *
-     * This function retrieves the user's email and token from localStorage and calls `getDomainList`
-     * to obtain the domain names. The retrieved domain list is then stored in the component's state.
-     * If an error occurs during the fetch operation, it logs the error to the console.
-     */
-
-    async function fetchDomains() {
-      try {
-        const domains = await getDomainList(localStorage.getItem('email'), localStorage.getItem('jwtToken'))
-        console.log('DOMAINS in fetch domains', domains)
-        if (domains && domains.length > 0) setDomainList(domains)
-      } catch (error) {
-        console.error('Error fetching domains:', error)
-      }
-    }
-    fetchDomains()
-
-    // Cleanup function
-    return () => {
-      // Code to be executed when the component unmounts or the effect is re-run
-      setDomainList([]) // Reset the domain list
-    }
-  }, [])
 
   // Define the schema with Zod
   const FormSchema = z.object({
@@ -371,7 +346,7 @@ function InputForm({ query, setQuery }) {
 
   // Initialize the form using react-hook-form and Zod resolver for validation
   const form = useForm({
-    mode: 'all', //needed to specify this to display validation errors before the first form has been submitted
+    mode: 'all', //needed to specify this to display validation errors before the first form has been submitted(otherwise no validation message will be displayed prior to first submission)
     resolver: zodResolver(FormSchema),
     defaultValues: {
       email: '',
@@ -545,23 +520,22 @@ function ExpandableInheritedViaList({ inheritedVia, groupId }) {
 }
 
 /**
- * A component that renders a table displaying nested group membership details.
+ * A component that renders a table with nested groups data.
  *
- * This table includes columns for the group email, the method of inheritance,
- * the type of membership, and the timestamp when the membership was created.
- *
- * @param {Object[]} groups - An array of objects, each containing details about a group membership.
- * @param {string} groups[].email - The email address of the group.
- * @param {string} groups[].inherited - The path through which the membership was inherited.
- * @param {string} groups[].membership - The type of membership (e.g., direct or indirect).
- * @param {string} groups[].timestamp - The timestamp of when the membership was established.
- *
- * @returns {JSX.Element} A JSX element representing the table of nested group memberships.
+ * @param {{groups: Group[], query: string, isMenuOpen: boolean, setIsMenuOpen: (open: boolean) => void, fileName: string, setFileName: (name: string) => void, csvGroups: Group[]}} props
+ * @prop {Group[]} groups The array of groups to display in the table.
+ * @prop {string} query The query string used to filter the groups.
+ * @prop {boolean} isMenuOpen Whether the export dropdown menu is open.
+ * @prop {(open: boolean) => void} setIsMenuOpen A function to set the export dropdown menu open state.
+ * @prop {string} fileName The current name of the export csv file.
+ * @prop {(name: string) => void} setFileName A function to set the export csv file name.
+ * @prop {Group[]} csvGroups The array of groups to export as csv.
+ * @returns {JSX.Element} The JSX element representing the table with nested groups data.
  */
-
 function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName, setFileName, csvGroups }) {
   const [displayedGroups, setDisplayedGroups] = useState(groups.slice(0, rowsOnFirstLoad))
   const tableRef = useRef(null)
+
   /**
    * A function that takes a timestamp string and returns it in a slightly more user-friendly format.
    * If the timestamp string includes 'GMT', it is split and 'JST' is appended to the end.
@@ -585,10 +559,12 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
   useEffect(() => {
     //the logic below hacks a custom schadcn table and scroll-area components into submission.
     //in a nutshell, it finds the component instance in the fiber tree, removes unvafourable preset classes from it and adds custom ones.
-    //I only display the scroll area when the table has more than the initial load number of rows (i.e. the data has more rows than the number of rows loads in the first batch)
+    //I only display the scroll area when the table has more than the initial load number of rows (i.e. the data has more rows than the number of rows in the first batch)
     //As of now it has nothing to do with the customer's window size.
     //If they minimized the window, the scroll area will not be visible if there is less than initial load number of rows, but they can use the chrome window scrollbar.
+
     if (tableRef.current) {
+      //grab the table from the fiber tree, remove and add classes.
       const tableComponent = tableRef.current.parentElement.parentElement.parentElement
 
       tableComponent.classList.remove('h-[200px]')
@@ -599,6 +575,8 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
 
   useEffect(() => {
     if (!tableRef.current) return
+
+    //grab the scroll area from the fiber tree
     const scrollArea = tableRef.current.parentElement.parentElement.parentElement.children[1]
 
     /**
