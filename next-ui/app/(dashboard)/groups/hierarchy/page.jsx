@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { apiClient } from '@/utils/apiClient'
 import { ExternalLinkIcon, SearchIcon, EyeIcon, Ellipsis, CircleAlert } from 'lucide-react'
-import { groupsStyles } from '../groups-styles'
+import { groupsStyles, groupElementIds, groupStrings } from '../group-variables'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -88,6 +88,7 @@ function NestedGroupsLister() {
    */
   function prepareCsvColumnData(groups) {
     const formattedGroups = [...groups] //looks like overkill, but it's better to be safe than sorry
+
     for (let g of formattedGroups) {
       //fallback for when inherited comes as an array from backend
       if (g.inherited.length > 0) {
@@ -107,6 +108,7 @@ function NestedGroupsLister() {
 
   useEffect(() => {
     const controller = new AbortController() // Create a new AbortController to abort fetch request if a similar request is already in progress
+
     /**
      * Fetches the nested membership of a given group or user.
      * Sets the `groupList` state to the response data if it is not empty, otherwise sets the `emptyResult` state to true.
@@ -129,7 +131,7 @@ function NestedGroupsLister() {
         email = window.localStorage.getItem('email')
         console.log('email:', email)
 
-        //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back
+        //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back (temprorary measure, so no refactoring or optimization here)
         const token = localStorage.getItem('jwtToken')
         console.log('TOKEN', token)
 
@@ -323,10 +325,19 @@ function InputForm({ query, setQuery }) {
   const [domainList, setDomainList] = useState([])
 
   useEffect(() => {
+    /**
+     * Fetches the list of domains associated with the user's email and authentication token.
+     *
+     * This function retrieves the user's email and token from localStorage and calls `getDomainList`
+     * to obtain the domain names. The retrieved domain list is then stored in the component's state.
+     * If an error occurs during the fetch operation, it logs the error to the console.
+     */
+
     async function fetchDomains() {
       try {
         const domains = await getDomainList(localStorage.getItem('email'), localStorage.getItem('jwtToken'))
-        setDomainList(domains)
+        console.log('DOMAINS in fetch domains', domains)
+        if (domains && domains.length > 0) setDomainList(domains)
       } catch (error) {
         console.error('Error fetching domains:', error)
       }
@@ -338,7 +349,7 @@ function InputForm({ query, setQuery }) {
       // Code to be executed when the component unmounts or the effect is re-run
       setDomainList([]) // Reset the domain list
     }
-  }, [query])
+  }, [])
 
   // Define the schema with Zod
   const FormSchema = z.object({
@@ -549,6 +560,8 @@ function ExpandableInheritedViaList({ inheritedVia, groupId }) {
  */
 
 function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName, setFileName, csvGroups }) {
+  const [displayedGroups, setDisplayedGroups] = useState(groups.slice(0, rowsOnFirstLoad))
+  const tableRef = useRef(null)
   /**
    * A function that takes a timestamp string and returns it in a slightly more user-friendly format.
    * If the timestamp string includes 'GMT', it is split and 'JST' is appended to the end.
@@ -568,24 +581,25 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
       return timestamp
     }
   }
-  const tableRef = useRef(null)
 
   useEffect(() => {
+    //the logic below hacks a custom schadcn table and scroll-area components into submission.
+    //in a nutshell, it finds the component instance in the fiber tree, removes unvafourable preset classes from it and adds custom ones.
+    //I only display the scroll area when the table has more than the initial load number of rows (i.e. the data has more rows than the number of rows loads in the first batch)
+    //As of now it has nothing to do with the customer's window size.
+    //If they minimized the window, the scroll area will not be visible if there is less than initial load number of rows, but they can use the chrome window scrollbar.
     if (tableRef.current) {
-      const parentDiv = tableRef.current.parentElement.parentElement.parentElement
+      const tableComponent = tableRef.current.parentElement.parentElement.parentElement
 
-      parentDiv.classList.remove('h-[200px]')
+      tableComponent.classList.remove('h-[200px]')
 
-      parentDiv.classList.add(groups.length > rowsOnFirstLoad && 'h-[80vh]', 'mt-3', 'mb-7')
+      tableComponent.classList.add(groups.length > rowsOnFirstLoad && 'h-[80vh]', 'mt-3', 'mb-7')
     }
   }, [])
 
-  const [displayedGroups, setDisplayedGroups] = useState(groups.slice(0, rowsOnFirstLoad))
-
   useEffect(() => {
     if (!tableRef.current) return
-
-    const parentDiv = tableRef.current.parentElement.parentElement.parentElement.children[1]
+    const scrollArea = tableRef.current.parentElement.parentElement.parentElement.children[1]
 
     /**
      * An event handler for the scroll event on the table container.
@@ -597,7 +611,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
     //this is a temporary solution, to be fixed in BE
     //it imitates "lazy loading" by displaying 30 rows by default and loading additional rows on scroll, 10 rows at a time
     const handleScroll = () => {
-      if (parentDiv.scrollTop + parentDiv.offsetHeight >= parentDiv.scrollHeight) {
+      if (scrollArea.scrollTop + scrollArea.offsetHeight >= scrollArea.scrollHeight) {
         setDisplayedGroups(() => {
           return displayedGroups.length === groups.length
             ? displayedGroups
@@ -605,9 +619,9 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
         })
       }
     }
-    parentDiv.addEventListener('scroll', handleScroll)
+    scrollArea.addEventListener('scroll', handleScroll)
     return () => {
-      parentDiv.removeEventListener('scroll', handleScroll)
+      scrollArea.removeEventListener('scroll', handleScroll)
     }
   }, [displayedGroups])
 
@@ -658,7 +672,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                     <DropdownMenuItem
                       className="focus:bg-background hover:bg-background cursor-pointer"
                       onClick={() => {
-                        setFileName(`memberships_for_${query}`)
+                        setFileName(`${groupStrings.defaultExportFileName}${query}`)
                       }}
                     >
                       <div className={`flex items-center my-1 mx-0 py-2 px-1 bg-accent rounded-md`}>
@@ -683,22 +697,25 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                       onChange={(e) => setFileName(e.target.value)}
                     />
                     <div className="text-base/5 font-medium pb-4">Choose a format</div>
-                    <RadioGroup defaultValue="csvFormat" className="border border-input rounded-md p-4 gap-y-4">
+                    <RadioGroup
+                      defaultValue={groupElementIds.exportWindowOption2}
+                      className="border border-input rounded-md p-4 gap-y-4"
+                    >
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="option-one" id="googlesheetFormat" disabled />
+                        <RadioGroupItem value="option-one" id={groupElementIds.exportWindowOption1} disabled />
                         <Label htmlFor="option-one" className="text-muted-foreground">
                           Google Sheet (coming soon)
                         </Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="option-two" id="csvFormat" checked />
+                        <RadioGroupItem value="option-two" id={groupElementIds.exportWindowOption2} checked />
                         <Label htmlFor="option-two">CSV</Label>
                       </div>
                     </RadioGroup>
                     <div className="flex flex-col items-center justify-center sm:flex-row sm:justify-end sm:gap-x-4 pt-8">
                       <DialogClose asChild>
                         <Button
-                          id="close-export-dialog"
+                          id={groupElementIds.closeExportDialog}
                           type="button"
                           variant="outline"
                           className={`${groupsStyles.buttonPaddingWide} w-[108px]`}
@@ -710,9 +727,9 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                       <CsvDownloadButton
                         data={csvGroups}
                         headers={columnHeaders}
-                        filename={fileName === '' ? `memberships_for_${query}` : fileName}
+                        filename={fileName === '' ? `${groupStrings.defaultExportFileName}${query}` : fileName}
                         className="hidden"
-                        id="csv-download-group-memberships"
+                        id={groupElementIds.csvDownloadButton}
                       >
                         {/* Nesting buttons is not allowed in html, so I hid the csv button and added a fn onclick to the export button. */}
                         {/* Even with nesting it was working fine, but I didn't want the warning. */}
@@ -720,10 +737,10 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                       <Button
                         className={`${groupsStyles.buttonPaddingWide}`}
                         onClick={() => {
-                          document.getElementById('csv-download-group-memberships').click()
+                          document.getElementById(groupElementIds.csvDownloadButton).click()
                           setTimeout(() => {
                             // Close the Dialog window component in a very ungraceful way("Cody" has no better ideas)
-                            document.getElementById('close-export-dialog').click()
+                            document.getElementById(groupElementIds.closeExportDialog).click()
                           }, 500)
                         }}
                       >

@@ -22,14 +22,17 @@ export const getDomainListAsJson = async (email, token) => {
       // },
       // Accept: 'application/json',
       signal,
-      next: { revalidate: 300 }, // revalidate every 5 minutes
+      next: { revalidate: 60 }, // revalidate every 60 seconds
     })
+
     if (response.ok) {
       const responseData = await response.json()
+
       return responseData
     }
   } catch (error) {
     console.log(error)
+    throw new Error('Network request failed to fetch domains: ' + error.message)
   }
 }
 

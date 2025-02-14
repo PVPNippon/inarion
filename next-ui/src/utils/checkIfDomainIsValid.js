@@ -17,17 +17,32 @@ import { getDomainList } from './getDomains'
  */
 
 export const checkIfDomainIsValid = async ({ domain, domainList, userEmail, authToken }) => {
-  const email = userEmail ?? window.localStorage.getItem('email')
-  console.log('email:', email)
+  if (!domain) return
+  let domains
 
-  const token = authToken ?? localStorage.getItem('jwtToken')
-  console.log('TOKEN', token)
+  try {
+    //geting email and token from local storage is a temporary measure, therefore no refactoring or optimization
+    const email = userEmail ?? window.localStorage.getItem('email')
+    console.log('email:', email)
 
-  const domains = domainList ?? (await getDomainList(email, token))
+    const token = authToken ?? localStorage.getItem('jwtToken')
+    console.log('TOKEN', token)
 
-  if (domains.includes(domain)) {
-    return true
-  } else {
-    return false
+    if (!domainList || domainList.length === 0) {
+      domains = await getDomainList(email, token)
+    } else {
+      domains = domainList
+    }
+
+    //Important: for now, I return true if the domain list is unavailable or empty because for now it's important to display the table to confirm the UI.
+    //In case something changes unexpectedly in BE and domains are not fetched successfully.
+    //When ready, remove the condition.
+    if (!domains || (domains.length > 0 && domains.includes(domain))) {
+      return true
+    } else {
+      return false
+    }
+  } catch (error) {
+    console.log(error)
   }
 }
