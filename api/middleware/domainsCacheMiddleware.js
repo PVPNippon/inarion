@@ -1,4 +1,5 @@
 const domainsCacheService = require('../services/domainsCacheService')
+const logger = require('../logger/logger')(__filename, 'domains cache middleware')
 
 /**
  * Middleware to retrieve all domain instances from the cache.

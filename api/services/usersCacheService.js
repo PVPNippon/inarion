@@ -1,3 +1,4 @@
+// TODO(m.okamoto): cacheService の関数を redisCacheService に置き換える
 const cacheService = require('./cacheService.js')
 const config = require('../config/config')
 // TODO (m.okamoto): implement logger in Redis (#267)

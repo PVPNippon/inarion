@@ -14,6 +14,12 @@ const usersUtilityFunctions = require('../utility/usersUtilityFunctions.js')
  * in `res.locals.data`. If the cache retrieval or processing fails, it logs the error.
  */
 async function retrieveAllUsers(req, res, next) {
+  // キャッシュ使わない機能
+  if (req.query.requiresFresh) {
+    // クエリパラメータで指定された場合
+    return next()
+  }
+
   try {
     const allUserIds = await usersCacheService.getAllIds(true)
 
@@ -67,7 +73,7 @@ async function storeAllUsers(req, res, next) {
   }
 
   try {
-    const users = res.locals.data // users = all users
+    const users = res.locals.dataToBeCached // users = all users
 
     const emailsToIdsObj = usersUtilityFunctions.getUserEmailsToIdsObj(users)
     emailsToIdsObj['ALL_USERS_LISTED'] = 'ALL_USERS_LISTED'

@@ -18,6 +18,10 @@ router.post('/2sv-off', usersController.turnOffTwoSVForUsers)
 // Route to delete multiple users
 router.delete('/', usersController.deleteUsers)
 
+// router.get('/role/assignments', usersController.listRoleAssignments)
+
+// router.get('/role/names', usersController.listRoleNames)
+
 router.use(encryptResponseMiddleware)
 
 module.exports = router
