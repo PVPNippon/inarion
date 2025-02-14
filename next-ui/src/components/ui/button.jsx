@@ -15,7 +15,7 @@ const buttonVariants = cva(
         destructive:
           'bg-destructive text-white shadow-button hover:bg-destructiveHover hover:text-white disabled:shadow-none active:bg-darkDestructive', // Add disabled:shadow-none
         outline:
-          'border text-primary bg-background shadow-button hover:text-primary hover:border-primary hover:bg-outlineHover active:bg-darkOutline disabled:shadow-none', // Add disabled:shadow-none
+          'border text-primary bg-background shadow-button hover:text-primary hover:border-primary hover:bg-outlineHover active:bg-darkOutline disabled:shadow-none disabled:border-none', // Add disabled:shadow-none
         secondary:
           'bg-secondary text-secondary-foreground hover:bg-secondary/70 active:bg-secondary/90 disabled:shadow-none', // Add disabled:shadow-none
         ghost: 'hover:bg-accent hover:text-accent-foreground disabled:shadow-none', // Add disabled:shadow-none

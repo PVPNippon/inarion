@@ -2,9 +2,10 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiClient } from '@/utils/apiClient'
 import { ExternalLinkIcon, SearchIcon, EyeIcon, Ellipsis, CircleAlert } from 'lucide-react'
-import { groupsStyles, groupElementIds, groupStrings } from '../group-variables'
+import { groupsStyles } from '../group-variables'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -24,29 +25,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { CustomIconExport } from '../../../ui/svg-icons/custom-icons'
-import {
-  CustomTable,
-  CustomTableHeader,
-  CustomTableBody,
-  CustomTableRow,
-  CustomTableCell,
-  CustomTableHead,
-} from '@/components/ui/custom-table'
-
-import {
-  CustomListAccordion,
-  CustomListAccordionItem,
-  CustomListAccordionTrigger,
-  CustomListAccordionContent,
-} from '@/components/ui/custom-list-accordion'
-
-import { checkIfDomainIsValid } from '@/utils/checkIfDomainIsValid'
-import { useDomainList } from '@/utils/getDomains'
 
 //constants
-const columnHeaders = ['Group email', 'Membership type', 'Inherited via', 'Join timestamp'] //column headers
+const columnHeaders = ['Group email', 'Membership type', 'Inherited via', 'Join timestamp']
 const rowsOnFirstLoad = 30 //number of table rows to load on first load
 const rowLoadIncrement = 10 //number of table rows to load on scroll
+const visibleInheritedViaCutOffValue = 100 //maximum number of characters -1 to display in the "inherited via" column
 
 /**
  * A component that displays a table with nested group membership details.
@@ -58,7 +42,7 @@ const rowLoadIncrement = 10 //number of table rows to load on scroll
  * It displays a button to analyze another group or user.
  * It displays a dropdown menu with options to export the table data to a CSV file.
  */
-function NestedGroupsLister() {
+function NestedGroupsListerVariantB() {
   const [groupList, setGroupList] = useState([])
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -66,50 +50,10 @@ function NestedGroupsLister() {
   const [query, setQuery] = useState('')
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [fileName, setFileName] = useState('')
-  const [csvGroups, setCsvGroups] = useState([])
-  const { domainList } = useDomainList()
   let email
 
-  /**
-   * Takes an array of objects and formats the "inherited" property
-   * for proper CSV export.
-   *
-   * If the "inherited" property is an array, it joins the array
-   * elements with a line separator character.
-   *
-   * If the "inherited" property is a string, it splits the string
-   * into an array using the comma as a separator, trims each element,
-   * and then joins the array elements with a line separator character.
-   *
-   * @param {Object[]} groups - An array of objects, each representing
-   * a group membership.
-   *
-   * @returns {Object[]} An array of objects, with the "inherited" property
-   * formatted for proper CSV export.
-   */
-  function prepareCsvColumnData(groups) {
-    const formattedGroups = [...groups] //looks like overkill, but it's better to be safe than sorry
-
-    for (let g of formattedGroups) {
-      //fallback for when inherited comes as an array from backend
-      if (g.inherited.length > 0) {
-        if (Array.isArray(g.inherited)) {
-          g.inherited = g.inherited.map((item) => item.trim()).join('\u2028') //line separator
-        } else {
-          g.inherited = g.inherited
-            .split(',')
-            .map((item) => item.trim())
-            .join('\u2028') //line separator, because '\n' was not working
-        }
-      }
-    }
-
-    return formattedGroups
-  }
-
   useEffect(() => {
-    const controller = new AbortController() // Create a new AbortController to abort fetch request if a similar request is already in progress
-
+    const controller = new AbortController()
     /**
      * Fetches the nested membership of a given group or user.
      * Sets the `groupList` state to the response data if it is not empty, otherwise sets the `emptyResult` state to true.
@@ -125,18 +69,15 @@ function NestedGroupsLister() {
         setError('')
         setGroupList([])
         setEmptyResult(false)
-        setFileName('')
-        setCsvGroups([])
 
         //getting email and token from local storage is a temporary measure, so I'm not refactoring or improving this part
         email = window.localStorage.getItem('email')
         console.log('email:', email)
 
-        //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back (temprorary measure, so no refactoring or optimization here)
+        //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back
         const token = localStorage.getItem('jwtToken')
         console.log('TOKEN', token)
 
-        //temporary disabled apiClient because encryption logic is not ready for get requrests
         // const response = await apiClient(
         //   '/api/groups/get-nested-membership', // Endpoint path relative to API_BASE_URL
         //   'POST', // HTTP method
@@ -162,24 +103,10 @@ function NestedGroupsLister() {
 
         // if emtpy table is returned, set error 'No memberships found', otherwise set groupList
         if (response) {
-          //  const responseData = JSON.parse(response) //to use when apiClient is back
+          //  const responseData = JSON.parse(response)
           const responseData = await response.json()
-
-          if (responseData.length === 0) {
-            setEmptyResult(true)
-          } else {
-            setGroupList(responseData)
-            //create a separate array with groups for csv column data
-            const csvGroups = responseData.map((group) => {
-              return {
-                email: group.email,
-                membership: group.membership,
-                inherited: group.inherited,
-                timestamp: group.timestamp,
-              }
-            })
-            setCsvGroups(prepareCsvColumnData(csvGroups))
-          }
+          responseData.length === 0 ? setEmptyResult(true) : setGroupList(responseData)
+          console.log('RESPONSE FROM BACKEND', responseData)
         }
       } catch (error) {
         setError(error)
@@ -195,8 +122,9 @@ function NestedGroupsLister() {
     }
   }, [query])
   return (
-    //apply custom height only when emptyResult is displayed (maybe it should also be set when there is an error screen in the future). The height depends on the height of components above it.
-    <div style={{ height: emptyResult && `calc(100vh - 372px)` }} className="mx-8 mb-6">
+    <div style={{ height: emptyResult && `calc(100vh - 288px)` }} className="mx-8 mb-6">
+      {' '}
+      {/* apply custom height only when emptyResult is displayed(maybe it should also be set when there is an error screen in the future) */}
       <p className="mb-3.5 text-2xl font-medium leading-7">Nested Group Membership</p>
       <p className="text-lg text-muted-foreground mb-3 leading-5">View the ancestry of a group or user</p>
       <div className={`flex text-xs gap-x-1 ${groupsStyles.secondaryTextChart5} mb-3`}>
@@ -206,12 +134,11 @@ function NestedGroupsLister() {
           <ExternalLinkIcon size={14} />
         </a>
       </div>
-      <InputForm query={query} setQuery={setQuery} domainList={domainList} />
+      <InputForm query={query} setQuery={setQuery} />
       {isLoading && <Loader />}
       {!isLoading && !error && query && <TopPanel query={query} groupList={groupList} />}
       {!isLoading && !error && groupList.length > 0 && (
         <NestedGroupsTable
-          csvGroups={csvGroups}
           groups={groupList}
           query={query}
           isMenuOpen={isMenuOpen}
@@ -226,7 +153,7 @@ function NestedGroupsLister() {
   )
 }
 
-export default NestedGroupsLister
+export default NestedGroupsListerVariantB
 
 /**
  * A button component for fetching and visualizing a hierarchy graph.
@@ -312,17 +239,16 @@ function HierarchyButton({ groupList, query, className }) {
 }
 
 /**
- * A form component for submitting an email address to query nested group memberships.
+ * A form component for entering an email address to query nested group memberships.
  *
- * This component uses Zod for schema validation and react-hook-form for form management.
- * It validates the email field to ensure it is not empty, contains a valid email address,
- * and belongs to the specified customer domains. The "Go" button is disabled until all
- * validation criteria are met.
+ * This form uses Zod for schema validation and react-hook-form for form management.
+ * It validates that the email field is not empty and contains a valid email address.
+ * Upon successful submission, it updates the query state with the input email.
  *
  * @param {Function} setQuery - A function to update the query state with the submitted email.
- * @param {Array} domainList - A list of valid domains to validate the email address against.
  */
-function InputForm({ setQuery, domainList }) {
+
+function InputForm({ query, setQuery }) {
   const [goButtonDisabled, setGoButtonDisabled] = useState(false)
   const [inputValue, setInputValue] = useState('')
 
@@ -333,20 +259,11 @@ function InputForm({ setQuery, domainList }) {
       .min(1, {
         message: 'This field cannot be empty',
       })
-      .email('Please input a valid email address')
-      .refine(
-        async (e) => {
-          return await checkIfDomainIsValid({ domain: e.split('@')[1], domainList })
-        },
-        {
-          message: 'Cannot query email address outside customer domains',
-        }
-      ),
+      .email('Please input a valid email address'),
   })
 
   // Initialize the form using react-hook-form and Zod resolver for validation
   const form = useForm({
-    mode: 'all', //needed to specify this to display validation errors before the first form has been submitted(otherwise no validation message will be displayed prior to first submission)
     resolver: zodResolver(FormSchema),
     defaultValues: {
       email: '',
@@ -355,7 +272,6 @@ function InputForm({ setQuery, domainList }) {
 
   /**
    * Handles the form submission by calling the setQuery function with the submitted email.
-   * Prevents the form from submission by hitting enter, and resets the domain list.
    * @param {Object} data - The form data containing the submitted email.
    */
   function onSubmit(data) {
@@ -470,72 +386,67 @@ function TopPanel({ query, groupList }) {
   )
 }
 
-/**
- * A component that renders a collapsible list of inherited via paths.
- *
- * @param {{ inheritedVia: string | string[], groupId: string }} props The props object.
- * @prop {string | string[]} inheritedVia The inherited via paths that will be displayed in the list.
- * @prop {string} groupId The ID of the group that the inherited via paths belong to.
- *
- * @returns {JSX.Element} The JSX element representing the collapsible list of inherited via paths.
- */
-function ExpandableInheritedViaList({ inheritedVia, groupId }) {
-  const [isExpanded, setIsExpanded] = useState('')
-
+function ExpandableInheritedViaList({ inheritedVia }) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [inheritedViaText, setInheritedViaText] = useState('')
+  console.log('inheritedVia', inheritedVia)
   let inheritedViaArray
 
   if (Array.isArray(inheritedVia)) {
     inheritedViaArray = inheritedVia
   } else {
-    inheritedViaArray = inheritedVia.split(',').map((x) => x.trim())
+    inheritedViaArray = inheritedVia.split(',')
   }
-
-  if (inheritedViaArray.length === 1) {
-    return <span>{inheritedViaArray[0]}</span>
-  }
-
+  // useEffect(() => {
+  //   if (isExpanded) return
+  //   // If the string is longer than the cutoff value and contains a comma, only display the part before the last comma
+  //   const visiblePartBase = inheritedVia.slice(0, visibleInheritedViaCutOffValue)
+  //   const lastOccurence = visiblePartBase.lastIndexOf(',')
+  //   if (lastOccurence >= 0) {
+  //     setInheritedViaText(inheritedVia.slice(0, lastOccurence))
+  //   } else {
+  //     //if the comma is not found, only display the first characters equal the cutoff value
+  //     //no commas means that there is a very long email address(the limit as per RFC is 320 so technically it's possible
+  //     //in this case the email address will be truncated and the last part will be hidden behind the icon
+  //     setInheritedViaText(visiblePartBase)
+  //   }
+  // }, [inheritedViaText])
   return (
-    <CustomListAccordion type="single " collapsible value={isExpanded} onValueChange={setIsExpanded}>
-      <CustomListAccordionItem value={groupId} className="text-sm">
-        <CustomListAccordionContent>
-          {inheritedViaArray.map((inheritedVia) => (
-            <div key={inheritedVia}>{inheritedVia}</div>
-          ))}
-        </CustomListAccordionContent>
-        <CustomListAccordionTrigger>
-          {isExpanded === groupId ? (
-            <span className={`${groupsStyles.secondaryTextChart5}`}>Show less</span>
-          ) : (
-            <span>
-              <span style={{ pointerEvents: 'none' }}>{inheritedViaArray[0]}</span>
-              <span className={`${groupsStyles.secondaryTextChart5}`}>
-                {` + ${inheritedViaArray.length - 1} more`}{' '}
-              </span>{' '}
-            </span>
-          )}
-        </CustomListAccordionTrigger>
-      </CustomListAccordionItem>
-    </CustomListAccordion>
+    // <span>
+    //   {inheritedViaText}
+    //   {!isExpanded && (
+    //     <Ellipsis
+    //       className={`ms-2 cursor-pointer hover:stroke-primary active:stroke-primary focus:stroke-primary inline ${
+    //         isExpanded ? 'hidden' : ''
+    //       }`}
+    //       size={20}
+    //       onClick={() => {
+    //         setIsExpanded(true)
+    //         setInheritedViaText(inheritedVia)
+    //       }}
+    //     />
+    //   )}
+    // </span>
+    <span>{inheritedVia}</span>
   )
 }
 
 /**
- * A component that renders a table with nested groups data.
+ * A component that renders a table displaying nested group membership details.
  *
- * @param {{groups: Group[], query: string, isMenuOpen: boolean, setIsMenuOpen: (open: boolean) => void, fileName: string, setFileName: (name: string) => void, csvGroups: Group[]}} props
- * @prop {Group[]} groups The array of groups to display in the table.
- * @prop {string} query The query string used to filter the groups.
- * @prop {boolean} isMenuOpen Whether the export dropdown menu is open.
- * @prop {(open: boolean) => void} setIsMenuOpen A function to set the export dropdown menu open state.
- * @prop {string} fileName The current name of the export csv file.
- * @prop {(name: string) => void} setFileName A function to set the export csv file name.
- * @prop {Group[]} csvGroups The array of groups to export as csv.
- * @returns {JSX.Element} The JSX element representing the table with nested groups data.
+ * This table includes columns for the group email, the method of inheritance,
+ * the type of membership, and the timestamp when the membership was created.
+ *
+ * @param {Object[]} groups - An array of objects, each containing details about a group membership.
+ * @param {string} groups[].email - The email address of the group.
+ * @param {string} groups[].inherited - The path through which the membership was inherited.
+ * @param {string} groups[].membership - The type of membership (e.g., direct or indirect).
+ * @param {string} groups[].timestamp - The timestamp of when the membership was established.
+ *
+ * @returns {JSX.Element} A JSX element representing the table of nested group memberships.
  */
-function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName, setFileName, csvGroups }) {
-  const [displayedGroups, setDisplayedGroups] = useState(groups.slice(0, rowsOnFirstLoad))
-  const tableRef = useRef(null)
 
+function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName, setFileName }) {
   /**
    * A function that takes a timestamp string and returns it in a slightly more user-friendly format.
    * If the timestamp string includes 'GMT', it is split and 'JST' is appended to the end.
@@ -555,29 +466,41 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
       return timestamp
     }
   }
+  const tableRef = useRef(null)
 
   useEffect(() => {
-    //the logic below hacks a custom schadcn table and scroll-area components into submission.
-    //in a nutshell, it finds the component instance in the fiber tree, removes unvafourable preset classes from it and adds custom ones.
-    //I only display the scroll area when the table has more than the initial load number of rows (i.e. the data has more rows than the number of rows in the first batch)
-    //As of now it has nothing to do with the customer's window size.
-    //If they minimized the window, the scroll area will not be visible if there is less than initial load number of rows, but they can use the chrome window scrollbar.
-
     if (tableRef.current) {
-      //grab the table from the fiber tree, remove and add classes.
-      const tableComponent = tableRef.current.parentElement.parentElement.parentElement
+      const parentDiv = tableRef.current.parentElement
 
-      tableComponent.classList.remove('h-[200px]')
+      parentDiv.classList.remove('overflow-auto')
 
-      tableComponent.classList.add(groups.length > rowsOnFirstLoad && 'h-[80vh]', 'mt-3', 'mb-7')
+      parentDiv.classList.add(
+        //display the scrollbar only when there are more groups than the number of rows on first load
+        groups.length > rowsOnFirstLoad ? 'overflow-y-scroll' : 'overflow-y-clip',
+        groups.length > rowsOnFirstLoad && 'h-[80vh]',
+        'overflow-x-auto',
+        'mt-3',
+        'mb-7',
+        'relative',
+        'md:w-full',
+        'w-fit',
+        'border',
+        'border-input',
+        'rounded-md'
+      )
+
+      const tableHead = tableRef.current.children[0]
+      const row = tableHead.children[0]
+      row.classList.remove('border-foreground/30')
+      row.classList.add('border-input')
     }
   }, [])
 
+  const [displayedGroups, setDisplayedGroups] = useState(groups.slice(0, rowsOnFirstLoad))
+
   useEffect(() => {
     if (!tableRef.current) return
-
-    //grab the scroll area from the fiber tree
-    const scrollArea = tableRef.current.parentElement.parentElement.parentElement.children[1]
+    const parentDiv = tableRef.current.parentElement
 
     /**
      * An event handler for the scroll event on the table container.
@@ -589,7 +512,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
     //this is a temporary solution, to be fixed in BE
     //it imitates "lazy loading" by displaying 30 rows by default and loading additional rows on scroll, 10 rows at a time
     const handleScroll = () => {
-      if (scrollArea.scrollTop + scrollArea.offsetHeight >= scrollArea.scrollHeight) {
+      if (parentDiv.scrollTop + parentDiv.offsetHeight >= parentDiv.scrollHeight) {
         setDisplayedGroups(() => {
           return displayedGroups.length === groups.length
             ? displayedGroups
@@ -597,23 +520,20 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
         })
       }
     }
-    scrollArea.addEventListener('scroll', handleScroll)
+    parentDiv.addEventListener('scroll', handleScroll)
     return () => {
-      scrollArea.removeEventListener('scroll', handleScroll)
+      parentDiv.removeEventListener('scroll', handleScroll)
     }
   }, [displayedGroups])
-
   return (
-    <CustomTable ref={tableRef}>
-      <CustomTableHeader>
-        <CustomTableRow className="sm:text-nowrap">
-          <CustomTableHead className={`${groupsStyles.tableHeaderText} px-0`}></CustomTableHead>
-          <CustomTableHead className={`${groupsStyles.tableHeaderText} ps-4 md:pe-[100px]`}>
-            {columnHeaders[0] /* Group email */}
-          </CustomTableHead>
-          <CustomTableHead className={`md:pe-[100px]`}>{columnHeaders[1] /* Membership type */}</CustomTableHead>
-          <CustomTableHead className={`md:pe-[100px]`}>{columnHeaders[2] /* Inherited via */}</CustomTableHead>
-          <CustomTableHead className={`md:pe-[100px]`}>
+    <Table ref={tableRef}>
+      <TableHeader className="sticky top-0 bg-background custom-shadow">
+        <TableRow className="leading-4 text-foreground hover:bg-background text-inherit sm:text-nowrap">
+          <TableHead className={`${groupsStyles.tableHeaderText} px-0 rounded-tl-lg`}></TableHead>
+          <TableHead className={`${groupsStyles.tableHeaderText} ps-4`}>{columnHeaders[0] /* Group email */}</TableHead>
+          <TableHead className={`${groupsStyles.tableHeaderText}`}>{columnHeaders[1] /* Membership type */}</TableHead>
+          <TableHead className={`${groupsStyles.tableHeaderText}`}>{columnHeaders[2] /* Inherited via */}</TableHead>
+          <TableHead className={`${groupsStyles.tableHeaderText} `}>
             {/* I split the header because I want to put them in different spans to prevent the icon from wrapping to the 3rd line */}
             <span>{columnHeaders[3].split(' ')[0] + ' ' /* Join */}</span>
             <span className="text-nowrap">
@@ -621,7 +541,7 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger>
-                    <CircleAlert size={16} className="inline align-middle ms-[9px] stroke-destructive" />
+                    <CircleAlert size={16} className="inline align-middle ms-1 stroke-destructive" />
                   </TooltipTrigger>
                   <TooltipContent sideOffset={28} align="start" alignOffset={-250}>
                     {/* I had to separate the tooltip content into into paragraphs because the escape characters were ignored.
@@ -633,8 +553,8 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                 </Tooltip>
               </TooltipProvider>
             </span>
-          </CustomTableHead>
-          <CustomTableHead className="w-[25px] pe-2.5">
+          </TableHead>
+          <TableHead className="text-inherit pe-2.5 rounded-tr-lg">
             <Dialog>
               <DropdownMenu open={isMenuOpen} onOpenChange={(open) => setIsMenuOpen(open)}>
                 <DropdownMenuTrigger asChild>
@@ -646,54 +566,52 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                   />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" alignOffset={-194} avoidCollisions="true" hideWhenDetached="true">
-                  <DialogTrigger asChild>
-                    <DropdownMenuItem
-                      className="focus:bg-background hover:bg-background cursor-pointer"
-                      onClick={() => {
-                        setFileName(`${groupStrings.defaultExportFileName}${query}`)
-                      }}
-                    >
-                      <div className={`flex items-center my-1 mx-0 py-2 px-1 bg-accent rounded-md`}>
-                        <div className="flex items-center py-1 px-2 gap-3 text-s w-[188px] bg-accent">
+                  <DialogTrigger>
+                    <div className={`flex items-center py-3 px-2 w-[204px]`}>
+                      <div
+                        className="flex items-center  py-1 px-2 gap-3 bg-accent rounded-md text-s w-[188px]"
+                        role="button"
+                        onClick={() => {
+                          setFileName(`memberships_for_${query}`)
+                        }}
+                      >
+                        <DropdownMenuItem className="cursor-pointer">
                           <CustomIconExport />
                           <span>Export results</span>
-                        </div>
+                        </DropdownMenuItem>
                       </div>
-                    </DropdownMenuItem>
+                    </div>
                   </DialogTrigger>
                 </DropdownMenuContent>
               </DropdownMenu>
               <DialogPortal>
-                <DialogContent className="[&>button]:hidden p-8" aria-describedby={undefined}>
+                <DialogContent className="[&>button]:hidden" aria-describedby={undefined}>
                   <DialogHeader>
-                    <DialogTitle className="text-2xl/6 mb-6">Export Search Results</DialogTitle>
-                    <div className="text-base/5 font-medium pb-4">Name your export</div>
+                    <DialogTitle className="text-2xl/6">Export Nested Group Membership</DialogTitle>
+                    <p className="text-base/5">Name your export</p>
                     <Input
-                      className="text-foreground mb-7"
+                      className="text-muted-foreground"
                       placeholder="Add a name"
                       value={fileName}
                       onChange={(e) => setFileName(e.target.value)}
                     />
-                    <div className="text-base/5 font-medium pb-4">Choose a format</div>
-                    <RadioGroup
-                      defaultValue={groupElementIds.exportWindowOption2}
-                      className="border border-input rounded-md p-4 gap-y-4"
-                    >
+                    <p className="text-base/5">Choose a format</p>
+                    <RadioGroup defaultValue="csvFormat" className="border border-input rounded-md p-4 gap-y-4">
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="option-one" id={groupElementIds.exportWindowOption1} disabled />
+                        <RadioGroupItem value="option-one" id="googlesheetFormat" disabled />
                         <Label htmlFor="option-one" className="text-muted-foreground">
                           Google Sheet (coming soon)
                         </Label>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="option-two" id={groupElementIds.exportWindowOption2} checked />
+                        <RadioGroupItem value="option-two" id="csvFormat" checked />
                         <Label htmlFor="option-two">CSV</Label>
                       </div>
                     </RadioGroup>
-                    <div className="flex flex-col items-center justify-center sm:flex-row sm:justify-end sm:gap-x-4 pt-8">
+                    <div className="flex flex-col items-center justify-center sm:flex-row sm:justify-end sm:gap-x-4">
                       <DialogClose asChild>
                         <Button
-                          id={groupElementIds.closeExportDialog}
+                          id="close-export-dialog"
                           type="button"
                           variant="outline"
                           className={`${groupsStyles.buttonPaddingWide} w-[108px]`}
@@ -703,11 +621,11 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                       </DialogClose>
 
                       <CsvDownloadButton
-                        data={csvGroups}
+                        data={[...groups]}
                         headers={columnHeaders}
-                        filename={fileName === '' ? `${groupStrings.defaultExportFileName}${query}` : fileName}
+                        filename={fileName === '' ? `memberships_for_${query}` : fileName}
                         className="hidden"
-                        id={groupElementIds.csvDownloadButton}
+                        id="csv-download-group-memberships"
                       >
                         {/* Nesting buttons is not allowed in html, so I hid the csv button and added a fn onclick to the export button. */}
                         {/* Even with nesting it was working fine, but I didn't want the warning. */}
@@ -715,10 +633,10 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                       <Button
                         className={`${groupsStyles.buttonPaddingWide}`}
                         onClick={() => {
-                          document.getElementById(groupElementIds.csvDownloadButton).click()
+                          document.getElementById('csv-download-group-memberships').click()
                           setTimeout(() => {
                             // Close the Dialog window component in a very ungraceful way("Cody" has no better ideas)
-                            document.getElementById(groupElementIds.closeExportDialog).click()
+                            document.getElementById('close-export-dialog').click()
                           }, 500)
                         }}
                       >
@@ -729,40 +647,40 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
                 </DialogContent>
               </DialogPortal>
             </Dialog>
-          </CustomTableHead>
-        </CustomTableRow>
-      </CustomTableHeader>
-      <CustomTableBody>
-        <CustomTableRow className={`py-0`}>
-          <CustomTableCell className={`text-[8px] py-0 leading-none bg-background`}>&nbsp;</CustomTableCell>
-        </CustomTableRow>
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow className={`border-none py-0`}>
+          <TableCell className={`text-[8px] py-0 leading-none`}>&nbsp;</TableCell>
+        </TableRow>
         {displayedGroups &&
           displayedGroups.map((group) => (
-            <CustomTableRow className={`border-none hover:bg-accent min-w-2xl`} key={group.email}>
-              <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>
-                &nbsp;
-              </CustomTableCell>
-              <CustomTableCell className={`${groupsStyles.tableRowPadding} ps-4 font-normal rounded-l-md`}>
+            <TableRow className={`border-none hover:bg-accent min-w-2xl`} key={group.email}>
+              <TableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>&nbsp;</TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding} ps-4 font-normal rounded-l-md`}>
                 {group.email}
-              </CustomTableCell>
-              <CustomTableCell className={`${groupsStyles.tableRowPadding}`}>{group.membership}</CustomTableCell>
-              <CustomTableCell className={`${groupsStyles.tableRowPadding}`}>
-                <ExpandableInheritedViaList inheritedVia={group.inherited} groupId={group.email} />
-              </CustomTableCell>
-              <CustomTableCell className={`${groupsStyles.tableRowPadding} sm:text-nowrap`}>
+              </TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding}`}>{group.membership}</TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding}`}>
+                {group.inherited.length < visibleInheritedViaCutOffValue ? (
+                  group.inherited
+                ) : (
+                  <ExpandableInheritedViaList inheritedVia={group.inherited} />
+                )}
+              </TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding} sm:text-nowrap`}>
                 {convertTimestamp(group.timestamp)}
-              </CustomTableCell>
-              <CustomTableCell className={`${groupsStyles.tableRowPadding} rounded-r-md`}> </CustomTableCell>
-              <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background leading-none`}>
-                &nbsp;
-              </CustomTableCell>
-            </CustomTableRow>
+              </TableCell>
+              <TableCell className={`${groupsStyles.tableRowPadding} rounded-r-md`}> </TableCell>
+              <TableCell className={`!w-[4px] !bg-background !hover:bg-background leading-none`}>&nbsp;</TableCell>
+            </TableRow>
           ))}
         {/* A dummy row at the end for the sake of the radius and padding */}
-        <CustomTableRow className={`border-none rounded-b-md py-0`}>
-          <CustomTableCell className={`text-[8px] py-0 leading-none bg-background`}>&nbsp;</CustomTableCell>
-        </CustomTableRow>
-      </CustomTableBody>
-    </CustomTable>
+        <TableRow className={`border-none rounded-b-md py-0`}>
+          <TableCell className={`text-[8px] py-0 leading-none`}>&nbsp;</TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
   )
 }

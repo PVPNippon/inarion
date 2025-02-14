@@ -14,7 +14,7 @@ const config = {
       boxShadow: {
         button: '0px 1px 6px 0px hsla(7, 62%, 47%, 0.1)',
         card: '0px 1px 6px 0px hsla(8, 85%, 58%, 0.08)',
-        popover: '2px 2px 20px -3px hsla(7, 62%, 47%, 0.15)',
+        popover: '0px 1px 6px 0px hsla(8, 85%, 58%, 0.08)',
         dropdownmenu1: '0px 2px 4px -2px hsla(7, 62%, 47%, 0.08)',
         dropdownmenu2: '0px 4px 6px -1px hsla(7, 62%, 47%, 0.08)',
         nav1: '0px 4px 6px -4px hsla(7, 62%, 47%, 0.1)',

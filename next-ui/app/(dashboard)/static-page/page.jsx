@@ -158,6 +158,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  CustomTable,
+  CustomTableBody,
+  CustomTableCaption,
+  CustomTableCell,
+  CustomTableFooter,
+  CustomTableHead,
+  CustomTableHeader,
+  CustomTableRow,
+} from '@/components/ui/custom-table'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Textarea } from '@/components/ui/textarea'
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '@/components/ui/input-otp'
@@ -166,8 +176,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Slider } from '@/components/ui/slider'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-
-import { CustomTable } from '../../ui/components/reusable/custom-table'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 const invoices = [
   {
@@ -1137,7 +1146,70 @@ export default function StaticPage() {
         </TooltipProvider>
         {/* Calendar */}
         <Calendar mode="single" selected={date} onSelect={setDate} className="max-w-xs " />
-        <CustomTable />
+        {/* <CustomTable /> */}
+
+        {/* <ScrollArea className="relative w-full px-5 py-3 overflow-auto border rounded-lg border-[#E4E4E7] h-[200px]"> */}
+        <CustomTable>
+          <CustomTableHeader>
+            <CustomTableRow>
+              <CustomTableHead className="w-[100px]">Invoice</CustomTableHead>
+              <CustomTableHead>Status</CustomTableHead>
+              <CustomTableHead>Method</CustomTableHead>
+              <CustomTableHead className="text-right">Amount</CustomTableHead>
+            </CustomTableRow>
+          </CustomTableHeader>
+          <CustomTableBody>
+            <CustomTableRow>
+              <CustomTableCell className="font-medium">INV001</CustomTableCell>
+              <CustomTableCell>Paid</CustomTableCell>
+              <CustomTableCell>Credit Card</CustomTableCell>
+              <CustomTableCell className="text-right">$250.00</CustomTableCell>
+            </CustomTableRow>
+            <CustomTableRow>
+              <CustomTableCell className="font-medium">INV001</CustomTableCell>
+              <CustomTableCell>Paid</CustomTableCell>
+              <CustomTableCell>Credit Card</CustomTableCell>
+              <CustomTableCell className="text-right">$250.00</CustomTableCell>
+            </CustomTableRow>
+            <CustomTableRow>
+              <CustomTableCell className="font-medium">INV001</CustomTableCell>
+              <CustomTableCell>Paid</CustomTableCell>
+              <CustomTableCell>Credit Card</CustomTableCell>
+              <CustomTableCell className="text-right">$250.00</CustomTableCell>
+            </CustomTableRow>
+            <CustomTableRow>
+              <CustomTableCell className="font-medium">INV001</CustomTableCell>
+              <CustomTableCell>Paid</CustomTableCell>
+              <CustomTableCell>Credit Card</CustomTableCell>
+              <CustomTableCell className="text-right">$250.00</CustomTableCell>
+            </CustomTableRow>
+            <CustomTableRow>
+              <CustomTableCell className="font-medium">INV001</CustomTableCell>
+              <CustomTableCell>Paid</CustomTableCell>
+              <CustomTableCell>Credit Card</CustomTableCell>
+              <CustomTableCell className="text-right">$250.00</CustomTableCell>
+            </CustomTableRow>
+            <CustomTableRow>
+              <CustomTableCell className="font-medium">INV001</CustomTableCell>
+              <CustomTableCell>Paid</CustomTableCell>
+              <CustomTableCell>Credit Card</CustomTableCell>
+              <CustomTableCell className="text-right">$250.00</CustomTableCell>
+            </CustomTableRow>
+            <CustomTableRow>
+              <CustomTableCell className="font-medium">INV001</CustomTableCell>
+              <CustomTableCell>Paid</CustomTableCell>
+              <CustomTableCell>Credit Card</CustomTableCell>
+              <CustomTableCell className="text-right">$250.00</CustomTableCell>
+            </CustomTableRow>
+            <CustomTableRow>
+              <CustomTableCell className="font-medium">INV001</CustomTableCell>
+              <CustomTableCell>Paid</CustomTableCell>
+              <CustomTableCell>Credit Card</CustomTableCell>
+              <CustomTableCell className="text-right">$250.00</CustomTableCell>
+            </CustomTableRow>
+          </CustomTableBody>
+        </CustomTable>
+        {/* </ScrollArea> */}
       </div>
     </div>
   )
