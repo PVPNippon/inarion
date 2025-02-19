@@ -1,0 +1,40 @@
+{
+  "calendar":{
+    "title": "Calendar",
+    "description": "This is a placeholder for the calendar page."
+  },
+  "LocaleSwitcher": {
+    "label": "Change language",
+    "locale": "{locale, select, ja {🇯🇵 日本語} en {🇺🇸 English} other {🌍 {locale}}}"
+  },
+  "notifications":{
+    "title": "Notifications",
+    "description": "This is a placeholder for the notifications page."
+  },
+  "sidebar": {
+    "driveDocs": "Drive & Docs",
+    "groupsHierarchy": "Groups & Hierarchy",
+    "application": "Application",
+    "menu": {
+      "home": "Home",
+      "calendar": "Calendar",
+      "alertCenter": "Alert Center",
+      "settings": "Settings",
+      "logout": "Logout",
+      "static": "Static Page",
+      "myDrive": "My Drive",
+      "groups": "Groups",
+      "hierarchy": "Hierarchy"
+    }
+  },
+  
+    "GoogleLogin": {
+      "loginButton": "Login with Google",
+      "tokenValidationFailed": "Token validation failed",
+      "tokenInvalid": "Token is invalid or expired",
+      "loginError": "Error during login",
+      "tokenValidationError": "Error validating token",
+      "loginSuccess": "Login successful"
+    }
+  
+}

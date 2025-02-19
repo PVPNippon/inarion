@@ -1,0 +1,38 @@
+{
+  "calendar": {
+    "title": "[JP]Calendar",
+    "description": "[JP]This is a placeholder for the calendar page."
+  },
+  "LocaleSwitcher": {
+    "label": "言語を変更する",
+    "locale": "{locale, select, ja {🇯🇵 日本語} en {🇺🇸 English} other {🌍 {locale}}}"
+  },
+  "notifications": {
+    "title": "[JP]Notifications",
+    "description": "[JP]This is a placeholder for the notifications page."
+  },
+  "sidebar": {
+    "driveDocs": "[JP]Drive & Docs",
+    "groupsHierarchy": "[JP]Groups & Hierarchy",
+    "application": "[JP]Application",
+    "menu": {
+      "home": "[JP] Home",
+      "calendar": "[JP] Calendar",
+      "alertCenter": "[JP] Alert Center",
+      "settings": "[JP] Settings",
+      "logout": "[JP]Logout",
+      "static": "[JP]Static Page",
+      "myDrive": "[JP] My Drive",
+      "groups": "[JP] Groups",
+      "hierarchy": "[JP] Hierarchy"
+    }
+  },
+  "GoogleLogin": {
+    "loginButton": "Googleでログイン",
+    "tokenValidationFailed": "トークンの検証に失敗しました",
+    "tokenInvalid": "トークンが無効または期限切れです",
+    "loginError": "ログイン中にエラーが発生しました",
+    "tokenValidationError": "トークンの検証エラー",
+    "loginSuccess": "ログイン成功"
+  }
+}
