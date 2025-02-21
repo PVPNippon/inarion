@@ -990,7 +990,7 @@ const intersectionOfSets = async (keys, redisTransaction = null) => {
     }
 
     const intersection = await client.sInter(keys)
-    // // console.log(`Intersection of sets ${keys}:`, intersection)
+    // console.log(`Intersection of sets ${keys}:`, intersection)
     return intersection
   } catch (err) {
     logger.error(`Error performing intersection operation on sets ${keys}:`, err)

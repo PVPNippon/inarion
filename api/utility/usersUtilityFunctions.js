@@ -117,7 +117,7 @@ async function filterUsersByRoleName(users, roleName, userEmail) {
     }
   }
 
-  logger.debug(`Role Names Map: ${JSON.stringify(roleNamesMap, null, 2)}`)
+  // logger.debug(`Role Names Map: ${JSON.stringify(roleNamesMap, null, 2)}`)
 
   // Filtering all users using assignedTo value in roleNamesMap
   return users.filter((user) => {

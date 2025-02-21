@@ -10,7 +10,14 @@ const { encryptResponseMiddleware, decryptRequestMiddleware } = require('../cont
 router.use(decryptRequestMiddleware)
 
 // route to list all users in customer organization
-router.get('/', usersCacheMiddleware.retrieveAllUsers, usersController.listAllUsers, usersCacheMiddleware.storeAllUsers)
+router.get(
+  '/',
+  usersCacheMiddleware.retrieveAllUsers,
+  usersCacheMiddleware.retrieveFilteredUsers,
+  usersController.listAllUsers,
+  usersCacheMiddleware.storeAllUsers,
+  usersCacheMiddleware.storeFilteredUsers
+)
 
 // Route to turn off 2sv for multiple users
 router.post('/2sv-off', usersController.turnOffTwoSVForUsers)
@@ -18,9 +25,9 @@ router.post('/2sv-off', usersController.turnOffTwoSVForUsers)
 // Route to delete multiple users
 router.delete('/', usersController.deleteUsers)
 
-// router.get('/role/assignments', usersController.listRoleAssignments)
+router.get('/role/assignments', usersController.listRoleAssignments)
 
-// router.get('/role/names', usersController.listRoleNames)
+router.get('/role/names', usersController.listRoleNames)
 
 router.use(encryptResponseMiddleware)
 

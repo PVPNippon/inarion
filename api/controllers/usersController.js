@@ -20,41 +20,18 @@ exports.listAllUsers = async (req, res, next) => {
   // Retrieve the userEmail from the query parameter
   const { userEmail } = req.query
 
+  // console.log('res.locals.cached', res.locals.cached)
+  // console.log('res.locals.filterCached', res.locals.filterCached)
+
+  // if all users are already cached in Redis, bypass listAllUsers
   if (res.locals.cached) {
-    // TODO:(m.okamoto): If you want to add a filter, process the response of listAllUsers and pass it here.
-    const users = res.locals.data
-    let filteredUsers = users
-    if (req.query.orgUnitPath) {
-      logger.debug(`Filtering users by orgUnitPath: ${req.query.orgUnitPath}`)
-      filteredUsers = usersUtilityFunctions.filterUsersByOrgUnitPath(filteredUsers, req.query.orgUnitPath)
-    }
-    if (req.query.isEnrolledIn2Sv) {
-      logger.debug(`Filtering users by isEnrolledIn2Sv: ${req.query.isEnrolledIn2Sv}`)
-      filteredUsers = usersUtilityFunctions.filterUsersIf2svEnrolled(
-        filteredUsers,
-        req.query.isEnrolledIn2Sv === 'true'
-      )
-    }
-    if (req.query.isEnforcedIn2Sv) {
-      logger.debug(`Filtering users by isEnforcedIn2Sv: ${req.query.isEnforcedIn2Sv}`)
-      filteredUsers = usersUtilityFunctions.filterUsersIf2svEnforced(
-        filteredUsers,
-        req.query.isEnforcedIn2Sv === 'true'
-      )
-    }
-    if (req.query.domain) {
-      logger.debug(`Filtering users by domain: ${req.query.domain}`)
-      filteredUsers = usersUtilityFunctions.filterUsersByDomain(filteredUsers, req.query.domain)
-    }
-    if (req.query.groupEmail) {
-      logger.debug(`Filtering users by group: ${req.query.groupEmail}`)
-      filteredUsers = await usersUtilityFunctions.filterUsersByGroup(filteredUsers, req.query.groupEmail, userEmail)
-    }
-    if (req.query.roleName) {
-      logger.debug(`Filtering users by roleName: ${req.query.roleName}`)
-      filteredUsers = await usersUtilityFunctions.filterUsersByRoleName(filteredUsers, req.query.roleName, userEmail)
-    }
-    res.locals.data = filteredUsers
+    logger.debug('Bypassing Google API call since all users are already cached.')
+    return next()
+  }
+
+  // if users by same filters are already cached in Redis, bypass listAllUsers
+  if (res.locals.filterCached) {
+    logger.debug('Bypassing Google API call since users by same filters are already cached.')
     return next()
   }
 
@@ -76,6 +53,7 @@ exports.listAllUsers = async (req, res, next) => {
     ) {
       res.locals.data = users
     } else {
+      // Filter
       let filteredUsers = users
       if (req.query.orgUnitPath) {
         logger.debug(`Filtering users by orgUnitPath: ${req.query.orgUnitPath}`)
@@ -269,11 +247,9 @@ exports.listRoleAssignments = async (req, res, next) => {
   const { userEmail } = req.query
 
   try {
-    // Get an array with all domains in the organization
     const roleAssignments = await usersService.listRoleAssignments({ userEmail })
     logger.debug(`Fetched ${roleAssignments.length} role assignments from the domain.`)
 
-    // Pass the list of all organization's domains
     res.locals.data = roleAssignments
     logger.debug('Returning list of roleAssignments.')
   } catch (error) {
