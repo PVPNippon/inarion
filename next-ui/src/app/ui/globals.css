@@ -26,6 +26,25 @@ input[type='number']::-webkit-outer-spin-button {
   box-shadow: 0px 1px 2px 0px hsla(7, 62%, 47%, 0.08);
 }
 
+.loader {
+  border: 7px solid #ef5039;
+  border-left-color: transparent;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  animation: spin89345 1s linear infinite;
+}
+
+@keyframes spin89345 {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 @layer base {
   input:-webkit-autofill,
   input:-webkit-autofill:hover,

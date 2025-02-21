@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { apiClient } from '@/utils/apiClient'
+import moment from 'moment-timezone'
 import { ExternalLinkIcon, SearchIcon, EyeIcon, Ellipsis, CircleAlert } from 'lucide-react'
 import { groupsStyles, groupElementIds, groupStrings } from '../group-variables'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -546,14 +547,13 @@ function NestedGroupsTable({ groups, query, isMenuOpen, setIsMenuOpen, fileName,
    */
   //a temporary patch to fix the format of the timestamp coming from the backend, to be able to check out the actual column lenth
   //this will be fixed in BE because they have the moments-timezone library which should make it easy(probably)
+
   function convertTimestamp(timestamp) {
     if (!timestamp) return ''
 
-    if (timestamp.includes('GMT')) {
-      return timestamp.split('GMT')[0] + 'JST'
-    } else {
-      return timestamp
-    }
+    return moment(timestamp)
+      .tz(Intl.DateTimeFormat().resolvedOptions().timeZone) // Detect user's timezone
+      .format('YYYY-MM-DD HH:mm:ss z') // 24-hour format with timezone abbreviation
   }
 
   useEffect(() => {
