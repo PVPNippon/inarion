@@ -2,9 +2,10 @@
 import * as React from 'react'
 import { Slot } from '@radix-ui/react-slot'
 import { cva } from 'class-variance-authority'
-import { PanelLeft } from 'lucide-react'
+import { Menu } from 'lucide-react'
 
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useIsTablet } from '@/hooks/use-tablet'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,6 +35,7 @@ function useSidebar() {
 const SidebarProvider = React.forwardRef(
   ({ defaultOpen = true, open: openProp, onOpenChange: setOpenProp, className, style, children, ...props }, ref) => {
     const isMobile = useIsMobile()
+    const isTablet = useIsTablet()
     const [openMobile, setOpenMobile] = React.useState(false)
 
     // This is the internal state of the sidebar.
@@ -58,6 +60,15 @@ const SidebarProvider = React.forwardRef(
     const toggleSidebar = React.useCallback(() => {
       return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
     }, [isMobile, setOpen, setOpenMobile])
+
+    const prevIsTablet = React.useRef(isTablet) // Track previous isTablet value
+
+    React.useEffect(() => {
+      if (isTablet && !prevIsTablet.current) {
+        setOpen(false) // Only collapse when transitioning to tablet mode
+      }
+      prevIsTablet.current = isTablet // Update previous state
+    }, [isTablet, setOpen])
 
     // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
@@ -118,6 +129,10 @@ const Sidebar = React.forwardRef(
   ({ side = 'left', variant = 'sidebar', collapsible = 'offcanvas', className, children, ...props }, ref) => {
     const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
 
+    const isTablet = useIsTablet()
+
+    const computedCollapsible = isTablet && state === 'collapsed' ? 'icon' : collapsible
+
     if (collapsible === 'none') {
       return (
         <div
@@ -147,6 +162,7 @@ const Sidebar = React.forwardRef(
         </Sheet>
       )
     }
+    console.log('isTablet:', isTablet, 'state:', state)
 
     return (
       <div
@@ -211,7 +227,7 @@ const SidebarTrigger = React.forwardRef(({ className, onClick, ...props }, ref) 
       }}
       {...props}
     >
-      <PanelLeft />
+      <Menu />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )

@@ -50,9 +50,7 @@ export function AppSidebar() {
   ]
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader>
-        <SidebarTrigger />
-      </SidebarHeader>
+      <SidebarHeader></SidebarHeader>
       <SidebarContent>
         <Collapsible defaultOpen className="group/collapsible">
           <SidebarGroup>
@@ -67,7 +65,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                   {driveItems.map((driveItem) => (
                     <SidebarMenuItem key={driveItem.title}>
-                      <SidebarMenuButton asChild>
+                      <SidebarMenuButton tooltip={driveItem.title} asChild>
                         <Link href={driveItem.url}>
                           <driveItem.icon />
                           <span>{driveItem.title}</span>
@@ -93,7 +91,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                   {groupsItems.map((groupItem) => (
                     <SidebarMenuItem key={groupItem.title}>
-                      <SidebarMenuButton asChild>
+                      <SidebarMenuButton tooltip={groupItem.title} asChild>
                         <Link href={groupItem.url}>
                           <groupItem.icon />
                           <span>{groupItem.title}</span>
@@ -119,7 +117,7 @@ export function AppSidebar() {
                 <SidebarMenu>
                   {items.map((item) => (
                     <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild>
+                      <SidebarMenuButton tooltip={item.title} asChild>
                         <Link href={item.url}>
                           <item.icon />
                           <span>{item.title}</span>

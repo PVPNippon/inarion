@@ -4,6 +4,7 @@ import Image from 'next/image'
 import FoxLogo from '../images/logo.png' // Ensure you have this logo in your public folder
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import LocaleSwitcher from '../components/LocaleSwitcher'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 
 /**
  * The Header component renders the top navigation bar of the app.
@@ -19,6 +20,7 @@ export default function Header({ toggleNav }) {
     <header className="w-full flex items-center justify-between border-b border-gray-200 py-3 pr-4 pl-6">
       {/* Left Section - Logo and Title */}
       <div className="flex items-center space-x-2">
+        <SidebarTrigger />
         {/* Logo */}
         <Image src={FoxLogo} alt="Logo" width={24} height={24} />
         {/* Title */}
