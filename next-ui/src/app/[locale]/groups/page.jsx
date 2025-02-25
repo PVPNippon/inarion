@@ -1,6 +1,5 @@
 'use client'
-import { LoggedInUserProvider } from '@/app/ui/contexts/LoggedInUserContext'
-import { ProjectDataProvider } from '@/app/ui/contexts/ProjectDataContext'
+
 import ListGroups from '@/app/ui/components/ListGroups'
 import GetGroup from '@/app/ui/components/GetGroup'
 import ListDirectMembers from '@/app/ui/components/ListDirectMembers'
@@ -12,6 +11,8 @@ import DeleteMembersViaCsv from '@/app/ui/components/DeleteMembersViaCsv'
 import DeleteMemberFromGroups from '@/app/ui/components/DeleteMemberFromGroups'
 import CreateGroup from '@/app/ui/components/CreateGroup'
 import ListGroupSettings from '@/app/ui/components/ListGroupSettings'
+import { Separator } from '@/components/ui/separator'
+import DeleteMembersViaCsv2 from '@/app/ui/components/DeleteMembersViaCsv2'
 
 /**
  * A component that displays a Google Groups page.
@@ -24,25 +25,33 @@ import ListGroupSettings from '@/app/ui/components/ListGroupSettings'
 //It reflects data for various groups routes in the UI, for dev purposes.
 function GroupsDashboard() {
   return (
-    <LoggedInUserProvider>
-      <ProjectDataProvider>
-        <main className="overflow-auto">
-          <h2>Google Groups Page</h2>
-          <p>This is a placeholder for the groups page.</p>
-          <ListGroups></ListGroups>
-          <ListGroupsActivities></ListGroupsActivities>
-          <ListGroupJoinedActivities></ListGroupJoinedActivities>
-          <GetGroup></GetGroup>
-          <ListDirectMembers></ListDirectMembers>
-          <ListAllMembers></ListAllMembers>
-          <ExportGroups></ExportGroups>
-          <DeleteMembersViaCsv></DeleteMembersViaCsv>
-          <DeleteMemberFromGroups></DeleteMemberFromGroups>
-          <CreateGroup></CreateGroup>
-          <ListGroupSettings></ListGroupSettings>
-        </main>
-      </ProjectDataProvider>
-    </LoggedInUserProvider>
+    <main className="overflow-auto">
+      <h2>Google Groups Page</h2>
+      <p>This is a placeholder for the groups page.</p>
+      <ListGroups></ListGroups>
+      <Separator className="my-4" />
+      <ListGroupsActivities></ListGroupsActivities>
+      <Separator className="my-4" />
+      <ListGroupJoinedActivities></ListGroupJoinedActivities>
+      <Separator className="my-4" />
+      <GetGroup></GetGroup>
+      <Separator className="my-4" />
+      <ListDirectMembers></ListDirectMembers>
+      <Separator className="my-4" />
+      <ListAllMembers></ListAllMembers>
+      <Separator className="my-4" />
+      <ExportGroups></ExportGroups>
+      <Separator className="my-4" />
+      <DeleteMembersViaCsv></DeleteMembersViaCsv>
+      <Separator className="my-4" />
+      <DeleteMembersViaCsv2></DeleteMembersViaCsv2>
+      <Separator className="my-4" />
+      <DeleteMemberFromGroups></DeleteMemberFromGroups>
+      <Separator className="my-4" />
+      <CreateGroup></CreateGroup>
+      <Separator className="my-4" />
+      <ListGroupSettings></ListGroupSettings>
+    </main>
   )
 }
 

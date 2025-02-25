@@ -9,6 +9,8 @@ export const groupsStyles = {
   thinShadow: 'shadow-[0_1px_5px_0_rgba(239,80,57,0.08)]',
   tableRowPadding: 'py-3', //top-bottom 12px
   tableHeaderText: 'text-inherit',
+  //member deletion by csv dialog window
+  uploadArea: 'h-[344px] w-[704px] border rounded-md flex flex-col justify-center items-center gap-y-2',
 }
 
 export const groupElementIds = {
