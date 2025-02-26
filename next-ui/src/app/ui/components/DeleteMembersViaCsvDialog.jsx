@@ -39,6 +39,15 @@ import Image from 'next/image'
 import TempSpinner from '@/app/ui/svg-icons/TempSpinner.svg'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
+/**
+ * Maps CSV data to an array of objects with 'name' and 'email' properties
+ * and filters out rows with empty or invalid emails.
+ * Also filters out duplicate emails.
+ * If there are duplicate emails in the CSV data, a warning is sent to the state to display a corresponding message to the user.
+ * @param {array} data - The parsed CSV data from Papa.parse
+ * @param {function} setWarning - A state function to set a warning if there are duplicate emails
+ * @returns {array} An array of objects with unique and valid emails
+ */
 function mapAndFilterCsvData(data, setWarning) {
   console.log('INITIAL DATA', data)
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
@@ -67,6 +76,22 @@ function mapAndFilterCsvData(data, setWarning) {
   }
 
   return uniqueDataArray
+}
+
+/**
+ * Checks if the parsed CSV data is valid.
+ * It should be an array of arrays where each sub-array has at least two elements.
+ * The first element of each sub-array is the group name, and the second element is the group email.
+ * We need to check the second column, so if the array length is less than 2, it's not a valid CSV.
+ * Even if group name or email was empty, it will be present in the array as an empty string.
+ * @param {array} data - The parsed CSV data from Papa.parse
+ * @returns {boolean} Whether the parsed CSV data is valid
+ */
+function validateParsedDataArray(data) {
+  if (!(Array.isArray(data) && data.every((item) => Array.isArray(item)))) return false
+  const nonHeaderArrays = data.slice(1)
+  if (nonHeaderArrays.some((item) => item.length <= 1)) return false
+  return true
 }
 
 function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
@@ -114,28 +139,55 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
 
   const [uploadState, dispatchUploadState] = useReducer(uploadReducer, initialState)
 
-  function validateParsedDataArray(data) {
-    if (!(Array.isArray(data) && data.every((item) => Array.isArray(item)))) return false
-    const nonHeaderArrays = data.slice(1)
-    if (nonHeaderArrays.some((item) => item.length !== 2)) return false
-    return true
+  /**
+   * A fallback function for parsing a CSV file when Papa.parse fails.
+   * It is called when Papa.parse encounters errors such as "UndetectableDelimiter"
+   * and "TooManyFields". It takes a file object as an argument and parses it using
+   * Papa.parse with the header option set to false. It then filters out the first
+   * two rows of the parsed data and maps the remaining data to an array of objects with
+   * "name" and "email" properties. Finally, it filters out any rows with empty or
+   * invalid emails, sets the component state, and displays a badge indicating
+   * the status of the upload.
+   * @param {File} file - The CSV file to be parsed.
+   */
+  /** The aim of this function is to detect and handle cases when a user exported the CSV file on macOS with checkbox "Include table names" checked.
+  Note:the checkbox is unchecked by default and should stay unchecked for the data to be parsed correctly. But the wording is kinda confusing so the user may check it thinking that it will include header row, especially because we warn the user not to delete table headers.
+ 
+  In normal situations the parsed data should look like an array of objects where column names are keys and cell contents are values (i.e.
+  [
+    {
+      "Member Name [ optional ]": "Group1",
+      "Member Email [ required ]": "group@pvp-test-domain2.com"
+  },
+  {
+      "Member Name [ optional ]": "Group2",
+      "Member Email [ required ]": "group2@pvp-test-domain2.com"
   }
+]) 
 
+  However, checking the checkbox returns a completely different format of data, so we need to handle it separately. It's an array of arrays where
+  the first array has length 1 and contains the table name(i.e. the name of the file which were exported), the second array has length 2 and contains table headers.
+  The rest of arrays have length 2 and contain a table row data.
+  Note that we only need the member email (second column) for the deletion. First column (name) can be empty or has an incorrect value. Third or more columns(if present) will be ignored.
+  **/
   function fallbackParse(file) {
     Papa.parse(file, {
       header: false,
       skipEmptyLines: true,
       complete: function (results) {
-        console.log('rFALLBACK esults:', results)
+        console.log('FALLBACK results:', results)
         let resultDataArray = results.data
-        if (resultDataArray.length < 3) {
+        if (resultDataArray.length <= 2) {
+          //the first 2 arrays are table name and table headers, so if there is no other data, it's not a valid CSV
           dispatchUploadState({ type: 'error' })
           return
         }
 
         if (validateParsedDataArray) {
-          const tableDataArrays = resultDataArray.slice(2)
+          const tableDataArrays = resultDataArray.slice(2) //remove table name and table headers
           console.log('tableDataArrays', tableDataArrays)
+
+          //map column names
           const mappedData = [...tableDataArrays].map((item) => {
             return {
               name: item[0],
