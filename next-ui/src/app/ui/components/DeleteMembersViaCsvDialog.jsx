@@ -114,6 +114,55 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
     return uniqueDataArray
   }
 
+  function validateParsedDataArray(data) {
+    if (!(Array.isArray(data) && data.every((item) => Array.isArray(item)))) return false
+    const nonHeaderArrays = data.slice(1)
+    if (nonHeaderArrays.some((item) => item.length !== 2)) return false
+    return true
+  }
+
+  function fallbackParse(file) {
+    Papa.parse(file, {
+      header: false,
+      skipEmptyLines: true,
+      complete: function (results) {
+        console.log('rFALLBACK esults:', results)
+        let resultDataArray = results.data
+        if (resultDataArray.length < 3) {
+          dispatchUploadState({ type: 'error' })
+          return
+        }
+
+        if (validateParsedDataArray) {
+          const tableDataArrays = resultDataArray.slice(2)
+          console.log('tableDataArrays', tableDataArrays)
+          const mappedData = [...tableDataArrays].map((item) => {
+            return {
+              name: item[0],
+              email: item[1],
+            }
+          })
+          console.log('mappedData', mappedData)
+
+          const filteredData = mapAndFilterCsvData(mappedData)
+          if (filteredData.length === 0) {
+            setWarning(false)
+            dispatchUploadState({ type: 'error' })
+            return
+          }
+
+          setCsvData(filteredData)
+          setFileName(file.name)
+          dispatchUploadState({ type: 'complete' })
+
+          setTimeout(() => {
+            dispatchUploadState({ type: 'showBadge' })
+          }, 3000) // delay for 3 seconds
+        }
+      },
+    })
+  }
+
   /**
    * Function to parse a CSV file and set the component state with the parsed data.
    * @param {File} file - The CSV file to be parsed.
@@ -125,38 +174,47 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
       return
     }
 
-    dispatchUploadState({ type: 'inProgress' })
-    // Papa.parse(file, {
-    //   header: true,
-    //   skipEmptyLines: true,
-    //   complete: function (results) {
-    //     console.log('results:', results)
-    //     setCsvData(results.data)
-    //     dispatchUploadState({ type: 'complete' })
-    //   },
-    // })
-
+    //TODO(maria) :IMPORTANT: remove timeout when testing is completed
     setTimeout(() => {
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
 
         complete: function (results) {
+          let resultData = results
           console.log('results:', results)
 
-          if (results.data.length === 0 || results.errors.length > 0) {
+          // if (results.data.length === 0 || results.errors.length > 0) {
+          //   dispatchUploadState({ type: 'error' })
+          //   return
+          // }
+
+          if (resultData.data.length === 0) {
             dispatchUploadState({ type: 'error' })
             return
           }
 
-          const filteredData = mapAndFilterCsvData(results.data)
+          if (resultData.errors.length > 0) {
+            if (
+              resultData.errors[0].code === 'UndetectableDelimiter' &&
+              resultData.errors[1].code === 'TooManyFields' &&
+              resultData.meta.fields.length === 1
+            ) {
+              fallbackParse(file)
+              return
+            }
+            dispatchUploadState({ type: 'error' })
+            return
+          }
+
+          const filteredData = mapAndFilterCsvData(resultData.data)
           if (filteredData.length === 0) {
             setWarning(false)
             dispatchUploadState({ type: 'error' })
             return
           }
 
-          setCsvData(mapAndFilterCsvData(results.data))
+          setCsvData(mapAndFilterCsvData(resultData.data))
           setFileName(file.name)
           dispatchUploadState({ type: 'complete' })
 
