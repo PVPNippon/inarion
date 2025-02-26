@@ -59,34 +59,23 @@ function mapAndFilterCsvData(data, setWarning) {
   console.log('INITIAL DATA', data)
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 
-  let mappedData
   //handle mapping of different data formats(arrays or objects)
-  if (Array.isArray(data[0])) {
-    mappedData = data.map((item) => {
-      return {
-        name: item[0],
-        email: item[1],
-      }
-    })
-  } else if (typeof data[0] === 'object') {
-    mappedData = data.map((item) => {
-      return {
-        name: Object.values(item)[0],
-        email: Object.values(item)[1],
-      }
-    })
-  }
+  const mappedData = data.map((item) => {
+    const values = Array.isArray(item) ? item : Object.values(item)
+    return {
+      name: values[0],
+      email: values[1],
+    }
+  })
 
   //filter out rows with empty or invalid emails
-  const filteredData = mappedData.filter((item) => {
-    return item.email !== '' && emailRegex.test(item.email)
-  })
-
   //filter out rows with duplicate emails
-  const uniqueData = new Set(filteredData.map((item) => item.email))
-  const uniqueDataArray = Array.from(uniqueData).map((email) => {
-    return filteredData.find((item) => item.email === email)
-  })
+  //Note: we cannot filter out potential non-members or misspelled emails if they pass regex, it will only be known after the API call
+  const uniqueDataArray = [
+    ...new Map(
+      mappedData.filter((item) => item.email !== '' && emailRegex.test(item.email)).map((item) => [item.email, item])
+    ).values(),
+  ]
   console.log('uniqueDataArray', uniqueDataArray)
 
   if (data.length > uniqueDataArray.length) {
