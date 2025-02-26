@@ -39,6 +39,36 @@ import Image from 'next/image'
 import TempSpinner from '@/app/ui/svg-icons/TempSpinner.svg'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
+function mapAndFilterCsvData(data, setWarning) {
+  console.log('INITIAL DATA', data)
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+
+  //map column names and filter out rows with empty or invalid emails
+  const filteredData = data
+    .map((item) => {
+      return {
+        name: Object.values(item)[0],
+        email: Object.values(item)[1],
+      }
+    })
+    .filter((item) => {
+      return item.email !== '' && emailRegex.test(item.email)
+    })
+
+  //filter out rows with duplicate emails
+  const uniqueData = new Set(filteredData.map((item) => item.email))
+  const uniqueDataArray = Array.from(uniqueData).map((email) => {
+    return filteredData.find((item) => item.email === email)
+  })
+  console.log('uniqueDataArray', uniqueDataArray)
+
+  if (data.length > uniqueDataArray.length) {
+    setWarning(true)
+  }
+
+  return uniqueDataArray
+}
+
 function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
   const [deletionResult, setDeletionResult] = useState([])
   const [csvData, setCsvData] = useState([])
@@ -84,36 +114,6 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
 
   const [uploadState, dispatchUploadState] = useReducer(uploadReducer, initialState)
 
-  function mapAndFilterCsvData(data) {
-    console.log('INITIAL DATA', data)
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
-
-    //map column names and filter out rows with empty or invalid emails
-    const filteredData = data
-      .map((item) => {
-        return {
-          name: Object.values(item)[0],
-          email: Object.values(item)[1],
-        }
-      })
-      .filter((item) => {
-        return item.email !== '' && emailRegex.test(item.email)
-      })
-
-    //filter out rows with duplicate emails
-    const uniqueData = new Set(filteredData.map((item) => item.email))
-    const uniqueDataArray = Array.from(uniqueData).map((email) => {
-      return filteredData.find((item) => item.email === email)
-    })
-    console.log('uniqueDataArray', uniqueDataArray)
-
-    if (data.length > uniqueDataArray.length) {
-      setWarning(true)
-    }
-
-    return uniqueDataArray
-  }
-
   function validateParsedDataArray(data) {
     if (!(Array.isArray(data) && data.every((item) => Array.isArray(item)))) return false
     const nonHeaderArrays = data.slice(1)
@@ -144,7 +144,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
           })
           console.log('mappedData', mappedData)
 
-          const filteredData = mapAndFilterCsvData(mappedData)
+          const filteredData = mapAndFilterCsvData(mappedData, setWarning)
           if (filteredData.length === 0) {
             setWarning(false)
             dispatchUploadState({ type: 'error' })
@@ -174,6 +174,8 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
       return
     }
 
+    dispatchUploadState({ type: 'inProgress' })
+
     //TODO(maria) :IMPORTANT: remove timeout when testing is completed
     setTimeout(() => {
       Papa.parse(file, {
@@ -183,11 +185,6 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
         complete: function (results) {
           let resultData = results
           console.log('results:', results)
-
-          // if (results.data.length === 0 || results.errors.length > 0) {
-          //   dispatchUploadState({ type: 'error' })
-          //   return
-          // }
 
           if (resultData.data.length === 0) {
             dispatchUploadState({ type: 'error' })
@@ -207,14 +204,14 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
             return
           }
 
-          const filteredData = mapAndFilterCsvData(resultData.data)
+          const filteredData = mapAndFilterCsvData(resultData.data, setWarning)
           if (filteredData.length === 0) {
             setWarning(false)
             dispatchUploadState({ type: 'error' })
             return
           }
 
-          setCsvData(mapAndFilterCsvData(resultData.data))
+          setCsvData(filteredData)
           setFileName(file.name)
           dispatchUploadState({ type: 'complete' })
 
@@ -318,6 +315,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                     fileName={fileName}
                     setCsvData={setCsvData}
                     dispatchUploadState={dispatchUploadState}
+                    setWarning={setWarning}
                   />
                 )}
               </div>
@@ -464,7 +462,7 @@ function CsvTemplateDownloader({ hiddenClass }) {
   )
 }
 
-function CsvFileBadge({ fileName, setCsvData, hiddenClass, dispatchUploadState }) {
+function CsvFileBadge({ fileName, setCsvData, hiddenClass, dispatchUploadState, setWarning }) {
   if (!fileName) return
 
   return (
@@ -474,6 +472,7 @@ function CsvFileBadge({ fileName, setCsvData, hiddenClass, dispatchUploadState }
         role="button"
         onClick={() => {
           setCsvData([])
+          setWarning(false)
           dispatchUploadState({ type: 'empty' })
         }}
       >
