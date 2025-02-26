@@ -74,9 +74,8 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
       case 'deletionInProgress':
         return { status: 'deletionInProgress' }
 
-      case 'showDeletionResult': {
+      case 'showDeletionResult':
         return { status: 'showDeletionResult' }
-      }
 
       default:
         return state
@@ -107,6 +106,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
       return filteredData.find((item) => item.email === email)
     })
     console.log('uniqueDataArray', uniqueDataArray)
+
     if (data.length > uniqueDataArray.length) {
       setWarning(true)
     }
@@ -145,6 +145,13 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
           console.log('results:', results)
 
           if (results.data.length === 0 || results.errors.length > 0) {
+            dispatchUploadState({ type: 'error' })
+            return
+          }
+
+          const filteredData = mapAndFilterCsvData(results.data)
+          if (filteredData.length === 0) {
+            setWarning(false)
             dispatchUploadState({ type: 'error' })
             return
           }
@@ -422,7 +429,7 @@ function Loader() {
   return (
     <>
       {/* temporary loader */}
-      <div>Temporary Loader</div>
+      <div className="text-purple-500 text-center">.......Temporary Loader.......</div>
     </>
   )
 }
