@@ -23,7 +23,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
-// import { groupsStyles } from '../../[locale]/groups/group-variables'
 import { groupsStyles } from '@/app/[locale]/groups/group-variables'
 import { Download, CloudUpload, X, Check } from 'lucide-react'
 import { CustomWidthDialogContent } from '@/components/ui/custom-dialog-content-width'
