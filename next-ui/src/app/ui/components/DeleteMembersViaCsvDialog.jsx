@@ -158,6 +158,34 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
   const [uploadState, dispatchUploadState] = useReducer(uploadReducer, initialState)
 
   /**
+   * A function that takes a parsed CSV data array and a file name as arguments.
+   * It filters out invalid or duplicate email addresses from the data array
+   * using the mapAndFilterCsvData function and updates the component state.
+   * If the filtered data array is empty, it sets the component state to
+   * indicate an error and returns. Otherwise, it updates the component state
+   * to indicate a successful upload and sets a timer to display a badge
+   * indicating the status of the upload after 3 seconds.
+   * @param {Array} data - The parsed CSV data array.
+   * @param {string} fileName - The name of the CSV file.
+   */
+  function handleUploadedDataAndState(data, fileName) {
+    const filteredData = mapAndFilterCsvData(data, setWarning)
+    if (filteredData.length === 0) {
+      setWarning(false)
+      dispatchUploadState({ type: 'error' })
+      return
+    }
+
+    setCsvData(filteredData)
+    setFileName(fileName)
+    dispatchUploadState({ type: 'complete' })
+
+    setTimeout(() => {
+      dispatchUploadState({ type: 'showBadge' })
+    }, 3000)
+  }
+
+  /**
    * A fallback function for parsing a CSV file when Papa.parse fails.
    * It is called when Papa.parse encounters errors such as "UndetectableDelimiter"
    * and "TooManyFields". It takes a file object as an argument and parses it using
@@ -204,22 +232,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
         if (validateParsedDataArray) {
           const tableDataArrays = resultDataArray.slice(2) //remove table name and table headers
           console.log('tableDataArrays', tableDataArrays)
-
-          const filteredData = mapAndFilterCsvData(tableDataArrays, setWarning)
-
-          if (filteredData.length === 0) {
-            setWarning(false)
-            dispatchUploadState({ type: 'error' })
-            return
-          }
-
-          setCsvData(filteredData)
-          setFileName(file.name)
-          dispatchUploadState({ type: 'complete' })
-
-          setTimeout(() => {
-            dispatchUploadState({ type: 'showBadge' })
-          }, 3000) // delay for 3 seconds
+          handleUploadedDataAndState(tableDataArrays, file.name)
         }
       },
     })
@@ -265,21 +278,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
             dispatchUploadState({ type: 'error' })
             return
           }
-
-          const filteredData = mapAndFilterCsvData(resultData.data, setWarning)
-          if (filteredData.length === 0) {
-            setWarning(false)
-            dispatchUploadState({ type: 'error' })
-            return
-          }
-
-          setCsvData(filteredData)
-          setFileName(file.name)
-          dispatchUploadState({ type: 'complete' })
-
-          setTimeout(() => {
-            dispatchUploadState({ type: 'showBadge' })
-          }, 3000) // delay for 3 seconds
+          handleUploadedDataAndState(resultData.data, file.name)
         },
       })
     }, 3000) // simulate a 3-second delay for dev purposes
@@ -473,6 +472,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   setCsvData([])
                   setFileName('')
                   setDeletionResult([])
+                  setWarning(false)
                   dispatchUploadState({ type: 'empty' })
                 }}
               >
