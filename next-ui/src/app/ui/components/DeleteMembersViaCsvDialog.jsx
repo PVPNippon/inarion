@@ -40,29 +40,47 @@ import TempSpinner from '@/app/ui/svg-icons/TempSpinner.svg'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 /**
- * Maps CSV data to an array of objects with 'name' and 'email' properties
- * and filters out rows with empty or invalid emails.
- * Also filters out duplicate emails.
- * If there are duplicate emails in the CSV data, a warning is sent to the state to display a corresponding message to the user.
- * @param {array} data - The parsed CSV data from Papa.parse
- * @param {function} setWarning - A state function to set a warning if there are duplicate emails
- * @returns {array} An array of objects with unique and valid emails
+ * Maps and filters CSV data for valid and unique email entries.
+ *
+ * The function processes CSV data, either in array or object format,
+ * mapping it to a specific structure and filtering out invalid or duplicate
+ * email addresses. It utilizes a regular expression to validate email formats.
+ * If any invalid or duplicate emails are found, a warning is triggered.
+ *
+ * @param {Array} data - The input data, an array of arrays or objects,
+ *                       where each sub-array or object contains at least
+ *                       a name and email.
+ * @param {Function} setWarning - A callback function to trigger warnings
+ *                                if invalid or duplicate emails are detected.
+ * @returns {Array} - An array of unique and valid mapped data objects,
+ *                    each containing a name and email.
  */
 function mapAndFilterCsvData(data, setWarning) {
   console.log('INITIAL DATA', data)
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 
-  //map column names and filter out rows with empty or invalid emails
-  const filteredData = data
-    .map((item) => {
+  let mappedData
+  //handle mapping of different data formats(arrays or objects)
+  if (Array.isArray(data[0])) {
+    mappedData = data.map((item) => {
+      return {
+        name: item[0],
+        email: item[1],
+      }
+    })
+  } else if (typeof data[0] === 'object') {
+    mappedData = data.map((item) => {
       return {
         name: Object.values(item)[0],
         email: Object.values(item)[1],
       }
     })
-    .filter((item) => {
-      return item.email !== '' && emailRegex.test(item.email)
-    })
+  }
+
+  //filter out rows with empty or invalid emails
+  const filteredData = mappedData.filter((item) => {
+    return item.email !== '' && emailRegex.test(item.email)
+  })
 
   //filter out rows with duplicate emails
   const uniqueData = new Set(filteredData.map((item) => item.email))
@@ -187,16 +205,8 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
           const tableDataArrays = resultDataArray.slice(2) //remove table name and table headers
           console.log('tableDataArrays', tableDataArrays)
 
-          //map column names
-          const mappedData = [...tableDataArrays].map((item) => {
-            return {
-              name: item[0],
-              email: item[1],
-            }
-          })
-          console.log('mappedData', mappedData)
+          const filteredData = mapAndFilterCsvData(tableDataArrays, setWarning)
 
-          const filteredData = mapAndFilterCsvData(mappedData, setWarning)
           if (filteredData.length === 0) {
             setWarning(false)
             dispatchUploadState({ type: 'error' })
