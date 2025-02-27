@@ -95,10 +95,9 @@ function mapAndFilterCsvData(data, setWarning) {
  * @returns {boolean} Whether the parsed CSV data is valid
  */
 function validateParsedDataArray(data) {
-  if (!(Array.isArray(data) && data.every((item) => Array.isArray(item)))) return false
-  const nonHeaderArrays = data.slice(1)
-  if (nonHeaderArrays.some((item) => item.length <= 1)) return false
-  return true
+  return (
+    Array.isArray(data) && data.every((item) => Array.isArray(item)) && data.slice(1).every((item) => item.length >= 2)
+  )
 }
 
 function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
@@ -232,9 +231,9 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
    * @param {File} file - The CSV file to be parsed.
    */
   function handleCsvUpload(file) {
-    if (!file.name.endsWith('.csv')) {
+    if (file.type !== 'text/csv') {
       console.error('Only CSV files are allowed')
-      dispatchUploadState({ type: 'error' })
+      dispatchUploadState({ type: 'error' }) //TODO(maria) : add wrong file type scenario. I can prevent user from uploading non-csv files, but it's not intuitive with the upload area. They might think the area is broken or they are not dragging correctly.
       return
     }
 
@@ -242,34 +241,40 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
 
     //TODO(maria) :IMPORTANT: remove timeout when testing is completed
     setTimeout(() => {
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
+      //Add try-catch for unexpected scenarios such as unsupported encoding etc.
+      try {
+        Papa.parse(file, {
+          header: true,
+          skipEmptyLines: true,
 
-        complete: function (results) {
-          let resultData = results
-          console.log('results:', results)
+          complete: function (results) {
+            const resultData = results
+            console.log('results:', results)
 
-          if (resultData.data.length === 0) {
-            dispatchUploadState({ type: 'error' })
-            return
-          }
-
-          if (resultData.errors.length > 0) {
-            if (
-              resultData.errors[0].code === 'UndetectableDelimiter' &&
-              resultData.errors[1].code === 'TooManyFields' &&
-              resultData.meta.fields.length === 1
-            ) {
-              fallbackParse(file)
+            if (resultData.data.length === 0) {
+              dispatchUploadState({ type: 'error' })
               return
             }
-            dispatchUploadState({ type: 'error' })
-            return
-          }
-          handleUploadedDataAndState(resultData.data, file.name)
-        },
-      })
+
+            if (resultData.errors.length > 0) {
+              if (
+                resultData.errors[0]?.code === 'UndetectableDelimiter' &&
+                resultData.errors[1]?.code === 'TooManyFields' &&
+                resultData.meta?.fields.length === 1
+              ) {
+                fallbackParse(file)
+              } else {
+                dispatchUploadState({ type: 'error' })
+              }
+              return
+            }
+            handleUploadedDataAndState(resultData.data, file.name)
+          },
+        })
+      } catch (error) {
+        console.error('Error handling CSV file:', error)
+        dispatchUploadState({ type: 'error' })
+      }
     }, 3000) // simulate a 3-second delay for dev purposes
   }
 
