@@ -105,6 +105,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
   const [csvData, setCsvData] = useState([])
   const [fileName, setFileName] = useState('')
   const [warning, setWarning] = useState(false)
+  const [invalidFileType, setInvalidFileType] = useState(false)
 
   const initialState = {
     status: 'empty',
@@ -115,8 +116,8 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
       case 'empty':
         return initialState
 
-      case 'inProgress':
-        return { status: 'inProgress' }
+      case 'uploadInProgress':
+        return { status: 'uploadInProgress' }
 
       case 'complete':
         return { status: 'complete' }
@@ -231,13 +232,14 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
    * @param {File} file - The CSV file to be parsed.
    */
   function handleCsvUpload(file) {
+    setInvalidFileType(false)
     if (file.type !== 'text/csv') {
       console.error('Only CSV files are allowed')
-      dispatchUploadState({ type: 'error' }) //TODO(maria) : add wrong file type scenario. I can prevent user from uploading non-csv files, but it's not intuitive with the upload area. They might think the area is broken or they are not dragging correctly.
+      setInvalidFileType(true)
       return
     }
 
-    dispatchUploadState({ type: 'inProgress' })
+    dispatchUploadState({ type: 'uploadInProgress' })
 
     //TODO(maria) :IMPORTANT: remove timeout when testing is completed
     setTimeout(() => {
@@ -363,6 +365,11 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                       : ''
                   }
                 />
+                {invalidFileType && (
+                  <div className="text-destructive text-sm/5">
+                    Invalid file type. Only CSV files are allowed. Please upload a file with extension .csv.
+                  </div>
+                )}
                 {uploadState.status === 'showBadge' && warning && <Warning />}
                 {csvData && (
                   <CsvFileBadge
@@ -384,7 +391,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                       }}
                       onDrop={(e) => {
                         e.preventDefault()
-                        if (e.dataTransfer.files[0].type !== 'text/csv') return false
+                        //  if (e.dataTransfer.files[0].type !== 'text/csv') return false //removed on purpose because it's not user friendly
                         handleCsvUpload(e.dataTransfer.files[0])
                       }}
                     >
@@ -409,7 +416,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                       />
                     </div>
                   )}
-                  {uploadState.status === 'inProgress' && (
+                  {uploadState.status === 'uploadInProgress' && (
                     <div className={`${groupsStyles.uploadArea} border-dashed hover:bg-accent focus:bg-accent`}>
                       <Image src={TempSpinner} alt="temorary spinner placeholder" width="80px" height="80px" />
                       <p>Upload in progress</p>
