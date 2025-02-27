@@ -328,7 +328,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
           <Button variant="default">Delete Members via CSV</Button>
         </DialogTrigger>
 
-        <CustomWidthDialogContent aria-describedby={undefined}>
+        <CustomWidthDialogContent aria-describedby={undefined} customHeight="h-[826px]" customWidth="w-[880px]">
           <div className="flex flex-col p-4 space-y-7">
             <DialogHeader>
               <DialogTitle className="font-semibold text-2xl/8">Remove multiple group members</DialogTitle>
@@ -368,7 +368,6 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                     Invalid file type. Only CSV files are allowed. Please upload a file with extension .csv.
                   </div>
                 )}
-                {uploadState.status === 'showBadge' && warning && <Warning />}
                 {csvData && (
                   <CsvFileBadge
                     hiddenClass={uploadState.status === 'showBadge' ? '' : 'hidden'}
@@ -436,7 +435,12 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                       <p>Upload complete</p>
                     </div>
                   )}
-                  {uploadState.status === 'showTable' && <CsvTable csvData={csvData} />}
+                  {uploadState.status === 'showTable' && (
+                    <>
+                      {warning && <Warning />}
+                      <CsvTable csvData={csvData} />
+                    </>
+                  )}
                   {uploadState.status === 'deletionInProgress' && <Loader />}
                   {uploadState.status === 'showDeletionResult' && (
                     <div>
@@ -556,13 +560,23 @@ function Loader() {
 
 function Warning() {
   return (
-    <Alert variant="destructive">
-      <AlertTitle>Some of member addresses were not uploaded.</AlertTitle>
-      <AlertDescription>
-        <p>Possible reasons: duplicate or invalid email address, or empty email address column.</p>
-        <p>Click "Next" to see the list of successfully uploaded email addresses.</p>
-      </AlertDescription>
-    </Alert>
+    <Dialog>
+      <div className="flex flex-row text-sm/5 gap-x-1">
+        <p className="text-destructive">(some) entries in the uploaded file were excluded from the list.</p>
+        <DialogTrigger asChild>
+          <p className={`w-fit ${groupsStyles.secondaryTextChart5} cursor-pointer`}>See details</p>
+        </DialogTrigger>
+      </div>
+      <CustomWidthDialogContent customWidth="w-[600px]">
+        <DialogHeader>
+          <DialogTitle>Exclusion details</DialogTitle>
+          <DialogDescription>
+            The following entries were excluded from the list of users set for removal.
+          </DialogDescription>
+        </DialogHeader>
+        <div>Table here</div>
+      </CustomWidthDialogContent>
+    </Dialog>
   )
 }
 
