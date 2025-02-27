@@ -35,8 +35,6 @@ import {
   CustomTableCell,
 } from '@/components/ui/custom-table'
 import Papa from 'papaparse'
-import Image from 'next/image'
-import TempSpinner from '@/app/ui/svg-icons/TempSpinner.svg'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 
 /**
@@ -417,8 +415,8 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                     </div>
                   )}
                   {uploadState.status === 'uploadInProgress' && (
-                    <div className={`${groupsStyles.uploadArea} border-dashed hover:bg-accent focus:bg-accent`}>
-                      <Image src={TempSpinner} alt="temorary spinner placeholder" width="80px" height="80px" />
+                    <div className={`${groupsStyles.uploadArea} border-dashed`}>
+                      <div className="loader"></div>
                       <p>Upload in progress</p>
                     </div>
                   )}
@@ -548,8 +546,10 @@ function CsvFileBadge({ fileName, setCsvData, hiddenClass, dispatchUploadState, 
 function Loader() {
   return (
     <>
-      {/* temporary loader */}
-      <div className="text-purple-500 text-center">.......Temporary Loader.......</div>
+      <div className={`${groupsStyles.uploadArea} border-dashed`}>
+        <div className="loader"></div>
+        <p>Deletion in progress</p>
+      </div>
     </>
   )
 }
