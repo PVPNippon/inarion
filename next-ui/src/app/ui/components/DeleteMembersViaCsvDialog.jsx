@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useRef, useReducer } from 'react'
+import React, { useState, useEffect, useRef, useReducer, useLayoutEffect } from 'react'
 import axios from 'axios'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,7 +35,20 @@ import {
   CustomTableCell,
 } from '@/components/ui/custom-table'
 import Papa from 'papaparse'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+
+function getOccurrence(array, value) {
+  return array.filter((v) => v === value).length
+}
+
+function calculateReason(allDataArray, filteredOutItem) {
+  if (filteredOutItem.email === '') {
+    return 'Email address empty'
+  } else if (getOccurrence(allDataArray, filteredOutItem.email) > 1) {
+    return 'Duplicate'
+  } else {
+    return 'Email address format invalid'
+  }
+}
 
 /**
  * Maps and filters CSV data for valid and unique email entries.
@@ -54,8 +67,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
  *                    each containing a name and email.
  */
 function mapAndFilterCsvData(data, setWarning) {
-  console.log('INITIAL DATA', data)
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  let filteredOut = []
 
   //handle mapping of different data formats(arrays or objects)
   const mappedData = data.map((item) => {
@@ -77,10 +90,21 @@ function mapAndFilterCsvData(data, setWarning) {
   console.log('uniqueDataArray', uniqueDataArray)
 
   if (data.length > uniqueDataArray.length) {
+    const allEmails = mappedData.map((item) => item.email).filter((email) => email !== '')
+
+    filteredOut = mappedData.reduce((acc, item) => {
+      if (item.email === '' && item.name === '') return acc
+      if (!uniqueDataArray.includes(item)) {
+        item.invalidReason = calculateReason(allEmails, item)
+        acc.push(item)
+      }
+      return acc
+    }, [])
+    console.log('filteredOutData', filteredOut)
     setWarning(true)
   }
 
-  return uniqueDataArray
+  return [uniqueDataArray, filteredOut]
 }
 
 /**
@@ -104,6 +128,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
   const [fileName, setFileName] = useState('')
   const [warning, setWarning] = useState(false)
   const [invalidFileType, setInvalidFileType] = useState(false)
+  const [filteredOutData, setFilteredOutData] = useState([])
 
   const initialState = {
     status: 'empty',
@@ -156,7 +181,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
    * @param {string} fileName - The name of the CSV file.
    */
   function handleUploadedDataAndState(data, fileName) {
-    const filteredData = mapAndFilterCsvData(data, setWarning)
+    const [filteredData, filteredOut] = mapAndFilterCsvData(data, setWarning)
     if (filteredData.length === 0) {
       setWarning(false)
       dispatchUploadState({ type: 'error' })
@@ -164,6 +189,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
     }
 
     setCsvData(filteredData)
+    setFilteredOutData(filteredOut)
     setFileName(fileName)
     dispatchUploadState({ type: 'complete' })
 
@@ -208,7 +234,6 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
       header: false,
       skipEmptyLines: true,
       complete: function (results) {
-        console.log('FALLBACK results:', results)
         let resultDataArray = results.data
         if (resultDataArray.length <= 2) {
           //the first 2 arrays are table name and table headers, so if there is no other data, it's not a valid CSV
@@ -218,7 +243,6 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
 
         if (validateParsedDataArray) {
           const tableDataArrays = resultDataArray.slice(2) //remove table name and table headers
-          console.log('tableDataArrays', tableDataArrays)
           handleUploadedDataAndState(tableDataArrays, file.name)
         }
       },
@@ -437,7 +461,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   )}
                   {uploadState.status === 'showTable' && (
                     <>
-                      {warning && <Warning />}
+                      {warning && <Warning warning={warning} filteredOutData={filteredOutData} />}
                       <CsvTable csvData={csvData} />
                     </>
                   )}
@@ -558,11 +582,13 @@ function Loader() {
   )
 }
 
-function Warning() {
+function Warning({ warning, filteredOutData }) {
   return (
     <Dialog>
       <div className="flex flex-row text-sm/5 gap-x-1">
-        <p className="text-destructive">(some) entries in the uploaded file were excluded from the list.</p>
+        <p className="text-destructive">
+          {`${filteredOutData.length} entries in the uploaded file were excluded from the list.`}{' '}
+        </p>
         <DialogTrigger asChild>
           <p className={`w-fit ${groupsStyles.secondaryTextChart5} cursor-pointer`}>See details</p>
         </DialogTrigger>
@@ -574,7 +600,26 @@ function Warning() {
             The following entries were excluded from the list of users set for removal.
           </DialogDescription>
         </DialogHeader>
-        <div>Table here</div>
+        <CustomTable>
+          <CustomTableHeader>
+            <CustomTableRow className="text-nowrap text-sm/4">
+              <CustomTableHead className="font-semibold">Email address or name</CustomTableHead>
+              <CustomTableHead className="font-semibold">Reason for exclusion</CustomTableHead>
+            </CustomTableRow>
+          </CustomTableHeader>
+          <CustomTableBody>
+            {warning &&
+              filteredOutData.map((memberObj, index) => {
+                const values = Object.values(memberObj)
+                return (
+                  <CustomTableRow className="text-xs/4 text-nowrap rounded-none" key={index}>
+                    <CustomTableCell>{values[1] === '' ? values[0] : values[1]}</CustomTableCell>
+                    <CustomTableCell>{values[2]}</CustomTableCell>
+                  </CustomTableRow>
+                )
+              })}
+          </CustomTableBody>
+        </CustomTable>
       </CustomWidthDialogContent>
     </Dialog>
   )
