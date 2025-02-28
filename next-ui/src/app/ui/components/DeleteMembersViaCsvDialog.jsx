@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useRef, useReducer, useLayoutEffect } from 'react'
+import React, { useState, useEffect, useRef, useReducer } from 'react'
 import axios from 'axios'
 import { Button } from '@/components/ui/button'
 import {
@@ -352,7 +352,13 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
           <Button variant="default">Delete Members via CSV</Button>
         </DialogTrigger>
 
-        <CustomWidthDialogContent aria-describedby={undefined} customHeight="h-[826px]" customWidth="w-[880px]">
+        <CustomWidthDialogContent
+          aria-describedby={undefined}
+          customHeight="h-[826px]"
+          customWidth="w-[880px]"
+          customDialogCloseClassName="right-4 top-[-38px]"
+          className="space-y-14"
+        >
           <div className="flex flex-col p-4 space-y-7">
             <DialogHeader>
               <DialogTitle className="font-semibold text-2xl/8">Remove multiple group members</DialogTitle>
@@ -593,18 +599,20 @@ function Warning({ warning, filteredOutData }) {
           <p className={`w-fit ${groupsStyles.secondaryTextChart5} cursor-pointer`}>See details</p>
         </DialogTrigger>
       </div>
-      <CustomWidthDialogContent customWidth="w-[600px]">
+      <CustomWidthDialogContent customDialogCloseClassName="right-4 top-4" className="min-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Exclusion details</DialogTitle>
+          <DialogTitle>
+            <span className="leading-7">Exclusion details</span>
+          </DialogTitle>
           <DialogDescription>
-            The following entries were excluded from the list of users set for removal.
+            <span className="text-xs">The following entries were excluded from the list of users set for removal.</span>
           </DialogDescription>
         </DialogHeader>
         <CustomTable>
           <CustomTableHeader>
-            <CustomTableRow className="text-nowrap text-sm/4">
-              <CustomTableHead className="font-semibold">Email address or name</CustomTableHead>
-              <CustomTableHead className="font-semibold">Reason for exclusion</CustomTableHead>
+            <CustomTableRow className="text-nowrap text-xs/4">
+              <CustomTableHead className="font-semibold px-6">Email address or name</CustomTableHead>
+              <CustomTableHead className="font-semibold px-6">Reason for exclusion</CustomTableHead>
             </CustomTableRow>
           </CustomTableHeader>
           <CustomTableBody>
@@ -613,8 +621,8 @@ function Warning({ warning, filteredOutData }) {
                 const values = Object.values(memberObj)
                 return (
                   <CustomTableRow className="text-xs/4 text-nowrap rounded-none" key={index}>
-                    <CustomTableCell>{values[1] === '' ? values[0] : values[1]}</CustomTableCell>
-                    <CustomTableCell>{values[2]}</CustomTableCell>
+                    <CustomTableCell className="px-6">{values[1] === '' ? values[0] : values[1]}</CustomTableCell>
+                    <CustomTableCell className="px-6">{values[2]}</CustomTableCell>
                   </CustomTableRow>
                 )
               })}
