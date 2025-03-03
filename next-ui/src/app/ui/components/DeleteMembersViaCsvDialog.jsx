@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { groupsStyles } from '@/app/[locale]/groups/group-variables'
-import { Download, CloudUpload, X, Check } from 'lucide-react'
+import { Download, CloudUpload, X, Check, CircleX, Copy } from 'lucide-react'
 import { CustomWidthDialogContent } from '@/components/ui/custom-dialog-content-width'
 import {
   CustomTable,
@@ -326,16 +326,16 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
         }
       )
       console.log('RESPONSE FROM BE', response)
-      setDeletionResult(response.data)
+      setDeletionResult({ status: 'success', responseData: response.data })
     } catch (err) {
       console.log('error', err)
 
       //error 400 means that the deletion was attempted, but failed for all members. The most probable cause is that the user uploaded a wrong file where all email addresses are not members of the target group.
       //for all other scenarios, display a generic error(for now)
       if (err.status === 400 && err.response.data) {
-        setDeletionResult(err.response.data)
+        setDeletionResult({ status: 'failure', responseData: err.response.data })
       } else {
-        setDeletionResult({ message: 'Something went wrong' })
+        setDeletionResult({ status: 'error', error: err })
       }
     } finally {
       setTimeout(() => {
@@ -473,8 +473,11 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   {uploadState.status === 'deletionInProgress' && <Loader />}
                   {uploadState.status === 'showDeletionResult' && (
                     <div>
-                      <p className="text-red-600">Deletion result</p>
-                      <div>{deletionResult && JSON.stringify(deletionResult)}</div>
+                      <div>
+                        {deletionResult && deletionResult.status === 'error' && (
+                          <DeletionError deletionResult={deletionResult} />
+                        )}
+                      </div>
                     </div>
                   )}
                 </>
@@ -671,6 +674,45 @@ function CsvTable({ csvData }) {
             })}
         </CustomTableBody>
       </CustomTable>
+    </>
+  )
+}
+
+function DeletionError({ deletionResult }) {
+  console.log('deletionResult', deletionResult)
+  const errorMessage = JSON.stringify(deletionResult.error, null, 2)
+    .replace(/\\n/g, '\n')
+    .replace(/"/g, '')
+    .replace(/:/g, ': ')
+    .replace(/,/g, ',\n')
+  return (
+    <>
+      <div className={`${groupsStyles.uploadArea} border-destructive`}>
+        <CircleX size={80} strokeWidth={1} className="stroke-destructive" />
+        <div className="flex flex-col gap-y-4 items-center justify-center text-center">
+          <div className="font-semibold text-base/6">There was an error</div>
+          <div>
+            {' '}
+            Members could not be removed from the group due to
+            <br />
+            an internal error. Please wait a while and try again.
+          </div>
+          <div>
+            <div
+              role="button"
+              onClick={() => {
+                navigator.clipboard.writeText(errorMessage)
+                alert('Detailed error message copied to clipboard')
+              }}
+              className="flex font-medium text-xs/4 gap-x-2.5 text-destructive cursor-pointer items-center
+              justify-center"
+            >
+              <Copy size={16} className="stroke-destructive" />
+              <span>Copy detailed error message</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </>
   )
 }
