@@ -66,7 +66,7 @@ function calculateReason(allDataArray, filteredOutItem) {
  * @returns {Array} - An array of unique and valid mapped data objects,
  *                    each containing a name and email.
  */
-function mapAndFilterCsvData(data, setWarning) {
+function mapAndFilterCsvData(data, setFilteredOutData) {
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
   let filteredOut = []
 
@@ -101,7 +101,7 @@ function mapAndFilterCsvData(data, setWarning) {
       return acc
     }, [])
     console.log('filteredOutData', filteredOut)
-    setWarning(true)
+    setFilteredOutData(filteredOut)
   }
 
   return [uniqueDataArray, filteredOut]
@@ -126,7 +126,6 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
   const [deletionResult, setDeletionResult] = useState([])
   const [csvData, setCsvData] = useState([])
   const [fileName, setFileName] = useState('')
-  const [warning, setWarning] = useState(false)
   const [invalidFileType, setInvalidFileType] = useState(false)
   const [filteredOutData, setFilteredOutData] = useState([])
 
@@ -181,9 +180,9 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
    * @param {string} fileName - The name of the CSV file.
    */
   function handleUploadedDataAndState(data, fileName) {
-    const [filteredData, filteredOut] = mapAndFilterCsvData(data, setWarning)
+    const [filteredData, filteredOut] = mapAndFilterCsvData(data, setFilteredOutData)
     if (filteredData.length === 0) {
-      setWarning(false)
+      setFilteredOutData([])
       dispatchUploadState({ type: 'error' })
       return
     }
@@ -404,7 +403,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                     fileName={fileName}
                     setCsvData={setCsvData}
                     dispatchUploadState={dispatchUploadState}
-                    setWarning={setWarning}
+                    setFilteredOutData={setFilteredOutData}
                   />
                 )}
               </div>
@@ -467,7 +466,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   )}
                   {uploadState.status === 'showTable' && (
                     <>
-                      {warning && <Warning warning={warning} filteredOutData={filteredOutData} />}
+                      {filteredOutData && filteredOutData.length > 0 && <Warning filteredOutData={filteredOutData} />}
                       <CsvTable csvData={csvData} />
                     </>
                   )}
@@ -505,7 +504,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   setCsvData([])
                   setFileName('')
                   setDeletionResult([])
-                  setWarning(false)
+                  setFilteredOutData([])
                   dispatchUploadState({ type: 'empty' })
                 }}
               >
@@ -557,7 +556,7 @@ function CsvTemplateDownloader({ hiddenClass }) {
   )
 }
 
-function CsvFileBadge({ fileName, setCsvData, hiddenClass, dispatchUploadState, setWarning }) {
+function CsvFileBadge({ fileName, setCsvData, hiddenClass, dispatchUploadState, setFilteredOutData }) {
   if (!fileName) return
 
   return (
@@ -567,7 +566,7 @@ function CsvFileBadge({ fileName, setCsvData, hiddenClass, dispatchUploadState, 
         role="button"
         onClick={() => {
           setCsvData([])
-          setWarning(false)
+          setFilteredOutData([])
           dispatchUploadState({ type: 'empty' })
         }}
       >
@@ -588,7 +587,7 @@ function Loader() {
   )
 }
 
-function Warning({ warning, filteredOutData }) {
+function Warning({ filteredOutData }) {
   return (
     <Dialog>
       <div className="flex flex-row text-sm/5 gap-x-1">
@@ -616,7 +615,7 @@ function Warning({ warning, filteredOutData }) {
             </CustomTableRow>
           </CustomTableHeader>
           <CustomTableBody>
-            {warning &&
+            {filteredOutData &&
               filteredOutData.map((memberObj, index) => {
                 const values = Object.values(memberObj)
                 return (
