@@ -369,44 +369,47 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
 
             <div
               className={`${groupsStyles.roundBorder} flex flex-col space-y-8 ${
-                uploadState.status === 'showBadge' ? '' : 'h-[534px]'
+                //temporarily set same height for all related screens
+                'h-[534px]'
               } w-[768px] p-8`}
             >
-              <div className="flex flex-col gap-y-4">
-                <div className="flex flex-col gap-y-1">
-                  <div className="font-semibold text-2xl/8">
-                    {uploadState.status === 'showTable' ? 'Confirm list' : 'Upload CSV'}
+              {uploadState.status !== 'deletionInProgress' && uploadState.status !== 'showDeletionResult' && (
+                <div className="flex flex-col gap-y-4">
+                  <div className="flex flex-col gap-y-1">
+                    <div className="font-semibold text-2xl/8">
+                      {uploadState.status === 'showTable' ? 'Confirm list' : 'Upload CSV'}
+                    </div>
+                    <div className="text-muted-foreground text-sm/5">
+                      {uploadState.status === 'showTable'
+                        ? 'Review the list of members set for removal.'
+                        : 'Upload a CSV file and review the list of member(s) who will be removed.'}
+                    </div>
                   </div>
-                  <div className="text-muted-foreground text-sm/5">
-                    {uploadState.status === 'showTable'
-                      ? 'Review the list of members set for removal.'
-                      : 'Upload a CSV file and review the list of member(s) who will be removed.'}
-                  </div>
-                </div>
-                <CsvTemplateDownloader
-                  hiddenClass={
-                    uploadState.status === 'showBadge' ||
-                    uploadState.status === 'showTable' ||
-                    uploadState.status === 'showDeletionResult'
-                      ? 'hidden'
-                      : ''
-                  }
-                />
-                {invalidFileType && (
-                  <div className="text-destructive text-sm/5">
-                    Invalid file type. Only CSV files are allowed. Please upload a file with extension .csv.
-                  </div>
-                )}
-                {csvData && (
-                  <CsvFileBadge
-                    hiddenClass={uploadState.status === 'showBadge' ? '' : 'hidden'}
-                    fileName={fileName}
-                    setCsvData={setCsvData}
-                    dispatchUploadState={dispatchUploadState}
-                    setFilteredOutData={setFilteredOutData}
+                  <CsvTemplateDownloader
+                    hiddenClass={
+                      uploadState.status === 'showBadge' ||
+                      uploadState.status === 'showTable' ||
+                      uploadState.status === 'showDeletionResult'
+                        ? 'hidden'
+                        : ''
+                    }
                   />
-                )}
-              </div>
+                  {invalidFileType && (
+                    <div className="text-destructive text-sm/5">
+                      Invalid file type. Only CSV files are allowed. Please upload a file with extension .csv.
+                    </div>
+                  )}
+                  {csvData && (
+                    <CsvFileBadge
+                      hiddenClass={uploadState.status === 'showBadge' ? '' : 'hidden'}
+                      fileName={fileName}
+                      setCsvData={setCsvData}
+                      dispatchUploadState={dispatchUploadState}
+                      setFilteredOutData={setFilteredOutData}
+                    />
+                  )}
+                </div>
+              )}
               {uploadState !== null && (
                 <>
                   {uploadState.status === 'empty' && (
@@ -477,6 +480,11 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                         {deletionResult && deletionResult.status === 'error' && (
                           <DeletionError deletionResult={deletionResult} />
                         )}
+
+                        {deletionResult &&
+                          (deletionResult.status === 'success' || deletionResult.status === 'failure') && (
+                            <DeletionResultScreen deletionResult={deletionResult} />
+                          )}
                       </div>
                     </div>
                   )}
@@ -582,7 +590,7 @@ function CsvFileBadge({ fileName, setCsvData, hiddenClass, dispatchUploadState, 
 function Loader() {
   return (
     <>
-      <div className={`${groupsStyles.uploadArea} border-dashed`}>
+      <div className={`${groupsStyles.uploadAreaExtended} border-dashed`}>
         <div className="loader"></div>
         <p>Deletion in progress</p>
       </div>
@@ -687,7 +695,7 @@ function DeletionError({ deletionResult }) {
     .replace(/,/g, ',\n')
   return (
     <>
-      <div className={`${groupsStyles.uploadArea} border-destructive`}>
+      <div className={`${groupsStyles.uploadAreaExtended} border-destructive`}>
         <CircleX size={80} strokeWidth={1} className="stroke-destructive" />
         <div className="flex flex-col gap-y-4 items-center justify-center text-center">
           <div className="font-semibold text-base/6">There was an error</div>
@@ -708,11 +716,31 @@ function DeletionError({ deletionResult }) {
               justify-center"
             >
               <Copy size={16} className="stroke-destructive" />
-              <span>Copy detailed error message</span>
+              <span>Copy error message</span>
             </div>
           </div>
         </div>
       </div>
     </>
   )
+}
+
+function DeletionResultScreen({ deletionResult }) {
+  return (
+    <div className="flex flex-col gap-y-4">
+      <div className="flex flex-col gap-y-1">
+        <div className="font-semibold text-2xl/8">Results</div>
+        {(deletionResult.status === 'failure' || deletionResult.responseData.undeletedMembers.length > 0) && (
+          <div>Removal failed for some users</div>
+        )}
+        {deletionResult.status === 'success' && deletionResult.responseData.undeletedMembers.length === 0 && (
+          <div>{`${deletionResult.responseData.deletedMembers.length} member(s) were removed successfully`}</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function DeletionResultTable({ deletionResult }) {
+  return <div>Table Here</div>
 }

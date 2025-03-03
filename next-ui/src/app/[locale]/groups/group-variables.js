@@ -11,6 +11,7 @@ export const groupsStyles = {
   tableHeaderText: 'text-inherit',
   //member deletion by csv dialog window
   uploadArea: 'h-[344px] w-[704px] border rounded-md flex flex-col justify-center items-center gap-y-2',
+  uploadAreaExtended: 'h-[470px] w-[704px] border rounded-md flex flex-col justify-center items-center gap-y-2',
 }
 
 export const groupElementIds = {
