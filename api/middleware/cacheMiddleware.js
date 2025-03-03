@@ -1,15 +1,20 @@
 const config = require('../config/config')
 const {
+  checkIfKeyExistsInCache,
+  fetchSetOfFilesFromCache,
   fetchDataFromCache,
   storeDataInCache,
   fetchCommonItemsAcrossSets,
   fetchMultipleKeysFromCache,
+  clearKeyInCache,
 } = require('../controllers/cacheController')
 const { createOrUpdateFiltersForFile } = require('../helper/redis/redisFiltersHelper')
 const populateDataModel = require('../models/redisDriveItem')
 const { generateTransaction, executeTransaction } = require('../services/redisCacheService')
 const { createRedisKey } = require('../utility/utilityFunctions')
 const logger = require('../logger/logger')(__filename, 'Cache Middleware')
+
+// ---------------------------- Store ----------------------------
 
 /**
  * Middleware to store Google Drive data and filters in Redis cache.
@@ -173,6 +178,126 @@ const storeDirectPathToRootFolderInCache = async (req, res, next) => {
     })
   }
 }
+
+/**
+ * Middleware to store filtered files from cache.
+ *
+ * This middleware checks if response locals already contain cached data. If not, it retrieves
+ * necessary information from res.locals and stores the filtered file data in Redis. Depending on
+ * whether only shared drives are being listed or not, it constructs the appropriate Redis keys
+ * and delegates storage to storeDataInCache. This design centralizes caching logic, ensuring consistency
+ * and maintainability across the application.
+ *
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object containing local data.
+ * @param {Function} next - Express middleware next function.
+ * @returns {Promise<void>} Proceeds to the next middleware if caching is successful.
+ * @throws {Error} Returns a 500 HTTP response with an error message if an error occurs.
+ */
+const storeFilteredFilesFromCache = async (req, res, next) => {
+  try {
+    // If cached data is already available in res.locals, skip caching to avoid redundant operations.
+    if (res.locals.data) {
+      return next()
+    }
+
+    // Destructure necessary variables from res.locals for further processing.
+    const { allFiles, remainingDrives, nextPageToken, filtersKey, ownerType, driveType, onlyListSharedDrives } =
+      res.locals
+
+    let filesSet = new Set()
+    if (onlyListSharedDrives) {
+      // For shared drives-only: store the list of drive IDs and nextPageToken.
+
+      // Create a Redis key for storing files related to shared drives.
+      const drivesKey = createRedisKey(config.DOMAIN_TEST, config.FILTERS, driveType, ownerType, filtersKey, 'files')
+      await storeDataInCache({
+        key: drivesKey,
+        data: allFiles,
+        dataType: config.SORTED_SETS,
+      })
+
+      // If a nextPageToken is present, store it using an appropriate Redis key.
+      if (nextPageToken) {
+        const nextPageTokenKey = createRedisKey(
+          config.DOMAIN_TEST,
+          config.FILTERS,
+          driveType,
+          ownerType,
+          filtersKey,
+          'next-page-token'
+        )
+        await storeDataInCache({
+          key: nextPageTokenKey,
+          data: nextPageToken,
+          dataType: config.STRING,
+        })
+      }
+    } else {
+      // For files: store the list of file IDs, along with remaining drives and nextPageToken if applicable.
+
+      // Extract file IDs from allFiles and create a set to eliminate duplicates.
+      filesSet = allFiles.map((file) => file.id)
+
+      const filesKey = createRedisKey(config.DOMAIN_TEST, config.FILTERS, driveType, ownerType, filtersKey, 'files')
+      await storeDataInCache({
+        key: filesKey,
+        data: filesSet,
+        dataType: config.SORTED_SETS,
+      })
+
+      // Generate Redis keys for remaining drives and nextPageToken.
+      const remainingDrivesKey = createRedisKey(
+        config.DOMAIN_TEST,
+        config.FILTERS,
+        driveType,
+        ownerType,
+        filtersKey,
+        'remaining-drives-list'
+      )
+      const nextPageTokenKey = createRedisKey(
+        config.DOMAIN_TEST,
+        config.FILTERS,
+        driveType,
+        ownerType,
+        filtersKey,
+        'next-page-token'
+      )
+
+      // If there are no remaining drives and no nextPageToken, clear the keys to prevent stale data.
+      if ((!remainingDrives || remainingDrives.length === 0) && !nextPageToken) {
+        await clearKeyInCache([remainingDrivesKey, nextPageTokenKey])
+      } else {
+        // If remaining drives exist, store them in cache.
+        if (remainingDrives && remainingDrives.length > 0) {
+          await storeDataInCache({
+            key: remainingDrivesKey,
+            data: remainingDrives,
+            dataType: config.SETS,
+          })
+        }
+        // Similarly, store the nextPageToken if available.
+        if (nextPageToken) {
+          await storeDataInCache({
+            key: nextPageTokenKey,
+            data: nextPageToken,
+            dataType: config.STRING,
+          })
+        }
+      }
+    }
+
+    // Set res.locals.data to the cached drive or file identifiers for downstream middleware consumption.
+    res.locals.data = onlyListSharedDrives ? allFiles : filesSet
+    next()
+  } catch (error) {
+    // Log the error details and respond with a 500 status to indicate a caching failure.
+    logger.error('Error storing in cache:', error.message)
+    return res.status(500).json({ message: 'Failed to store in cache.', error: error.message })
+  }
+}
+
+// ---------------------------- Fetch --------------------------------
 
 /**
  * Middleware to fetch Google Drive data and filters from Redis cache.
@@ -362,7 +487,175 @@ const fetchDirectPathToRootFolderFromCache = async (req, res, next) => {
   }
 }
 
+/**
+ * Middleware to fetch filtered files from cache and validate query parameters.
+ *
+ * This middleware validates incoming query parameters (e.g., page, owner, sharedDrive) to ensure
+ * that they are correctly formatted and logically consistent. It then builds Redis keys using
+ * these parameters, calculates the range for pagination, and attempts to retrieve the relevant
+ * cached data. The middleware handles partial cache hits by also retrieving nextPageToken and remaining
+ * drives when necessary, and passes these values along via res.locals for subsequent processing.
+ *
+ * @param {Object} req - Express request object containing query parameters.
+ * @param {Object} res - Express response object used for returning responses and storing fetched data.
+ * @param {Function} next - Express middleware next function.
+ * @returns {Promise<void>} Proceeds to the next middleware if cache retrieval and parameter validation succeed.
+ * @throws {Error} Returns a 400 or 500 HTTP response with an error message if validation fails or a caching error occurs.
+ */
+const fetchFilteredFilesFromCache = async (req, res, next) => {
+  try {
+    // --- Parse and validate query parameters ---
+    const { page, onlyListSharedDrives, listFilesInsideSharedDrives, owner, sharedDrive, ...filters } = req.query
+
+    const pageNumber = Number(page)
+    const hasMember = Boolean(filters.hasMember)
+    const hasManagers = Boolean(filters.hasManagers)
+    const countNumber = Number(config.ITEM_LIMIT)
+
+    // Ensure that the page parameter is provided.
+    if (page === undefined || page === null || page === '') {
+      return res.status(400).json({ message: 'Page parameter not provided' })
+    }
+
+    // Validate that the page parameter is a positive integer.
+    if (!Number.isInteger(pageNumber) || pageNumber < 1) {
+      return res.status(400).json({ message: 'Invalid page parameter' })
+    }
+
+    // Validate mutually exclusive parameters: cannot provide listFilesInsideSharedDrives with owner.
+    if (owner && Boolean(listFilesInsideSharedDrives)) {
+      return res.status(400).json({
+        message:
+          "Invalid query parameters: Cannot provide 'listFilesInsideSharedDrives=true' when 'owner' is specified.",
+      })
+    }
+
+    // Ensure that only one of owner or sharedDrive is specified.
+    if (owner && sharedDrive) {
+      return res.status(400).json({
+        message: "Please select either from a shared drive or from a user's my drive",
+      })
+    }
+
+    // Validate that hasMembers or hasManagers are only used when onlyListSharedDrives is true.
+    if ((filters.hasMembers || filters.hasManagers) && !Boolean(onlyListSharedDrives)) {
+      return res.status(400).json({
+        message: 'hasMembers or hasManagers can only be selected when onlyListSharedDrives is true',
+      })
+    }
+
+    // Determine ownerType based on the onlyListSharedDrives flag and provided parameters.
+    let ownerType
+    if (Boolean(onlyListSharedDrives)) {
+      ownerType = 'metadata'
+    } else {
+      ownerType = owner ? owner : sharedDrive
+    }
+
+    // Determine driveType based on provided query flags.
+    const driveType =
+      Boolean(listFilesInsideSharedDrives) || Boolean(onlyListSharedDrives) ? 'shared-drives' : 'all-drives'
+
+    // --- Build the filter key and corresponding Redis keys ---
+    const cacheKey = buildQueryString(filters)
+    const filtersKey = cacheKey.length === 0 ? 'no-filters' : cacheKey
+
+    // Create unique Redis keys for files, next page token, and remaining drives.
+    const listOfFilesKey = createRedisKey(config.DOMAIN_TEST, config.FILTERS, driveType, ownerType, filtersKey, 'files')
+    const nextPageTokenKey = createRedisKey(
+      config.DOMAIN_TEST,
+      config.FILTERS,
+      driveType,
+      ownerType,
+      filtersKey,
+      'next-page-token'
+    )
+    const remainingDrivesKey = createRedisKey(
+      config.DOMAIN_TEST,
+      config.FILTERS,
+      driveType,
+      ownerType,
+      filtersKey,
+      'remaining-drives-list'
+    )
+
+    // --- Calculate the requested range for pagination ---
+    const startIndex = (pageNumber - 1) * countNumber + 1
+    const endIndex = pageNumber * countNumber
+
+    // Check if the cache contains a sorted set for the list of files.
+    const keyExistsInCache = await checkIfKeyExistsInCache(listOfFilesKey, config.SORTED_SETS)
+    // console.log('listOfFilesKey =', listOfFilesKey)
+    // console.log('nextPageTokenKey =', nextPageTokenKey)
+    // console.log('keyExistsInCache =', keyExistsInCache)
+
+    if (keyExistsInCache) {
+      // Attempt to fetch a specific page of files from the cached sorted set.
+      const cachedPageFiles = await fetchSetOfFilesFromCache(listOfFilesKey, startIndex, endIndex, config.SORTED_SETS)
+
+      if (cachedPageFiles && cachedPageFiles.length > 0) {
+        // If the complete page is available, store the data for further processing.
+        res.locals.data = cachedPageFiles
+      } else {
+        // In case of a partial cache hit, attempt to retrieve pagination details.
+        const nextPageToken = await fetchDataFromCache(nextPageTokenKey, config.STRING)
+
+        if (nextPageToken) {
+          // Pass the nextPageToken and remaining drives data to res.locals for downstream use.
+          res.locals.nextPageToken = nextPageToken
+          res.locals.remainingDrives = await fetchDataFromCache(remainingDrivesKey, config.SETS)
+        } else {
+          // If no nextPageToken exists, assume the fetched data represents the final page.
+          res.locals.data = cachedPageFiles
+        }
+      }
+    }
+
+    // --- Pass additional validated and computed data to subsequent middleware ---
+    res.locals.filters = filters
+    res.locals.fileCount = countNumber
+    res.locals.filtersKey = filtersKey
+    res.locals.ownerType = ownerType
+    res.locals.driveType = driveType
+    res.locals.hasMember = hasMember
+    res.locals.hasManagers = hasManagers
+
+    res.locals.onlyListSharedDrives = Boolean(onlyListSharedDrives)
+    res.locals.listFilesInsideSharedDrives = Boolean(listFilesInsideSharedDrives)
+
+    // Propagate owner information if provided.
+    if (owner || sharedDrive) {
+      res.locals.owner = owner || sharedDrive
+    }
+
+    // TODO: Replace hardcoded admin email with dynamic retrieval from session or JWT.
+    res.locals.adminEmail = 'testadmin@pvp-test-domain2.com'
+
+    next()
+  } catch (error) {
+    // Log the error with context and return a 500 error response for cache fetching failures.
+    logger.error('Error fetching from cache:', error.message)
+    return res.status(500).json({ message: 'Cache error.', error: error.message })
+  }
+}
+
 // ---------------------------- Helper Functions ----------------------------
+
+/**
+ * Helper function to build a query string from an object of query parameters.
+ *
+ * This function converts key-value pairs into a query string format, which can be used to
+ * generate unique cache keys based on filtering criteria. It is essential for maintaining
+ * consistency in cache key generation across different query parameter combinations.
+ *
+ * @param {Object} queryParams - An object representing query parameters.
+ * @returns {string} A string where each key-value pair is joined by '=' and pairs are separated by '&'.
+ */
+function buildQueryString(queryParams) {
+  return Object.entries(queryParams)
+    .map(([key, value]) => `${key}=${value}`)
+    .join('&')
+}
 
 /**
  * Fetches items from the cache based on provided filter criteria.
@@ -423,9 +716,6 @@ async function fetchAllItemsFromCache(count, cursor = '0') {
       const hashData = await fetchDataFromCache(key, config.HASH)
       allItemsData.push(hashData.name) // Store each hash's data
     }
-
-    console.log(' fetched items:', allItemsData)
-
     return { allItemsData, nextCursor } // Return fetched items and nextCursor for further pagination
   } catch (error) {
     console.error(`Error fetching items from cache: ${error.message}`)
@@ -589,13 +879,15 @@ const storeItemInfo = async (item, redisTransaction) => {
 }
 
 module.exports = {
-  // fetch from cache
-  fetchDriveDataFromCache,
-  fetchEntireDriveStructureFromCache,
-  fetchDirectPathToRootFolderFromCache,
-
   // store in cache
   storeDriveDataInCache,
   storeEntireDriveStructureInCache,
   storeDirectPathToRootFolderInCache,
+  storeFilteredFilesFromCache,
+
+  // fetch from cache
+  fetchDriveDataFromCache,
+  fetchEntireDriveStructureFromCache,
+  fetchDirectPathToRootFolderFromCache,
+  fetchFilteredFilesFromCache,
 }
