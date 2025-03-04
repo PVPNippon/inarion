@@ -557,3 +557,53 @@ exports.getSettings = async (req, res, next) => {
   }
   next()
 }
+
+
+
+exports.listParents = async (req, res, next) => {
+  if (res.locals.cached) {
+    return next()
+  }
+
+  const { userEmail } = req.query
+  const { targetEmail } = req.params
+
+  try {
+    const parents = await groupsService.listParents({
+      userEmail,
+      targetEmail
+    })
+
+    res.locals.data = parents
+    logger.debug('Returning list of groups', { storeLocation: 'both' })
+  } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: 'Error fetching groups' }
+    logger.error(error)
+  }
+  next()
+}
+
+exports.getNestedMembershipTest = async (req, res, next) => {
+  if (res.locals.cached) {
+    return next()
+  }
+
+  const { userEmail } = req.query
+  const { targetEmail } = req.params
+  
+  try {
+    const ancestors = await groupsService.getNestedTableTest({
+      userEmail,
+      targetEmail
+    })
+
+    res.locals.data = ancestors
+    logger.debug('Returning list of groups', { storeLocation: 'both' })
+  } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: 'Error fetching groups' }
+    logger.error(error)
+  }
+  next()
+}

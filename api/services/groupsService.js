@@ -865,6 +865,146 @@ async function getSettings({ userEmail, groupEmail, client }) {
   return response
 }
 
+async function listParents({ userEmail, targetEmail, client }) {
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+  const parents = []
+  let groupsResponse // Response from the API
+
+  const requestObj = {
+    customer: 'my_customer',
+    maxResults: 200, //max allowed value
+    orderBy: 'email',
+    query: `memberKey=${targetEmail}`,
+  }
+
+  do {
+    // Fetch groups
+    groupsResponse = await directory.groups.list(requestObj)
+
+    //if there are no groups in the organization, return an empty array
+    if (typeof groupsResponse.data.groups === 'undefined') break
+
+    // Append the fetched groups to the groups array
+    parents.push(...groupsResponse.data.groups)
+
+    //repeat until there are no more pages(i.e. no nextPageToken returned by google)
+  } while ((requestObj.pageToken = groupsResponse.data.nextPageToken)) // Continue fetching groups while there are more pages
+
+  return parents
+}
+
+async function getNestedTableTest({ userEmail, targetEmail, client }) {
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+
+  const directParents = await listParents({ userEmail, targetEmail, directory })
+
+  let groupEmails = directParents.map(({ email }) => email)
+
+  const directParentsSet = new Set(groupEmails)
+
+  // TODO: fetch the timestamps of the direct parents
+
+  const ancestorsMap = new Map()
+
+  let height = 2
+
+  while (groupEmails.length > 0) {
+    const responses = await Promise.allSettled(groupEmails.map(groupEmail => listParents({ userEmail, targetEmail: groupEmail, directory })))
+    const nextGroupEmails = []
+
+    for (let i = 0; i < responses.length; i++) {
+      if (responses[i].status === 'rejected') {
+        continue
+      }
+
+      const groupEmail = groupEmails[i]
+
+      for (const { email: parentEmail } of responses[i].value) {
+
+        if (directParentsSet.has(parentEmail)) {
+          continue
+        }
+
+        const mapEntry = ancestorsMap.get(parentEmail)
+
+        if (mapEntry) {
+          mapEntry.inherited.push(groupEmail)
+        } else {
+          ancestorsMap.set(parentEmail, { email: parentEmail, membership: 'Inherited', inherited: [groupEmail], height })
+          nextGroupEmails.push(parentEmail)
+        }
+      }
+    }
+
+    height++
+    groupEmails = nextGroupEmails
+  }
+
+  const result = [...directParentsSet.values()].map(email => ({ email, membership: 'Direct', height: 1 }))
+  result.push(...ancestorsMap.values())
+
+  return result
+}
+
+async function getActivityLogsTest({ userEmail, applicationName, eventName, client }) {
+  const reports = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'reports'))
+
+  const requestObj = {
+    customerId: 'my_customer',
+    userKey: 'all',
+    applicationName,
+    eventName,
+    maxResults: 1000, //max allowed value
+  }
+
+  const activityLogs = [] // Container for activity logs retrieved
+  let activityResponse // Response from the API
+  
+  do {
+    activityResponse = await reports.activities.list(requestObj)
+
+    if (typeof activityResponse.data.items !== 'undefined') {
+      activityLogs.push(...activityResponse.data.items)
+    }
+  } while ((requestObj.pageToken = activityResponse.data.nextPageToken))
+
+  return activityLogs // Return all fetched activity logs
+}
+
+async function getJoinGroupsLogsTest({ userEmail, client }) {
+  const reports = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'reports'))
+
+  const applicationNameToEventNames = {
+    'admin': ['ADD_GROUP_MEMBER'],
+    'groups': ['accept_invitation', 'add_user', 'approve_join_request', 'join', 'join_via_email'],
+    'groups_enterprise': ['accept_invitation', 'add_member', 'approve_join_request', 'join']
+  }
+
+  const requests = []
+
+  for (const applicationName in applicationNameToEventNames) {
+    for (const eventName of applicationNameToEventNames[applicationName]) {
+      requests.push(getActivityLogsTest({ userEmail, applicationName, eventName, client }))
+    }
+  }
+
+  const responses = await Promise.allSettled(requests)
+
+  console.log('groupsService.getJoinGroupsLogsTest() responses:', responses)
+
+  const activityLogs = []
+
+  for (const response of responses) {
+    if (response.status === 'fulfilled' && response.value) {
+      activityLogs.push(...response.value)
+    }
+  }
+
+  activityLogs.sort((a, b) => new Date(b.id.time) - new Date(a.id.time))
+
+  return activityLogs
+}
+
 module.exports = {
   listGroups,
   getGroupByEmail,
@@ -877,4 +1017,8 @@ module.exports = {
   deleteMemberFromGroupsWithRateLimit,
   createGroup,
   getSettings,
+
+  listParents,
+  getNestedTableTest,
+  getJoinGroupsLogsTest,
 }

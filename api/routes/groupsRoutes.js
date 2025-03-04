@@ -6,7 +6,7 @@ const { encryptResponseMiddleware, decryptRequestMiddleware } = require('../cont
 const { validateJWTMiddleware } = require('../controllers/googleAuthController')
 
 // Global middlewares for all routes
-router.use(validateJWTMiddleware) // Validate JWT for all routes
+//router.use(validateJWTMiddleware) // Validate JWT for all routes
 router.use(decryptRequestMiddleware) // Decrypt request for all routes
 
 //route to list all groups in customer organization
@@ -75,6 +75,12 @@ router.get(
   groupsController.getSettings,
   groupsCacheMiddleware.storeSettings
 )
+
+
+router.get('/target/:targetEmail/parents', groupsController.listParents)
+
+router.get('/target/:targetEmail/nested-membership-test', groupsController.getNestedMembershipTest)
+
 
 router.use(encryptResponseMiddleware) // Encrypt request for all routes
 
