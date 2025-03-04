@@ -865,6 +865,91 @@ async function getSettings({ userEmail, groupEmail, client }) {
   return response
 }
 
+/**
+ * Adds a member to a group using the Google Admin Directory API.
+ *
+ * This function takes the `userEmail`, `groupEmail`, `memberEmail`, and an optional `client` from the argument object `params`.
+ * It uses these values to make an API call to add the member to the group.
+ *
+ * @param {Object} params - The parameters needed to add a member to a group.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {string} params.groupEmail - The email address of the group to which the member is to be added.
+ * @param {string} params.memberEmail - The email address of the member who is to be added to the group specified by `groupEmail`.
+ * @param {Object} [params.client=null] - An existing impersonated auth client for Directory API.
+ * @returns {Promise<Object>} - A promise that resolves to the response from the API call.
+ * @throws {Error} - Throws an error if there is an issue with the API call or if the client is incorrect.
+ */
+//Warning: copied and pasted from deleteMember almost as is.
+//If you need to implement this method for the actual use at the project, please give it some thought and change if necessary.
+async function addMember({ userEmail, groupEmail, memberEmail, client }) {
+  //Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+
+  const response = await directory.members.insert({
+    groupKey: groupEmail,
+    resource: {
+      email: memberEmail,
+    },
+  })
+
+  return response
+}
+
+/**
+ * Adds multiple members to a group using the Google Admin Directory API.
+ *
+ * This function takes the `userEmail`, `groupEmail`, `memberEmails` and optional `client` from the argument object `params`.
+ * It uses these values to make multiple API calls to add the members to the group.
+ *
+ * @param {Object} params - The parameters needed to add members to a group.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {string} params.groupEmail - The email address of the group to which the members are to be added.
+ * @param {string[]} params.memberEmails - The email addresses of the members who are to be added to the group specified by `groupEmail`.
+ * @param {Object} [params.client=null] - An existing impersonated auth client for Directory API.
+ * @returns {Promise<Object>} - A promise that resolves to an object which has 2 arrays, an array of added members and an array of not added members.
+ * @throws {Error} - Throws an error if there is an issue with the API call or if the client is incorrect.
+ */
+//Warning: copied and pasted from deleteMembers almost as is.
+//If you need to implement this method for the actual use at the project, please give it some thought and change if necessary.
+async function addMembers({ userEmail, groupEmail, memberEmails, client }) {
+  //Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+
+  const addedMembers = [] // Container for successfully added members
+  const unaddedMembers = [] // Container for failed members
+
+  // Add members in parallel
+  const responseArray = await Promise.allSettled(
+    memberEmails.map((memberEmail) =>
+      addMember({
+        groupEmail,
+        memberEmail,
+        client: directoryClient,
+      })
+    )
+  )
+
+  memberEmails.forEach((memberEmail, index) => {
+    // If the adding of a member succeeded, put the member email and statusCode (= 200) to the addedMembers array.
+    if (responseArray[index].status === 'fulfilled') {
+      addedMembers.push({
+        email: memberEmail,
+        statusCode: responseArray[index].value.status,
+      })
+
+      // If the adding of a member failed, put the member email, statusCode and the error message to the unaddedMembers array.
+    } else {
+      unaddedMembers.push({
+        email: memberEmail,
+        statusCode: responseArray[index].reason.status,
+        errorMessage: responseArray[index].reason.message,
+      })
+    }
+  })
+
+  return { addedMembers, unaddedMembers }
+}
+
 module.exports = {
   listGroups,
   getGroupByEmail,
@@ -877,4 +962,5 @@ module.exports = {
   deleteMemberFromGroupsWithRateLimit,
   createGroup,
   getSettings,
+  addMembers,
 }
