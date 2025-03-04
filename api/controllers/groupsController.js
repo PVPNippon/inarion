@@ -167,12 +167,16 @@ exports.getGroupActivity = async (req, res, next) => {
   }
 
   const { userEmail } = req.query
+  const applicationName = req.query.applicationName ?? 'groups_enterprise'
+  const eventName = req.query.eventName
   console.log('retrieving group activity: ', userEmail)
 
   try {
     // Fetch the list of group activity
-    const response = await groupsService.getAllGroupsLogs({
+    const response = await groupsService.getActivityLogs({
       userEmail,
+      applicationName,
+      eventName,
     })
 
     res.locals.data = response
