@@ -687,7 +687,6 @@ function CsvTable({ csvData }) {
 }
 
 function DeletionError({ deletionResult }) {
-  console.log('deletionResult', deletionResult)
   const errorMessage = JSON.stringify(deletionResult.error, null, 2)
     .replace(/\\n/g, '\n')
     .replace(/"/g, '')
@@ -737,10 +736,61 @@ function DeletionResultScreen({ deletionResult }) {
           <div>{`${deletionResult.responseData.deletedMembers.length} member(s) were removed successfully`}</div>
         )}
       </div>
+      <DeletionResultTable deletionResult={deletionResult} />
     </div>
   )
 }
 
 function DeletionResultTable({ deletionResult }) {
-  return <div>Table Here</div>
+  console.log('deletionResult', deletionResult)
+  const [memberList, setMemberList] = useState([])
+  const data = deletionResult.responseData
+  let deletedMembersArray = []
+  let undeletedMembersArray = []
+
+  useEffect(() => {
+    if (data.deletedMembers.length > 0) {
+      deletedMembersArray = data.deletedMembers.map((member) => {
+        return {
+          email: member.email,
+          status: 'Removed successfully',
+          reason: '-',
+        }
+      })
+    }
+
+    if (data.undeletedMembers.length > 0) {
+      undeletedMembersArray = data.undeletedMembers.map((member) => {
+        return {
+          email: member.email,
+          status: 'Removal failed',
+          reason: member.statusCode === 400 || member.statusCode === 404 ? 'Not a member' : '-',
+        }
+      })
+    }
+
+    setMemberList([...deletedMembersArray, ...undeletedMembersArray])
+  }, [data])
+
+  return (
+    <CustomTable>
+      <CustomTableHeader>
+        <CustomTableRow className="text-nowrap text-sm/4">
+          <CustomTableHead className="font-semibold">Member email</CustomTableHead>
+          <CustomTableHead className="font-semibold">Status</CustomTableHead>
+          <CustomTableHead className="font-semibold">Reason</CustomTableHead>
+        </CustomTableRow>
+      </CustomTableHeader>
+      <CustomTableBody>
+        {memberList &&
+          memberList.map((member, index) => (
+            <CustomTableRow className="text-xs/4 text-nowrap rounded-none" key={index + member.email}>
+              <CustomTableCell>{member.email}</CustomTableCell>
+              <CustomTableCell>{member.status}</CustomTableCell>
+              <CustomTableCell>{member.reason}</CustomTableCell>
+            </CustomTableRow>
+          ))}
+      </CustomTableBody>
+    </CustomTable>
+  )
 }
