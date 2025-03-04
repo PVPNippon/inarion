@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { groupsStyles } from '@/app/[locale]/groups/group-variables'
-import { Download, CloudUpload, X, Check, CircleX, Copy } from 'lucide-react'
+import { Download, CloudUpload, X, Check, CircleX, Copy, TriangleAlert } from 'lucide-react'
 import { CustomWidthDialogContent } from '@/components/ui/custom-dialog-content-width'
 import {
   CustomTable,
@@ -461,9 +461,9 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   )}
                   {uploadState.status === 'complete' && (
                     <div
-                      className={`${groupsStyles.uploadArea} border-green-500 flex flex-col items-center justify-center gap-y-2`}
+                      className={`${groupsStyles.uploadArea} border-[${groupsStyles.semanticLightModeSuccess}] flex flex-col items-center justify-center gap-y-2`}
                     >
-                      <Check size={80} className="stroke-green-500" strokeWidth={1} />
+                      <Check size={80} color={groupsStyles.semanticLightModeSuccess} strokeWidth={1} />
                       <p>Upload complete</p>
                     </div>
                   )}
@@ -726,15 +726,26 @@ function DeletionError({ deletionResult }) {
 
 function DeletionResultScreen({ deletionResult }) {
   return (
-    <div className="flex flex-col gap-y-4">
-      <div className="flex flex-col gap-y-1">
+    <div className="flex flex-col gap-y-6">
+      <div className="flex flex-col gap-y-4">
         <div className="font-semibold text-2xl/8">Results</div>
-        {(deletionResult.status === 'failure' || deletionResult.responseData.undeletedMembers.length > 0) && (
-          <div>Removal failed for some users</div>
-        )}
-        {deletionResult.status === 'success' && deletionResult.responseData.undeletedMembers.length === 0 && (
-          <div>{`${deletionResult.responseData.deletedMembers.length} member(s) were removed successfully`}</div>
-        )}
+        <div className={`flex text-base gap-x-2  items-center `}>
+          {(deletionResult.status === 'failure' || deletionResult.responseData.undeletedMembers.length > 0) && (
+            <>
+              <TriangleAlert size={21} className="stroke-chart-5" strokeWidth={1.5} />
+              <div>Removal failed for some users.</div>
+              <a className={groupsStyles.secondaryTextChart5} href="http://localhost:3000" target="_blank">
+                Learn more
+              </a>
+            </>
+          )}
+          {deletionResult.status === 'success' && deletionResult.responseData.undeletedMembers.length === 0 && (
+            <>
+              <Check size={21} color={groupsStyles.semanticLightModeSuccess} strokeWidth={1.5} />
+              <div>{`${deletionResult.responseData.deletedMembers.length} member(s) were removed successfully`}</div>
+            </>
+          )}
+        </div>
       </div>
       <DeletionResultTable deletionResult={deletionResult} />
     </div>
@@ -747,6 +758,7 @@ function DeletionResultTable({ deletionResult }) {
   const data = deletionResult.responseData
   let deletedMembersArray = []
   let undeletedMembersArray = []
+  const resultTableRef = useRef(null)
 
   useEffect(() => {
     if (data.deletedMembers.length > 0) {
@@ -770,24 +782,39 @@ function DeletionResultTable({ deletionResult }) {
     }
 
     setMemberList([...deletedMembersArray, ...undeletedMembersArray])
-  }, [data])
+  }, [])
+
+  useEffect(() => {
+    if (resultTableRef.current) {
+      const scrollArea = resultTableRef.current.parentElement.parentElement.parentElement.children[1]
+      scrollArea.parentElement.classList.remove('h-[200px]')
+
+      //10 rows can fit into the screen, so if there are more than 10 rows, we need to set the fixed height and the rest will be scrollable
+      if (memberList.length >= 10) {
+        scrollArea.parentElement.classList.add('h-[360px]')
+      } else {
+        //otherwise, the height will be based on the number of rows in the table(32px per row) + header(40px)
+        scrollArea.parentElement.classList.add(`h-[${40 + memberList.length * 32}px]`)
+      }
+    }
+  }, [])
 
   return (
-    <CustomTable>
+    <CustomTable ref={resultTableRef}>
       <CustomTableHeader>
         <CustomTableRow className="text-nowrap text-sm/4">
-          <CustomTableHead className="font-semibold">Member email</CustomTableHead>
-          <CustomTableHead className="font-semibold">Status</CustomTableHead>
-          <CustomTableHead className="font-semibold">Reason</CustomTableHead>
+          <CustomTableHead className="font-semibold px-6">Email address</CustomTableHead>
+          <CustomTableHead className="font-semibold px-6">Status</CustomTableHead>
+          <CustomTableHead className="font-semibold px-6">Reason for failure</CustomTableHead>
         </CustomTableRow>
       </CustomTableHeader>
       <CustomTableBody>
         {memberList &&
           memberList.map((member, index) => (
             <CustomTableRow className="text-xs/4 text-nowrap rounded-none" key={index + member.email}>
-              <CustomTableCell>{member.email}</CustomTableCell>
-              <CustomTableCell>{member.status}</CustomTableCell>
-              <CustomTableCell>{member.reason}</CustomTableCell>
+              <CustomTableCell className="px-6">{member.email}</CustomTableCell>
+              <CustomTableCell className="px-6">{member.status}</CustomTableCell>
+              <CustomTableCell className="px-6">{member.reason}</CustomTableCell>
             </CustomTableRow>
           ))}
       </CustomTableBody>
