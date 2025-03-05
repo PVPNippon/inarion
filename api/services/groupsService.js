@@ -123,77 +123,46 @@ async function listGroupMembers({ userEmail, groupEmail, includeDerivedMembershi
 /**
  * Retrieves the list of activity logs for a given application name and type of logs.
  *
- * This function takes the email address of the user to impersonate, the application name, the type of logs, and optionally an existing impersonated auth client for Reports API.
+ * This function takes the `userEmail`, `applicationName`, `eventName` and optional `client` from the argument object `params`.
  * It uses these values to make a request to the Google Admin Reports API
  * to retrieve the list of activity logs for the given application name and type of logs.
  *
- * @param {Object} options - An object containing the following properties:
- *   - {string} userEmail - The email address of the user to impersonate.
- *   - {string} appName - The application name to retrieve activity logs for.
- *   - {string} typeOfLogs - The type of logs to retrieve.
- *   - {Object} [client] - An existing impersonated auth client for Reports API.
+ * @param {Object} params - The parameters needed to retrieve activity logs.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {string} params.applicationName - The application name to retrieve activity logs for.
+ * @param {string} params.eventName - The type of logs to retrieve.      
+ * @param {Object} [params.client=null] - An existing impersonated auth client for Reports API.
  * @returns {Promise<Object[]>} - A promise that resolves to the list of activity logs or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 //I'm only keeping this function in case it can be reused in the future(we might need some groups logs other than joining logs)
 //If no such future comes, it should be merged or replaced by the getJoinGroupsLogs function
-async function getAllGroupsLogs({ userEmail, appName = 'groups_enterprise', typeOfLogs, client }) {
-  //'groups_enterprise' don't have 'join_via_mail' type of logs, but "groups" have
-  //=> if appName is 'groups_enterprise' and typeOfLogs is 'join_via_mail', return nothing
-  //https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups-enterprise
-  //https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups
-  if (appName === 'groups_enterprise' && typeOfLogs === 'join_via_mail') {
-    return
-  }
-
-  //in admin activity events we need only one event, so skip for all other activity types
-  if (appName === 'admin' && typeOfLogs !== 'add_member') {
-    return
-  }
-
-  const activityLogs = [] // Container for activity logs retrieved
-  let activityResponse // Response from the API
-
+async function getActivityLogs({ userEmail, applicationName, eventName, client }) {
   // Retrieve an impersonated auth client for Reports API or create it if it's not specified
   const reports = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'reports'))
 
-  // Create the request object
   const requestObj = {
     customerId: 'my_customer',
     userKey: 'all',
-    applicationName: appName,
+    applicationName,
+    eventName,
     maxResults: 1000, //max allowed value
   }
 
-  //Fetch activity logs
+  const activityLogs = [] // Container for activity logs retrieved
+  let activitiesResponse // Response from the API
+
   do {
-    // Add the type of logs if it is provided
-    if (typeOfLogs) {
-      requestObj.eventName = typeOfLogs
+    activitiesResponse = await reports.activities.list(requestObj)
+
+    if (typeof activitiesResponse.data.items === 'undefined') {
+      break
     }
+    
+    activityLogs.push(...activitiesResponse.data.items)
+  } while ((requestObj.pageToken = activitiesResponse.data.nextPageToken))
 
-    //the same type of logs are called 'add_member' in 'enterprise_groups' and 'add_user' in 'groups'
-    //by the way, in both cases member or user means both users or groups, so 'add_user' is kinda misleading
-    //=> we swap 'add_member' to 'add_user' if type of app is "groups"
-    if (appName === 'groups' && typeOfLogs === 'add_member') {
-      requestObj.eventName = 'add_user'
-    }
-
-    //'add_member' is called 'ADD_GROUP_MEMBER' in 'admin'
-    //and it's ...drumroll.. drumroll... CASE SENSITIVE
-    if (appName === 'admin' && typeOfLogs === 'add_member') {
-      requestObj.eventName = 'ADD_GROUP_MEMBER'
-    }
-
-    activityResponse = await reports.activities.list(requestObj) // Call the API
-
-    // Append the fetched groups to the activity logs array
-    if (typeof activityResponse.data.items !== 'undefined') {
-      activityLogs.push(...activityResponse.data.items)
-    }
-  } while ((requestObj.pageToken = activityResponse.data.nextPageToken)) // Continue fetching activity logs while there are more pages
-
-  return activityLogs // Return all fetched activity logs
+  return activityLogs
 }
 
 /**
@@ -230,10 +199,10 @@ async function getJoinGroupsLogs({ userEmail, client }) {
     activityNames.forEach(async (activityName) => {
       const x = new Promise(async (resolve, reject) => {
         resolve(
-          getAllGroupsLogs({
+          getActivityLogs({
             userEmail,
-            appName,
-            typeOfLogs: activityName,
+            applicationName: appName,
+            eventName: activityName,
             client: reportsClient,
           })
         )
@@ -954,7 +923,7 @@ module.exports = {
   listGroups,
   getGroupByEmail,
   listGroupMembers,
-  getAllGroupsLogs,
+  getActivityLogs,
   getJoinGroupsLogs,
   listMembersInExportFormat,
   updateGroupSettings,
