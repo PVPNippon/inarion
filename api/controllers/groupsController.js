@@ -557,3 +557,56 @@ exports.getSettings = async (req, res, next) => {
   }
   next()
 }
+
+/**
+ * Adds members to a group.
+ *
+ * @param {Object} req - The request object containing `userEmail` in the query parameter, `groupEmail` in the path parameter, and `memberEmails` in the request body.
+ * @param {Object} res - The response object used to return the response from the API, or an error message.
+ * @param {Function} next - The next middleware function in the stack.
+ * @returns {Promise<void>} Responds with the response of the API call, or an error message.
+ * @throws {Error} Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+//Warning: copied from deleteMembers almost as is. If you need to implement this method for the actual use in the project, please give at some thought and update if necessary.
+exports.addMembers = async (req, res, next) => {
+  const { userEmail } = req.query
+  const { groupEmail } = req.params
+  const { memberEmails } = req.body
+
+  // Eliminate duplicate members if any.
+  const uniqueMemberEmails = [...new Set(memberEmails)]
+
+  try {
+    const response = await groupsService.addMembers({
+      userEmail,
+      groupEmail,
+      memberEmails: uniqueMemberEmails,
+    })
+
+    if (response.unaddedMembers.length === 0) {
+      // All requested members were added the group successfully.
+      response.message = `Added all requested member(s) to ${groupEmail}`
+      res.locals.statusCode = 200
+    } else if (response.unaddedMembers.length > 0) {
+      // Some requested members were added successfully, but some were not.
+      response.message = `${response.unaddedMembers.length} requested member(s) could not be added to ${groupEmail}`
+      res.locals.statusCode = 207
+    } else {
+      // No requested members were added to the group.
+      response.message = `No members were added to ${groupEmail}`
+
+      // If one of the status codes are in 500, the status code of the response should be 500 (Internal Server Error).
+      // Otherwise it should be 400 (Bad Request).
+      res.locals.statusCode = response.unaddedMembers.some(({ statusCode }) => statusCode >= 500 && statusCode < 600)
+        ? 500
+        : 400
+    }
+
+    res.locals.data = response
+  } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: `Error adding members to ${groupEmail}` }
+    logger.error(error)
+  }
+  next()
+}
