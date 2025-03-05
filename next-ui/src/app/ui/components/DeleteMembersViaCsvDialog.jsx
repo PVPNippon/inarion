@@ -129,6 +129,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
   const [fileName, setFileName] = useState('')
   const [invalidFileType, setInvalidFileType] = useState(false)
   const [filteredOutData, setFilteredOutData] = useState([])
+  const [uploadError, setUploadError] = useState(false)
 
   const initialState = {
     status: 'empty',
@@ -144,11 +145,6 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
 
       case 'complete':
         return { status: 'complete' }
-
-      case 'error':
-        return {
-          status: 'error',
-        }
 
       case 'showBadge':
         return { status: 'showBadge' }
@@ -184,7 +180,8 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
     const [filteredData, filteredOut] = mapAndFilterCsvData(data, setFilteredOutData)
     if (filteredData.length === 0) {
       setFilteredOutData([])
-      dispatchUploadState({ type: 'error' })
+      setUploadError(true)
+      dispatchUploadState({ type: 'empty' })
       return
     }
 
@@ -237,7 +234,8 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
         let resultDataArray = results.data
         if (resultDataArray.length <= 2) {
           //the first 2 arrays are table name and table headers, so if there is no other data, it's not a valid CSV
-          dispatchUploadState({ type: 'error' })
+          setUploadError(true)
+          dispatchUploadState({ type: 'empty' })
           return
         }
 
@@ -255,6 +253,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
    */
   function handleCsvUpload(file) {
     setInvalidFileType(false)
+    setUploadError(false)
     if (file.type !== 'text/csv') {
       console.error('Only CSV files are allowed')
       setInvalidFileType(true)
@@ -276,7 +275,8 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
             console.log('results:', results)
 
             if (resultData.data.length === 0) {
-              dispatchUploadState({ type: 'error' })
+              setUploadError(true)
+              dispatchUploadState({ type: 'empty' })
               return
             }
 
@@ -288,7 +288,8 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
               ) {
                 fallbackParse(file)
               } else {
-                dispatchUploadState({ type: 'error' })
+                setUploadError(true)
+                dispatchUploadState({ type: 'empty' })
               }
               return
             }
@@ -296,8 +297,8 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
           },
         })
       } catch (error) {
-        console.error('Error handling CSV file:', error)
-        dispatchUploadState({ type: 'error' })
+        setUploadError(true)
+        dispatchUploadState({ type: 'empty' })
       }
     }, 3000) // simulate a 3-second delay for dev purposes
   }
@@ -315,14 +316,14 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
       const email = 'testadmin@pvp-test-domain2.com'
 
       //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back
-      const token = localStorage.getItem('jwtToken')
-      console.log('TOKEN', token)
+      // const token = localStorage.getItem('jwtToken')
+      // console.log('TOKEN', token)
 
       const response = await axios.delete(
         `http://localhost:4000/api/groups/group/${groupEmail}/members/?userEmail=${email}`,
         {
           headers: {
-            Authorization: `Bearer ${token}`, // Pass the token in the Authorization header
+            //  Authorization: `Bearer ${token}`, // Pass the token in the Authorization header
           },
           data: { memberEmails: memberList },
         }
@@ -401,6 +402,11 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                       Invalid file type. Only CSV files are allowed. Please upload a file with extension .csv.
                     </div>
                   )}
+                  {uploadError && (
+                    <div className="text-destructive text-sm/5">
+                      Upload failed. Please check that the data in your CSV file is formatted correctly and try again.
+                    </div>
+                  )}
                   {csvData && (
                     <CsvFileBadge
                       hiddenClass={uploadState.status === 'showBadge' ? '' : 'hidden'}
@@ -451,14 +457,6 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                     <div className={`${groupsStyles.uploadArea} border-dashed`}>
                       <div className="loader"></div>
                       <p>Upload in progress</p>
-                    </div>
-                  )}
-                  {uploadState.status === 'error' && (
-                    <div>
-                      <p className="text-red-600">Upload failed.</p>
-                      <p className="text-red-600">
-                        Please check that the file data is in the same format as the template provided and try again.
-                      </p>
                     </div>
                   )}
                   {uploadState.status === 'complete' && (
@@ -560,7 +558,6 @@ function CsvTemplateDownloader({ hiddenClass }) {
       <a
         href="/templates/members-list-sample.csv"
         download="members-list-sample.csv"
-        // className={`w-fit flex text-sm/5 gap-x-2.5 ${groupsStyles.secondaryTextChart5} ${hiddenClass}`}
         className={`w-fit flex text-sm/5 gap-x-2.5 ${groupsStyles.secondaryTextChart5}`}
       >
         <Download size={20} />
@@ -768,7 +765,6 @@ function DeletionResultScreen({ deletionResult }) {
 }
 
 function DeletionResultTable({ deletionResult }) {
-  console.log('deletionResult', deletionResult)
   const [memberList, setMemberList] = useState([])
   const data = deletionResult.responseData
   let deletedMembersArray = []
@@ -812,7 +808,7 @@ function DeletionResultTable({ deletionResult }) {
         scrollArea.parentElement.classList.add(`h-[${40 + memberList.length * 32}px]`)
       }
     }
-  }, [])
+  }, [memberList])
 
   return (
     <CustomTable ref={resultTableRef}>
