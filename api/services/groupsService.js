@@ -155,9 +155,11 @@ async function getActivityLogs({ userEmail, applicationName, eventName, client }
   do {
     activitiesResponse = await reports.activities.list(requestObj)
 
-    if (typeof activitiesResponse.data.items !== 'undefined') {
-      activityLogs.push(...activitiesResponse.data.items)
+    if (typeof activitiesResponse.data.items === 'undefined') {
+      break
     }
+    
+    activityLogs.push(...activitiesResponse.data.items)
   } while ((requestObj.pageToken = activitiesResponse.data.nextPageToken))
 
   return activityLogs
