@@ -9,7 +9,7 @@ const { createRedisKey } = require('../utility/utilityFunctions')
 const { storeDataInCache } = require('../controllers/cacheController')
 const instanceStore = require('..').instanceStore
 const logger = require('../logger/logger')(__filename, 'AuthModule')
-const instanceArray = ['drive', 'reports', 'directory', 'groups'] // Needs to be updated every time a new instance type is added to the getInstance function
+const instanceArray = ['drive', 'drive-activity', 'reports', 'directory', 'groups'] // Needs to be updated every time a new instance type is added to the getInstance function
 
 /**
  * Retrieves the service account credentials for a given user email.
@@ -43,13 +43,13 @@ async function getCredentials(userEmail) {
       `Unable to retrieve Service account credentials because service account email is passed instead of user email`
     )
   } else {
-    logger.debug(`Service account credentials retrieved successfully by valid user email: ${userEmail}`)
+    // logger.debug(`Service account credentials retrieved successfully by valid user email: ${userEmail}`)
   }
 
   const userDomain = userEmail.split('@')[1] // Get the domain of the user
   // Error handling of userDomain
   if (userDomain) {
-    logger.debug(`Domain retrieved successfully: ${userDomain}`)
+    // logger.debug(`Domain retrieved successfully: ${userDomain}`)
   } else if (!userDomain) {
     logger.error(`Unable to retrieve domain from user email.`)
     throw new Error('Unable to retrieve domain from user email.') //Throw error to stop the function execution because without a valid userDomain, no service account credentials can be retrieved
@@ -58,7 +58,7 @@ async function getCredentials(userEmail) {
   const serviceAccountCredentialsKey = createRedisKey(userDomain, 'SA-credentials') // Create a Redis key for the service account credentials
   // Error handling of serviceAccountCredentialsKey
   if (serviceAccountCredentialsKey) {
-    logger.debug(`Service Account Credentials Key for Redis created successfully: ${serviceAccountCredentialsKey}`)
+    // logger.debug(`Service Account Credentials Key for Redis created successfully: ${serviceAccountCredentialsKey}`)
   } else if (!serviceAccountCredentialsKey) {
     logger.error(`Unable to retrieve Service Account Credentials Key from user domain.`)
     throw new Error('Unable to retrieve Service Account Credentials Key from user domain.') //Throw error to stop the function execution because without a valid serviceAccountCredentialsKey, no service account credentials can be retrieved
@@ -70,16 +70,16 @@ async function getCredentials(userEmail) {
   //First try fetching the service account key from redis
   serviceAccountKeyInDB = (await redisCacheService.getJsonFromRedis(serviceAccountCredentialsKey)) || null
   if (serviceAccountKeyInDB) {
-    logger.debug(`Service Account Credentials retrieved from Redis successfully: ${serviceAccountCredentialsKey}`)
+    // logger.debug(`Service Account Credentials retrieved from Redis successfully: ${serviceAccountCredentialsKey}`)
   }
 
   // If the service account key is not found in Redis, fetch it from the database
   if (!serviceAccountKeyInDB || !serviceAccountKeyInDB.privateKeyData) {
-    logger.debug(`Service Account Credentials Key is not found in Redis.`)
+    // logger.debug(`Service Account Credentials Key is not found in Redis.`)
 
     //TODO: combine 3 queries into 1(postponed till when DB schema is updated to support associations)
     //I'm not adding detailed logs for queries since there will be detailed logging on the database side
-    logger.debug(`Trying to fetch Service Account Email from DB`)
+    // logger.debug(`Trying to fetch Service Account Email from DB`)
     const user = (await Users.findOne({ where: { email: userEmail } })).id
     const projectId = (await Projects.findOne({ where: { userId: user } })).projectId
     const serviceAccountEmail = (await ServiceAccounts.findOne({ where: { projectId: projectId } })).serviceAccountEmail
@@ -101,17 +101,17 @@ async function getCredentials(userEmail) {
       throw new Error(`Service account key not found for ${serviceAccountEmail}`)
     }
 
-    logger.debug(
-      `Service account credentials Key fetched from DB successfully.\nID: ${JSON.stringify(
-        serviceAccountKeyInDB.id,
-        null,
-        2
-      )}\nPrivate key ID: ${JSON.stringify(
-        serviceAccountKeyInDB.privateKeyId,
-        null,
-        2
-      )}\nService account email: ${JSON.stringify(serviceAccountKeyInDB.serviceAccountEmail, null, 2)}`
-    )
+    // logger.debug(
+    //   `Service account credentials Key fetched from DB successfully.\nID: ${JSON.stringify(
+    //     serviceAccountKeyInDB.id,
+    //     null,
+    //     2
+    //   )}\nPrivate key ID: ${JSON.stringify(
+    //     serviceAccountKeyInDB.privateKeyId,
+    //     null,
+    //     2
+    //   )}\nService account email: ${JSON.stringify(serviceAccountKeyInDB.serviceAccountEmail, null, 2)}`
+    // )
 
     try {
       // Store the service account email and key in Redis
@@ -133,7 +133,7 @@ async function getCredentials(userEmail) {
     // Update the serviceAccountPrivateKey with the fetched service account key
     //this try and catch block is for cases when there is a service account key record in DB, but the privateKeyData is null for some reason
     serviceAccountPrivateKey = serviceAccountKeyInDB.privateKeyData
-    logger.debug(`Service Account Private Key updated successfully.`)
+    // logger.debug(`Service Account Private Key updated successfully.`)
   } catch (error) {
     logger.error(error)
     throw new Error('Unable to update Service Account Private Key')
@@ -143,7 +143,7 @@ async function getCredentials(userEmail) {
   let decodedCredentials
   try {
     decodedCredentials = Buffer.from(serviceAccountPrivateKey, 'base64').toString('utf8')
-    logger.debug(`Private key data decoded successfully.`)
+    // logger.debug(`Private key data decoded successfully.`)
   } catch (error) {
     logger.error(error)
     throw new Error('Unable to decode private key data')
@@ -153,7 +153,7 @@ async function getCredentials(userEmail) {
   try {
     // Parse the decoded JSON string to extract the credentials.
     credentials = JSON.parse(decodedCredentials)
-    logger.debug(`Credentials JSON parsed successfully.`)
+    // logger.debug(`Credentials JSON parsed successfully.`)
   } catch (error) {
     // If there is an error in parsing, log the error and throw a new error indicating invalid credentials format.
     logger.error(error)
@@ -192,6 +192,7 @@ async function initializeGoogleAuth(credentials) {
       scopes: [
         'https://www.googleapis.com/auth/drive',
         'https://www.googleapis.com/auth/drive.metadata.readonly',
+        'https://www.googleapis.com/auth/drive.activity.readonly',
         'https://www.googleapis.com/auth/admin.directory.group',
         'https://www.googleapis.com/auth/admin.directory.user.readonly',
         'https://www.googleapis.com/auth/admin.reports.audit.readonly',
@@ -202,7 +203,7 @@ async function initializeGoogleAuth(credentials) {
         'https://www.googleapis.com/auth/admin.directory.rolemanagement',
       ],
     })
-    logger.debug(`GoogleAuth client initialized successfully.`)
+    // logger.debug(`GoogleAuth client initialized successfully.`)
   } catch (error) {
     logger.error(error)
     throw new Error('Error initializing the GoogleAuth clients')
@@ -248,19 +249,23 @@ function getInstance(jwtClient, typeOfInstance) {
   switch (typeOfInstance) {
     case 'drive':
       service = google.drive({ version: 'v3', auth: jwtClient })
-      logger.debug(`Drive API client returned.`)
+      // logger.debug(`Drive API client returned.`)
+      break
+    case 'drive-activity': // NEW: Drive Activity API client.
+      service = google.driveactivity({ version: 'v2', auth: jwtClient })
+      // logger.debug(`Drive Activity API client returned.`);
       break
     case 'reports':
       service = google.admin({ version: 'reports_v1', auth: jwtClient })
-      logger.debug(`Reports API client returned.`)
+      // logger.debug(`Reports API client returned.`)
       break
     case 'directory':
       service = google.admin({ version: 'directory_v1', auth: jwtClient })
-      logger.debug(`Directory API client returned.`)
+      // logger.debug(`Directory API client returned.`)
       break
     case 'groups':
       service = google.groupssettings({ version: 'v1', auth: jwtClient })
-      logger.debug(`Group Settings API client returned.`)
+      // logger.debug(`Group Settings API client returned.`)
       break
   }
   return service
@@ -299,32 +304,11 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
     // Retrieve the client from the auth instance.
     //the variable is named jwtClient is because actually Google returns a JWT client in our case
     jwtClient = await auth.getClient()
-    logger.debug(
-      `JWT client retrieved successfully.\nProject ID: ${JSON.stringify(
-        jwtClient.projectId,
-        null,
-        2
-      )}\nEmail: ${JSON.stringify(jwtClient.email, null, 2)}\nKey ID: ${JSON.stringify(
-        jwtClient.keyId,
-        null,
-        2
-      )}\nScopes: ${JSON.stringify(jwtClient.scopes, null, 2)}`
-    )
 
     // Set the subject (user to impersonate) for the auth client.
     jwtClient.subject = impersonatedUser
-    logger.debug(
-      `Impersonated user set as Subject successfully.\nUser Email: ${JSON.stringify(jwtClient.subject, null, 2)}`
-    )
 
     service = await getInstance(jwtClient, typeOfInstance) //get the auth client instance configured with the impersonated user
-    logger.debug(
-      `Impersonated user client retrieved successfully.\nService Account Email: ${JSON.stringify(
-        service.context._options.auth.email,
-        null,
-        2
-      )}`
-    ) // Log only service account email since the auth instance is huge
 
     //Retrieve the expiry date using the 'on' method(AI says it's a listener)
     //https://github.com/googleapis/google-auth-library-nodejs?tab=readme-ov-file#handling-token-events
@@ -340,22 +324,6 @@ async function impersonateClient(impersonatedUser, auth, typeOfInstance) {
           expiryDate: tokens.expiry_date,
           service: service,
         })
-
-        logger.debug(
-          `Expiry Date of Access Token stored in in-memory store successfully: ${JSON.stringify(
-            tokens.expiry_date,
-            null,
-            2
-          )}`
-        )
-
-        logger.debug(
-          `Impersonated client stored in in-memory store successfully.\nService Account Email: ${JSON.stringify(
-            service.context._options.auth.email,
-            null,
-            2
-          )}\nExpires At: ${JSON.stringify(service.context._options.auth.gtoken.expiresAt, null, 2)}`
-        ) // Log only "email" and "expiresAt"
       }
     })
   } catch (error) {
@@ -401,7 +369,6 @@ async function getImpersonatedClientInstanceForAdmin(impersonatedUser, typeOfIns
 
   // Create a unique key for the instance store based on the impersonated user and type of instance
   const instanceStoreKey = createInstanceStoreKey(impersonatedUser, typeOfInstance)
-  logger.debug(`Instance store key created successfully: ${instanceStoreKey}`)
 
   let service
   // Check if the instance already exists in the store
@@ -410,63 +377,21 @@ async function getImpersonatedClientInstanceForAdmin(impersonatedUser, typeOfIns
   if (!service) {
     logger.info(`Instance does not exist in store`)
   } else {
-    logger.debug(
-      `Impersonated client retrieved from in-memory store.\nExpiry Date: ${JSON.stringify(
-        service.expiryDate,
-        null,
-        2
-      )}\nProject ID: ${JSON.stringify(
-        service.service.context?._options.auth.projectId,
-        null,
-        2
-      )}\nService Account Email: ${JSON.stringify(
-        service.service.context?._options.auth.email,
-        null,
-        2
-      )}\nUser Email: ${JSON.stringify(service.service.context?._options.auth.subject, null, 2)}`
-    )
-
     // Get the current time
     const timeNow = new Date().getTime()
-    logger.debug(`Current time retrieved successfully: ${timeNow}`)
 
     // If the instance already exists in the in-memory store and expiration time is more than 5 minutes, return it
     if (service && service.expiryDate - timeNow > 300000) {
-      logger.debug(
-        `Reusing the instance from in-memory store. The client will expire in about ${Math.floor(
-          (service.expiryDate - timeNow) / 60000
-        )} minutes.`
-      )
       return service.service
-    } else {
-      logger.debug(`Instance is going to expire soon. Creating a new instance.`)
     }
   }
 
   // If the instance doesn't exist in the store or the expiry time is less than 5 minutes, create the new instance
   // Get the service account credentials
   const credentials = await getCredentials(impersonatedUser)
-  logger.debug(
-    `Credentials retrieved successfully.\nProject ID: ${JSON.stringify(
-      credentials.project_id,
-      null,
-      2
-    )}\nPrivate key ID: ${JSON.stringify(credentials.private_key_id, null, 2)}\nClient ID: ${JSON.stringify(
-      credentials.client_id,
-      null,
-      2
-    )}`
-  )
 
   // Initialize the Google Auth client
   const authClient = await initializeGoogleAuth(credentials)
-  logger.debug(
-    `Auth client retrieved successfully.\nService Account Email: ${JSON.stringify(
-      authClient.jsonContent.client_email,
-      null,
-      2
-    )}`
-  )
 
   // Impersonate the specified user
   service = await impersonateClient(impersonatedUser, authClient, typeOfInstance)
@@ -476,18 +401,6 @@ async function getImpersonatedClientInstanceForAdmin(impersonatedUser, typeOfIns
     logger.error(`Failed to obtain the impersonated ${typeOfInstance} instance for ${impersonatedUser}`)
     throw new Error(`Failed to obtain the impersonated ${typeOfInstance} instance for ${impersonatedUser}`)
   }
-
-  logger.debug(
-    `User impersonated successfully.\nProject ID: ${JSON.stringify(
-      service.context?._options.auth.projectId,
-      null,
-      2
-    )}\nService Account Email: ${JSON.stringify(
-      service.context?._options.auth.email,
-      null,
-      2
-    )}\nUser Email: ${JSON.stringify(service.context?._options.auth.subject, null, 2)}`
-  )
   return service
 }
 
@@ -529,7 +442,6 @@ async function getImpersonatedClientInstanceForUser({ impersonatedUser, typeOfIn
 
   // Create a unique key for the instance store based on the impersonated user and type of instance
   const instanceStoreKey = createInstanceStoreKey(impersonatedUser, typeOfInstance)
-  logger.debug(`Instance store key created successfully: ${instanceStoreKey}`)
 
   let service
 
@@ -539,36 +451,11 @@ async function getImpersonatedClientInstanceForUser({ impersonatedUser, typeOfIn
   if (!service) {
     logger.info(`Instance does not exist in store`)
   } else {
-    logger.debug(
-      `Impersonated client retrieved from in-memory store.\nExpiry Date: ${JSON.stringify(
-        service.expiryDate,
-        null,
-        2
-      )}\nProject ID: ${JSON.stringify(
-        service.service.context?._options.auth.projectId,
-        null,
-        2
-      )}\nService Account Email: ${JSON.stringify(
-        service.service.context?._options.auth.email,
-        null,
-        2
-      )}\nUser Email: ${JSON.stringify(service.service.context?._options.auth.subject, null, 2)}`
-    )
-
-    // Get the current time
     const timeNow = new Date().getTime()
-    logger.debug(`Current time retrieved successfully: ${timeNow}`)
 
     // If the instance already exists in the in-memory store and expiration time is more than 5 minutes, return it
     if (service && service.expiryDate - timeNow > 300000) {
-      logger.debug(
-        `Reusing the instance from in-memory store. The client will expire in about ${Math.floor(
-          (service.expiryDate - timeNow) / 60000
-        )} minutes.`
-      )
       return service.service
-    } else {
-      logger.debug(`Instance is going to expire soon. Creating a new instance.`)
     }
   }
 
@@ -580,18 +467,6 @@ async function getImpersonatedClientInstanceForUser({ impersonatedUser, typeOfIn
     if (!service) {
       logger.error(`Unable to create an impersonated instance.`)
       //not throwing an error here because if admin email is provided, we can get the credentials and then impersonate the user.
-    } else {
-      logger.debug(
-        `Instance retrieved from auth successfully.\nProject ID: ${JSON.stringify(
-          service.context?._options.auth.projectId,
-          null,
-          2
-        )}\nService Account Email: ${JSON.stringify(
-          service.context?._options.auth.email,
-          null,
-          2
-        )}\nUser Email: ${JSON.stringify(service.context?._options.auth.subject, null, 2)}`
-      )
     }
     return service
   }
@@ -611,17 +486,6 @@ async function getImpersonatedClientInstanceForUser({ impersonatedUser, typeOfIn
       logger.error(`Unable to retrieve ${typeOfInstance} instance for ${impersonatedUser}.`)
       throw new Error(`Unable to retrieve ${typeOfInstance} instance for ${impersonatedUser}.`)
     } else {
-      logger.debug(
-        `Instance retrieved successfully.\nProject ID: ${JSON.stringify(
-          service.context?._options.auth.projectId,
-          null,
-          2
-        )}\nService Account Email: ${JSON.stringify(
-          service.context?._options.auth.email,
-          null,
-          2
-        )}\nUser Email: ${JSON.stringify(service.context?._options.auth.subject, null, 2)}`
-      )
       return service
     }
   } else {
