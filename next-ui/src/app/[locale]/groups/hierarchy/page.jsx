@@ -253,7 +253,9 @@ function HierarchyButton({ groupList, query, className }) {
   async function handleClick() {
     const oldGraph = localStorage.getItem('graph')
     if (oldGraph) localStorage.removeItem('graph')
-    const newTab = window.open(`/groups/hierarchy/graph?target=${query}`, '_blank')
+
+    const path = window.location.pathname
+    const newTab = window.open(`${path}/graph?target=${query}`)
 
     try {
       // const email = window.localStorage.getItem('email')
