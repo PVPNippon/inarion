@@ -136,7 +136,7 @@ async function listGroupMembers({ userEmail, groupEmail, includeDerivedMembershi
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 //I'm only keeping this function in case it can be reused in the future(we might need some groups logs other than joining logs)
-//If no such future comes, it should be merged or replaced by the getJoinGroupsLogs function
+//If no such future comes, it should be merged or replaced by the getGroupJoinLogs function
 async function getActivityLogs({ userEmail, applicationName, eventName, client }) {
   // Retrieve an impersonated auth client for Reports API or create it if it's not specified
   const reports = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'reports'))
@@ -166,67 +166,67 @@ async function getActivityLogs({ userEmail, applicationName, eventName, client }
 }
 
 /**
- * Retrieves a list of all activities in the organization related to joining groups.
+ * Retrieves the list of activity logs related to joining groups.
  *
- * This function takes the `userEmail` and an optional `client` from the request body.
- * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Reports API
- * to list all activities related to joining groups in the organization.
+ * This function takes the `userEmail` and optional `client` from the argument object `params`.
+ * It uses these values to make a request to the Google Admin Reports API
+ * to retrieve the list of activity logs related to joining groups in the organization.
  *
- * @param {Object} options - An object containing the following properties:
- *   - {string} userEmail - The email address of the user to impersonate.
- *   - {Object} [client] - An existing impersonated auth client for Reports API.
- * @returns {Promise<Object[]>} - A promise that resolves to an array of activity logs related to joining groups.
+ * @param {Object} params - The parameters needed to retrieve activity logs related to joining groups.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {Object} [params.client=null] - An existing impersonated auth client for Reports API.
+ * @returns {Promise<Object[]>} - A promise that resolves to the list of activity logs related to joining groups or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function getJoinGroupsLogs({ userEmail, client }) {
+async function getGroupJoinLogs({ userEmail, client }) {
   // Retrieve an impersonated auth client or create it if it's not specified
-  const reportsClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'reports'))
-  const promises = []
-  let allActivities = []
+  const reports = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'reports'))
 
-  //Get all activities related to joining groups
-  //I'm not using "add_user" here, because it overlaps with "add_member" for "groups_enterprise"
-  //But it WILL be used with "groups" later on the way because groups don't have "add_member"
-  //It's impossible to query multiple apps at the same time, therefore we need to query each app separately
-  //Could not find a way to specify multiple activities in the eventName field
-  // => fetch each eventName separately and concat the results
+  const applicationToEvents = {
+    // https://developers.google.com/admin-sdk/reports/v1/appendix/activity/admin-group-settings#ADD_GROUP_MEMBER
+    'admin': [
+      'ADD_GROUP_MEMBER',
+    ],
 
-  const appNames = ['groups_enterprise', 'groups', 'admin']
-  const activityNames = ['add_member', 'accept_invitation', 'join', 'approve_join_request', 'join_via_mail']
+    // https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups
+    'groups': [
+      'accept_invitation',
+      'add_user',
+      'approve_join_request',
+      'join',
+      'join_via_mail',
+    ],
 
-  //Iterate through each app and each activity and push all into promises array
-  appNames.forEach((appName) => {
-    activityNames.forEach(async (activityName) => {
-      const x = new Promise(async (resolve, reject) => {
-        resolve(
-          getActivityLogs({
-            userEmail,
-            applicationName: appName,
-            eventName: activityName,
-            client: reportsClient,
-          })
-        )
-      })
-      promises.push(x)
-    })
-  })
+    // https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups-enterprise
+    'groups_enterprise': [
+      'accept_invitation',
+      'add_member',
+      'approve_join_request',
+      'join',
+    ],
+  }
 
-  //Iterate through the promises array and concat the results
-  await Promise.all(promises).then((results) => {
-    results.forEach((result) => {
-      if (!result) return
-      allActivities = allActivities.concat(result)
-    })
-  })
+  const requests = []
 
-  //Sort activities by time in descending order
-  //Users may leave and rejoin etc, so we need the latest logs first
-  allActivities.sort((a, b) => {
-    return new Date(b.id.time) - new Date(a.id.time)
-  })
+  for (const applicationName in applicationToEvents) {
+    for (const eventName of applicationToEvents[applicationName]) {
+      requests.push(getActivityLogs({ userEmail, applicationName, eventName, client: reports }))
+    }
+  }
 
-  //Return the list of joined activity logs for "enterprise groups" and "groups" in customer organization
-  return allActivities
+  const responses = await Promise.allSettled(requests)
+
+  const joinLogs = []
+
+  for (const response of responses) {
+    if (response.status === 'fulfilled') {
+      joinLogs.push(...response.value)
+    }
+  }
+
+  joinLogs.sort((a, b) => new Date(b.id.time) - new Date(a.id.time))
+
+  return joinLogs
 }
 
 /**
@@ -924,7 +924,7 @@ module.exports = {
   getGroupByEmail,
   listGroupMembers,
   getActivityLogs,
-  getJoinGroupsLogs,
+  getGroupJoinLogs,
   listMembersInExportFormat,
   updateGroupSettings,
   deleteMembersWithRateLimit,
