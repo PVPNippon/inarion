@@ -542,6 +542,16 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   </AlertDialogContent>
                 </AlertDialog>
               )}
+              {uploadState.status === 'showDeletionResult' && (
+                <DialogClose asChild>
+                  <Button
+                    onClick={() => dispatchUploadState({ type: 'empty' })}
+                    className={`${groupsStyles.buttonPaddingWide}`}
+                  >
+                    Close
+                  </Button>
+                </DialogClose>
+              )}
             </DialogFooter>
           )}
         </CustomWidthDialogContent>
