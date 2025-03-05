@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { groupsStyles } from '@/app/[locale]/groups/group-variables'
-import { Download, CloudUpload, X, Check, CircleX, Copy, TriangleAlert } from 'lucide-react'
+import { Download, CloudUpload, X, Check, CircleX, Copy, TriangleAlert, CircleAlert } from 'lucide-react'
 import { CustomWidthDialogContent } from '@/components/ui/custom-dialog-content-width'
 import {
   CustomTable,
@@ -34,6 +34,7 @@ import {
   CustomTableRow,
   CustomTableCell,
 } from '@/components/ui/custom-table'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import Papa from 'papaparse'
 
 function getOccurrence(array, value) {
@@ -309,8 +310,9 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
       const memberList = csvData.map((memberObj) => Object.values(memberObj)[1])
 
       //getting email and token from local storage is a temporary measure, will change in the future
-      const email = window.localStorage.getItem('email')
-      console.log('email:', email)
+      // const email = window.localStorage.getItem('email')
+      // console.log('email:', email)
+      const email = 'testadmin@pvp-test-domain2.com'
 
       //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back
       const token = localStorage.getItem('jwtToken')
@@ -461,7 +463,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   )}
                   {uploadState.status === 'complete' && (
                     <div
-                      className={`${groupsStyles.uploadArea} border-[${groupsStyles.semanticLightModeSuccess}] flex flex-col items-center justify-center gap-y-2`}
+                      className={`${groupsStyles.uploadArea} border-[#37B705] flex flex-col items-center justify-center gap-y-2`}
                     >
                       <Check size={80} color={groupsStyles.semanticLightModeSuccess} strokeWidth={1} />
                       <p>Upload complete</p>
@@ -554,15 +556,28 @@ export default DeleteMembersViaCsvDialog
 
 function CsvTemplateDownloader({ hiddenClass }) {
   return (
-    <div>
+    <div className={`flex text-sm/5 gap-x-2.5 items-center ${hiddenClass}`}>
       <a
         href="/templates/members-list-sample.csv"
         download="members-list-sample.csv"
-        className={`w-fit flex text-sm/5 gap-x-2.5 ${groupsStyles.secondaryTextChart5} ${hiddenClass}`}
+        // className={`w-fit flex text-sm/5 gap-x-2.5 ${groupsStyles.secondaryTextChart5} ${hiddenClass}`}
+        className={`w-fit flex text-sm/5 gap-x-2.5 ${groupsStyles.secondaryTextChart5}`}
       >
         <Download size={20} />
         <span> Download blank CSV template</span>
       </a>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger tabIndex="-1">
+            <CircleAlert size={16} className="stroke-destructive" />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{`Important: Do not delete the header row in the template.`}</p>
+            <p>{`These headings help make sure that the right members are`}</p>
+            <p>{`removed from the group.`}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   )
 }
@@ -813,7 +828,14 @@ function DeletionResultTable({ deletionResult }) {
           memberList.map((member, index) => (
             <CustomTableRow className="text-xs/4 text-nowrap rounded-none" key={index + member.email}>
               <CustomTableCell className="px-6">{member.email}</CustomTableCell>
-              <CustomTableCell className="px-6">{member.status}</CustomTableCell>
+              <CustomTableCell className="px-6 flex items-center gap-x-2">
+                {member.status === 'Removed successfully' ? (
+                  <Check size={16} color={groupsStyles.semanticLightModeSuccess} strokeWidth={1.5} />
+                ) : (
+                  <CircleX size={16} className="stroke-destructive" strokeWidth={1.5} />
+                )}
+                {member.status}
+              </CustomTableCell>
               <CustomTableCell className="px-6">{member.reason}</CustomTableCell>
             </CustomTableRow>
           ))}
