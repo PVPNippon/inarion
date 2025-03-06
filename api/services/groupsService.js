@@ -791,7 +791,6 @@ async function deleteMemberFromGroupsWithRateLimit({ userEmail, groupEmails, mem
  * @returns {Promise<Object>} - A promise that resolves to the response from the API call.
  * @throws {Error} - Throws an error if there is an issue with the API call or if the client is incorrect.
  */
-
 async function createGroup({ userEmail, groupEmail, client }) {
   //Retrieve an existing impersonated auth client for Directory API or create a new one
   const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
@@ -1000,64 +999,6 @@ async function getNestedTableTest({ userEmail, targetEmail, client }) {
   return result
 }
 
-async function getActivityLogsTest({ userEmail, applicationName, eventName, client }) {
-  const reports = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'reports'))
-
-  const requestObj = {
-    customerId: 'my_customer',
-    userKey: 'all',
-    applicationName,
-    eventName,
-    maxResults: 1000, //max allowed value
-  }
-
-  const activityLogs = [] // Container for activity logs retrieved
-  let activityResponse // Response from the API
-  
-  do {
-    activityResponse = await reports.activities.list(requestObj)
-
-    if (typeof activityResponse.data.items !== 'undefined') {
-      activityLogs.push(...activityResponse.data.items)
-    }
-  } while ((requestObj.pageToken = activityResponse.data.nextPageToken))
-
-  return activityLogs // Return all fetched activity logs
-}
-
-async function getJoinGroupsLogsTest({ userEmail, client }) {
-  const reports = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'reports'))
-
-  const applicationNameToEventNames = {
-    'admin': ['ADD_GROUP_MEMBER'],
-    'groups': ['accept_invitation', 'add_user', 'approve_join_request', 'join', 'join_via_email'],
-    'groups_enterprise': ['accept_invitation', 'add_member', 'approve_join_request', 'join']
-  }
-
-  const requests = []
-
-  for (const applicationName in applicationNameToEventNames) {
-    for (const eventName of applicationNameToEventNames[applicationName]) {
-      requests.push(getActivityLogsTest({ userEmail, applicationName, eventName, client }))
-    }
-  }
-
-  const responses = await Promise.allSettled(requests)
-
-  console.log('groupsService.getJoinGroupsLogsTest() responses:', responses)
-
-  const activityLogs = []
-
-  for (const response of responses) {
-    if (response.status === 'fulfilled' && response.value) {
-      activityLogs.push(...response.value)
-    }
-  }
-
-  activityLogs.sort((a, b) => new Date(b.id.time) - new Date(a.id.time))
-
-  return activityLogs
-}
 
 module.exports = {
   listGroups,
@@ -1075,5 +1016,4 @@ module.exports = {
 
   listParents,
   getNestedTableTest,
-  getJoinGroupsLogsTest,
 }
