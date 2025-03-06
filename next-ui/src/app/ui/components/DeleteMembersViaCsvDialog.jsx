@@ -542,7 +542,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   </AlertDialogContent>
                 </AlertDialog>
               )}
-              {uploadState.status === 'showDeletionResult' && (
+              {uploadState.status === 'showDeletionResult' && deletionResult.status !== 'error' && (
                 <DialogClose asChild>
                   <Button
                     onClick={() => dispatchUploadState({ type: 'empty' })}
