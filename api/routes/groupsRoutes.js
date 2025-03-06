@@ -33,6 +33,9 @@ router.get(
   groupsCacheMiddleware.storeMembers
 )
 
+//route to add members to a group
+router.post('/group/:groupEmail/members', groupsController.addMembers)
+
 //route to list all members of a group(both direct and indirect)
 router.get(
   '/group/:groupEmail/descendants',

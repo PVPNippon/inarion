@@ -123,141 +123,110 @@ async function listGroupMembers({ userEmail, groupEmail, includeDerivedMembershi
 /**
  * Retrieves the list of activity logs for a given application name and type of logs.
  *
- * This function takes the email address of the user to impersonate, the application name, the type of logs, and optionally an existing impersonated auth client for Reports API.
+ * This function takes the `userEmail`, `applicationName`, `eventName` and optional `client` from the argument object `params`.
  * It uses these values to make a request to the Google Admin Reports API
  * to retrieve the list of activity logs for the given application name and type of logs.
  *
- * @param {Object} options - An object containing the following properties:
- *   - {string} userEmail - The email address of the user to impersonate.
- *   - {string} appName - The application name to retrieve activity logs for.
- *   - {string} typeOfLogs - The type of logs to retrieve.
- *   - {Object} [client] - An existing impersonated auth client for Reports API.
+ * @param {Object} params - The parameters needed to retrieve activity logs.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {string} params.applicationName - The application name to retrieve activity logs for.
+ * @param {string} params.eventName - The type of logs to retrieve.      
+ * @param {Object} [params.client=null] - An existing impersonated auth client for Reports API.
  * @returns {Promise<Object[]>} - A promise that resolves to the list of activity logs or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 //I'm only keeping this function in case it can be reused in the future(we might need some groups logs other than joining logs)
-//If no such future comes, it should be merged or replaced by the getJoinGroupsLogs function
-async function getAllGroupsLogs({ userEmail, appName = 'groups_enterprise', typeOfLogs, client }) {
-  //'groups_enterprise' don't have 'join_via_mail' type of logs, but "groups" have
-  //=> if appName is 'groups_enterprise' and typeOfLogs is 'join_via_mail', return nothing
-  //https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups-enterprise
-  //https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups
-  if (appName === 'groups_enterprise' && typeOfLogs === 'join_via_mail') {
-    return
-  }
-
-  //in admin activity events we need only one event, so skip for all other activity types
-  if (appName === 'admin' && typeOfLogs !== 'add_member') {
-    return
-  }
-
-  const activityLogs = [] // Container for activity logs retrieved
-  let activityResponse // Response from the API
-
+//If no such future comes, it should be merged or replaced by the getGroupJoinLogs function
+async function getActivityLogs({ userEmail, applicationName, eventName, client }) {
   // Retrieve an impersonated auth client for Reports API or create it if it's not specified
   const reports = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'reports'))
 
-  // Create the request object
   const requestObj = {
     customerId: 'my_customer',
     userKey: 'all',
-    applicationName: appName,
+    applicationName,
+    eventName,
     maxResults: 1000, //max allowed value
   }
 
-  //Fetch activity logs
+  const activityLogs = [] // Container for activity logs retrieved
+  let activitiesResponse // Response from the API
+
   do {
-    // Add the type of logs if it is provided
-    if (typeOfLogs) {
-      requestObj.eventName = typeOfLogs
+    activitiesResponse = await reports.activities.list(requestObj)
+
+    if (typeof activitiesResponse.data.items === 'undefined') {
+      break
     }
+    
+    activityLogs.push(...activitiesResponse.data.items)
+  } while ((requestObj.pageToken = activitiesResponse.data.nextPageToken))
 
-    //the same type of logs are called 'add_member' in 'enterprise_groups' and 'add_user' in 'groups'
-    //by the way, in both cases member or user means both users or groups, so 'add_user' is kinda misleading
-    //=> we swap 'add_member' to 'add_user' if type of app is "groups"
-    if (appName === 'groups' && typeOfLogs === 'add_member') {
-      requestObj.eventName = 'add_user'
-    }
-
-    //'add_member' is called 'ADD_GROUP_MEMBER' in 'admin'
-    //and it's ...drumroll.. drumroll... CASE SENSITIVE
-    if (appName === 'admin' && typeOfLogs === 'add_member') {
-      requestObj.eventName = 'ADD_GROUP_MEMBER'
-    }
-
-    activityResponse = await reports.activities.list(requestObj) // Call the API
-
-    // Append the fetched groups to the activity logs array
-    if (typeof activityResponse.data.items !== 'undefined') {
-      activityLogs.push(...activityResponse.data.items)
-    }
-  } while ((requestObj.pageToken = activityResponse.data.nextPageToken)) // Continue fetching activity logs while there are more pages
-
-  return activityLogs // Return all fetched activity logs
+  return activityLogs
 }
 
 /**
- * Retrieves a list of all activities in the organization related to joining groups.
+ * Retrieves the list of activity logs related to joining groups.
  *
- * This function takes the `userEmail` and an optional `client` from the request body.
- * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Reports API
- * to list all activities related to joining groups in the organization.
+ * This function takes the `userEmail` and optional `client` from the argument object `params`.
+ * It uses these values to make a request to the Google Admin Reports API
+ * to retrieve the list of activity logs related to joining groups in the organization.
  *
- * @param {Object} options - An object containing the following properties:
- *   - {string} userEmail - The email address of the user to impersonate.
- *   - {Object} [client] - An existing impersonated auth client for Reports API.
- * @returns {Promise<Object[]>} - A promise that resolves to an array of activity logs related to joining groups.
+ * @param {Object} params - The parameters needed to retrieve activity logs related to joining groups.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {Object} [params.client=null] - An existing impersonated auth client for Reports API.
+ * @returns {Promise<Object[]>} - A promise that resolves to the list of activity logs related to joining groups or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-async function getJoinGroupsLogs({ userEmail, client }) {
+async function getGroupJoinLogs({ userEmail, client }) {
   // Retrieve an impersonated auth client or create it if it's not specified
-  const reportsClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'reports'))
-  const promises = []
-  let allActivities = []
+  const reports = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'reports'))
 
-  //Get all activities related to joining groups
-  //I'm not using "add_user" here, because it overlaps with "add_member" for "groups_enterprise"
-  //But it WILL be used with "groups" later on the way because groups don't have "add_member"
-  //It's impossible to query multiple apps at the same time, therefore we need to query each app separately
-  //Could not find a way to specify multiple activities in the eventName field
-  // => fetch each eventName separately and concat the results
+  const applicationToEvents = {
+    // https://developers.google.com/admin-sdk/reports/v1/appendix/activity/admin-group-settings#ADD_GROUP_MEMBER
+    'admin': [
+      'ADD_GROUP_MEMBER',
+    ],
 
-  const appNames = ['groups_enterprise', 'groups', 'admin']
-  const activityNames = ['add_member', 'accept_invitation', 'join', 'approve_join_request', 'join_via_mail']
+    // https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups
+    'groups': [
+      'accept_invitation',
+      'add_user',
+      'approve_join_request',
+      'join',
+      'join_via_mail',
+    ],
 
-  //Iterate through each app and each activity and push all into promises array
-  appNames.forEach((appName) => {
-    activityNames.forEach(async (activityName) => {
-      const x = new Promise(async (resolve, reject) => {
-        resolve(
-          getAllGroupsLogs({
-            userEmail,
-            appName,
-            typeOfLogs: activityName,
-            client: reportsClient,
-          })
-        )
-      })
-      promises.push(x)
-    })
-  })
+    // https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups-enterprise
+    'groups_enterprise': [
+      'accept_invitation',
+      'add_member',
+      'approve_join_request',
+      'join',
+    ],
+  }
 
-  //Iterate through the promises array and concat the results
-  await Promise.all(promises).then((results) => {
-    results.forEach((result) => {
-      if (!result) return
-      allActivities = allActivities.concat(result)
-    })
-  })
+  const requests = []
 
-  //Sort activities by time in descending order
-  //Users may leave and rejoin etc, so we need the latest logs first
-  allActivities.sort((a, b) => {
-    return new Date(b.id.time) - new Date(a.id.time)
-  })
+  for (const applicationName in applicationToEvents) {
+    for (const eventName of applicationToEvents[applicationName]) {
+      requests.push(getActivityLogs({ userEmail, applicationName, eventName, client: reports }))
+    }
+  }
 
-  //Return the list of joined activity logs for "enterprise groups" and "groups" in customer organization
-  return allActivities
+  const responses = await Promise.allSettled(requests)
+
+  const joinLogs = []
+
+  for (const response of responses) {
+    if (response.status === 'fulfilled') {
+      joinLogs.push(...response.value)
+    }
+  }
+
+  joinLogs.sort((a, b) => new Date(b.id.time) - new Date(a.id.time))
+
+  return joinLogs
 }
 
 /**
@@ -865,6 +834,91 @@ async function getSettings({ userEmail, groupEmail, client }) {
   return response
 }
 
+/**
+ * Adds a member to a group using the Google Admin Directory API.
+ *
+ * This function takes the `userEmail`, `groupEmail`, `memberEmail`, and an optional `client` from the argument object `params`.
+ * It uses these values to make an API call to add the member to the group.
+ *
+ * @param {Object} params - The parameters needed to add a member to a group.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {string} params.groupEmail - The email address of the group to which the member is to be added.
+ * @param {string} params.memberEmail - The email address of the member who is to be added to the group specified by `groupEmail`.
+ * @param {Object} [params.client=null] - An existing impersonated auth client for Directory API.
+ * @returns {Promise<Object>} - A promise that resolves to the response from the API call.
+ * @throws {Error} - Throws an error if there is an issue with the API call or if the client is incorrect.
+ */
+//Warning: copied and pasted from deleteMember almost as is.
+//If you need to implement this method for the actual use at the project, please give it some thought and change if necessary.
+async function addMember({ userEmail, groupEmail, memberEmail, client }) {
+  //Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+
+  const response = await directory.members.insert({
+    groupKey: groupEmail,
+    resource: {
+      email: memberEmail,
+    },
+  })
+
+  return response
+}
+
+/**
+ * Adds multiple members to a group using the Google Admin Directory API.
+ *
+ * This function takes the `userEmail`, `groupEmail`, `memberEmails` and optional `client` from the argument object `params`.
+ * It uses these values to make multiple API calls to add the members to the group.
+ *
+ * @param {Object} params - The parameters needed to add members to a group.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {string} params.groupEmail - The email address of the group to which the members are to be added.
+ * @param {string[]} params.memberEmails - The email addresses of the members who are to be added to the group specified by `groupEmail`.
+ * @param {Object} [params.client=null] - An existing impersonated auth client for Directory API.
+ * @returns {Promise<Object>} - A promise that resolves to an object which has 2 arrays, an array of added members and an array of not added members.
+ * @throws {Error} - Throws an error if there is an issue with the API call or if the client is incorrect.
+ */
+//Warning: copied and pasted from deleteMembers almost as is.
+//If you need to implement this method for the actual use at the project, please give it some thought and change if necessary.
+async function addMembers({ userEmail, groupEmail, memberEmails, client }) {
+  //Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+
+  const addedMembers = [] // Container for successfully added members
+  const unaddedMembers = [] // Container for failed members
+
+  // Add members in parallel
+  const responseArray = await Promise.allSettled(
+    memberEmails.map((memberEmail) =>
+      addMember({
+        groupEmail,
+        memberEmail,
+        client: directoryClient,
+      })
+    )
+  )
+
+  memberEmails.forEach((memberEmail, index) => {
+    // If the adding of a member succeeded, put the member email and statusCode (= 200) to the addedMembers array.
+    if (responseArray[index].status === 'fulfilled') {
+      addedMembers.push({
+        email: memberEmail,
+        statusCode: responseArray[index].value.status,
+      })
+
+      // If the adding of a member failed, put the member email, statusCode and the error message to the unaddedMembers array.
+    } else {
+      unaddedMembers.push({
+        email: memberEmail,
+        statusCode: responseArray[index].reason.status,
+        errorMessage: responseArray[index].reason.message,
+      })
+    }
+  })
+
+  return { addedMembers, unaddedMembers }
+}
+
 async function listParents({ userEmail, targetEmail, client }) {
   const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
   const parents = []
@@ -1009,14 +1063,15 @@ module.exports = {
   listGroups,
   getGroupByEmail,
   listGroupMembers,
-  getAllGroupsLogs,
-  getJoinGroupsLogs,
+  getActivityLogs,
+  getGroupJoinLogs,
   listMembersInExportFormat,
   updateGroupSettings,
   deleteMembersWithRateLimit,
   deleteMemberFromGroupsWithRateLimit,
   createGroup,
   getSettings,
+  addMembers,
 
   listParents,
   getNestedTableTest,

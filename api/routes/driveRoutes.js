@@ -13,6 +13,15 @@ router.get(
   encryptResponseMiddleware
 )
 
+// Route to to fetch drive files as per the filters provided by the user
+router.get(
+  '/filters',
+  cacheMiddleware.fetchFilteredFilesFromCache,
+  driveController.fetchFilteredFiles,
+  cacheMiddleware.storeFilteredFilesFromCache,
+  encryptResponseMiddleware
+)
+
 // Route to build and display a nested structure of an individual drive (MyDrive or SharedDrives)
 router.get(
   '/drive-structure',

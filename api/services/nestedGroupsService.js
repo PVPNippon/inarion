@@ -248,7 +248,7 @@ async function getTable({ userEmail, family, theGroupOrUser, allGroups, director
   //the reason why we need them is because google API does not provide a joined timestamp
   //so we need to get it ourselves in a roundabout way
   //but it won't be 100% accurate
-  const allActivities = await groupsService.getJoinGroupsLogs({
+  const allActivities = await groupsService.getGroupJoinLogs({
     userEmail,
     client: reportsClient,
   })

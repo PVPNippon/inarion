@@ -218,6 +218,28 @@ const setStringInRedis = async (key, value, redisTransaction = null, ttl) => {
   }
 }
 
+// Update string in redis
+const updateStringInRedis = async (key, value, redisTransaction = null, ttl) => {
+  try {
+    const client = getClient(redisTransaction)
+    if (!key || !value) {
+      throw new Error('Invalid parameters: Key and value are required.')
+    }
+    // Delete the existing key
+    await client.del(key)
+
+    // Set the new value with optional TTL
+    if (ttl) {
+      await client.setEx(key, ttl, value)
+    } else {
+      await client.set(key, value)
+    }
+  } catch (err) {
+    logger.error(`Error updating string in Redis for key "${key}":`, err)
+    throw err
+  }
+}
+
 // Function to get a value from Redis
 const getStringFromRedis = async (key, redisTransaction = null) => {
   try {
@@ -260,6 +282,29 @@ const setJsonInRedis = async (key, jsonObject, redisTransaction = null, ttl) => 
     } // console.log(`JSON object set in Redis for key: "${key}"${ttl ? ` with TTL: ${config.TTL} seconds` : ''}`)
   } catch (err) {
     logger.error(`Error setting JSON in Redis for key "${key}":`, err)
+    throw err
+  }
+}
+
+// Function to update JSON
+const updateJsonInRedis = async (key, jsonObject, redisTransaction = null, ttl) => {
+  try {
+    const client = getClient(redisTransaction)
+    if (!key || !jsonObject) {
+      throw new Error('Invalid parameters: Key and JSON object are required.')
+    }
+    // Delete the existing key
+    await client.del(key)
+
+    // Store the JSON object using RedisJSON's JSON.SET
+    await client.json.set(key, '$', jsonObject)
+
+    // Optionally set TTL for the key
+    if (ttl) {
+      await client.expire(key, ttl)
+    }
+  } catch (err) {
+    logger.error(`Error updating JSON in Redis for key "${key}":`, err)
     throw err
   }
 }
@@ -461,24 +506,6 @@ const updateJsonFieldInRedis = async (key, path, value, redisTransaction = null)
   }
 }
 
-// Function to delete a JSON object from Redis
-const deleteJsonFromRedis = async (key, redisTransaction = null) => {
-  try {
-    const client = getClient(redisTransaction)
-
-    const result = await client.json.del(key) // Delete the JSON object
-    if (result === 1) {
-      // console.log(`JSON object for key "${key}" successfully deleted.`)
-    } else {
-      // console.log(`JSON object for key "${key}" not found.`)
-    }
-    return result
-  } catch (err) {
-    logger.error(`Error deleting JSON object for key "${key}":`, err)
-    throw err
-  }
-}
-
 // HASHES
 
 /**
@@ -511,6 +538,37 @@ const setHashInRedis = async (key, hashObject, redisTransaction = null, ttl) => 
     // console.log(`Hash set in Redis for key "${key}" with fields:`, sanitizedObject)
   } catch (err) {
     logger.error(`Error setting hash in Redis for key "${key}":`, err)
+    throw err
+  }
+}
+
+// Function to update Hash
+const updateHashInRedis = async (key, hashObject, redisTransaction = null, ttl) => {
+  try {
+    const client = getClient(redisTransaction)
+    if (!key || !hashObject || typeof hashObject !== 'object') {
+      throw new Error('Invalid parameters: Key and hash object are required.')
+    }
+    // Delete the existing hash
+    await client.del(key)
+
+    // Sanitize the hash: replace undefined/null with an empty string, and stringify arrays.
+    const sanitizedObject = Object.fromEntries(
+      Object.entries(hashObject).map(([field, value]) => [
+        field,
+        value === undefined || value === null ? '' : Array.isArray(value) ? JSON.stringify(value) : value,
+      ])
+    )
+
+    // Set the new hash
+    await client.hSet(key, sanitizedObject)
+
+    // Optionally set TTL on the key
+    if (ttl) {
+      await client.expire(key, ttl)
+    }
+  } catch (err) {
+    logger.error(`Error updating hash in Redis for key "${key}":`, err)
     throw err
   }
 }
@@ -913,6 +971,28 @@ const addToSetInRedis = async (key, member, redisTransaction = null, ttl) => {
   }
 }
 
+const updateSetInRedis = async (key, member, redisTransaction = null, ttl) => {
+  try {
+    const client = getClient(redisTransaction)
+
+    // Delete the existing set
+    client.del(key)
+
+    // Add new members to the set
+    if (member.length > 0) {
+      client.sAdd(key, member)
+    }
+
+    // Optionally, set a TTL on the key
+    if (ttl) {
+      client.expire(key, ttl)
+    }
+  } catch (err) {
+    logger.error(`Error updating set "${key}" in Redis:`, err)
+    throw err
+  }
+}
+
 // Function to retrieve all members of a Redis set
 const getSetMembers = async (key, redisTransaction = null) => {
   try {
@@ -1012,6 +1092,197 @@ const getSetSize = async (key, redisTransaction = null) => {
   }
 }
 
+// SORTED SETS
+
+// Adds multiple members to a Redis sorted set.
+const addToSortedSetInRedis = async (
+  key,
+  members,
+  redisTransaction = null,
+  ttl,
+  scoreGenerator = (currentIndex) => currentIndex + 1
+) => {
+  try {
+    const client = getClient(redisTransaction)
+
+    // Convert members to an array if it's a Set.
+    const memberArray = members instanceof Set ? Array.from(members) : members
+
+    // Get the current size to determine the base score.
+    const currentSize = await client.zCard(key)
+
+    // Build the elements with scores and values.
+    const elements = memberArray.map((member, index) => ({
+      score: scoreGenerator(currentSize + index),
+      value: member,
+    }))
+
+    // Add the elements to the sorted set.
+    const addedCount = await client.zAdd(key, elements)
+
+    // Set TTL on the key if provided.
+    if (ttl) {
+      await client.expire(key, ttl)
+    }
+
+    return addedCount
+  } catch (err) {
+    logger.error(`Error adding file IDs to sorted set "${key}":`, err)
+    throw err
+  }
+}
+
+// Function to update a sorted set
+const updateSortedSetInRedis = async (
+  key,
+  members,
+  redisTransaction = null,
+  ttl,
+  scoreGenerator = (currentIndex) => currentIndex + 1
+) => {
+  try {
+    const client = getClient(redisTransaction)
+    // Delete the existing sorted set
+    await client.del(key)
+
+    // Convert members to an array if it's a Set.
+    const memberArray = members instanceof Set ? Array.from(members) : members
+
+    // Build the elements with scores and values.
+    // For update, we start scores from 1 (or adjust scoreGenerator as needed).
+    const elements = memberArray.map((member, index) => ({
+      score: scoreGenerator(index),
+      value: member,
+    }))
+
+    // Add the new elements to the sorted set.
+    const addedCount = await client.zAdd(key, elements)
+
+    // Set TTL on the key if provided.
+    if (ttl) {
+      await client.expire(key, ttl)
+    }
+
+    return addedCount
+  } catch (err) {
+    logger.error(`Error updating sorted set in Redis for key "${key}":`, err)
+    throw err
+  }
+}
+
+// Function to retrieve members of a Redis sorted set
+const getSortedSetMembers = async (key, startCount = 1, endCount = -1, redisTransaction = null) => {
+  try {
+    const client = getClient(redisTransaction)
+
+    const members = await client.zRange(key, startCount, endCount, { BY: 'SCORE' })
+    if (members.length === 0) {
+      return []
+    }
+    // console.log('members = ', members)
+    return members
+  } catch (err) {
+    logger.error(`Error retrieving members of sorted set "${key}":`, err)
+    throw err
+  }
+}
+
+// Function to check if a value is a member of a Redis sorted set
+const isMemberOfSortedSet = async (key, member, redisTransaction = null) => {
+  try {
+    const client = getClient(redisTransaction)
+
+    const score = await client.zScore(key, member)
+    return score !== null
+  } catch (err) {
+    logger.error(`Error checking membership of value "${member}" in sorted set "${key}":`, err)
+    throw err
+  }
+}
+
+// Function to remove members from a Redis sorted set
+const removeFromSortedSet = async (key, members, redisTransaction = null) => {
+  try {
+    const client = getClient(redisTransaction)
+
+    if (!Array.isArray(members) || members.length === 0) {
+      throw new Error('Members must be an array with at least one element.')
+    }
+
+    const removedCount = await client.zRem(key, members)
+    return removedCount
+  } catch (err) {
+    logger.error(`Error removing members from sorted set "${key}":`, err)
+    throw err
+  }
+}
+
+// Function to get the union of multiple sorted sets
+// destinationKey: The key where the union result will be stored.
+const unionOfSortedSets = async (keys, destinationKey, redisTransaction = null) => {
+  try {
+    const client = getClient(redisTransaction)
+
+    if (!Array.isArray(keys) || keys.length < 2) {
+      throw new Error('At least two sorted set keys are required for union operation.')
+    }
+
+    // ZUNIONSTORE stores the union of the given sorted sets into destinationKey.
+    await client.zUnionStore(destinationKey, keys.length, keys)
+
+    // Retrieve the union result.
+    const unionMembers = await client.zRange(destinationKey, 0, -1)
+
+    // (Optional) If you don’t want to keep the temporary destination key,
+    // you can delete it afterwards:
+    // await client.del(destinationKey);
+
+    return unionMembers
+  } catch (err) {
+    logger.error(`Error performing union operation on sorted sets ${keys}:`, err)
+    throw err
+  }
+}
+
+// Function to get the intersection of multiple sorted sets
+// destinationKey: The key where the intersection result will be stored.
+const intersectionOfSortedSets = async (keys, destinationKey, redisTransaction = null) => {
+  try {
+    const client = getClient(redisTransaction)
+
+    if (!Array.isArray(keys) || keys.length < 2) {
+      throw new Error('At least two sorted set keys are required for intersection operation.')
+    }
+
+    // ZINTERSTORE stores the intersection of the given sorted sets into destinationKey.
+    await client.zInterStore(destinationKey, keys.length, keys)
+
+    // Retrieve the intersection result.
+    const intersectionMembers = await client.zRange(destinationKey, 0, -1)
+
+    // (Optional) Clean up the temporary key if desired:
+    // await client.del(destinationKey);
+
+    return intersectionMembers
+  } catch (err) {
+    logger.error(`Error performing intersection operation on sorted sets ${keys}:`, err)
+    throw err
+  }
+}
+
+// Function to get the cardinality (size) of a Redis sorted set
+const getSortedSetSize = async (key, redisTransaction = null) => {
+  try {
+    const client = getClient(redisTransaction)
+    // zCard returns the number of elements in the sorted set.
+    const size = await client.zCard(key)
+    return size
+  } catch (err) {
+    logger.error(`Error getting size of sorted set "${key}":`, err)
+    throw err
+  }
+}
+
 //---------------------------------------------------------------------------------------------------------------
 
 module.exports = {
@@ -1027,13 +1298,14 @@ module.exports = {
   //String
   getStringFromRedis,
   setStringInRedis,
+  updateStringInRedis,
 
   //JSON
   setJsonInRedis,
   getJsonFromRedis, //replaced getJson from cacheService
   getJsonFieldFromRedis,
   updateJsonFieldInRedis,
-  deleteJsonFromRedis,
+  updateJsonInRedis,
   getJsons, //migrated from cacheService
   setJsonWithTtlMode, //migrated from cacheService(formerly setJson)
   setJsonsWithTtlMode, //migrated from cacheService(formerly setJsons)
@@ -1042,6 +1314,7 @@ module.exports = {
   setHashInRedis,
   getHashFromRedis, //replaced getHash from cacheService
   getHashFieldFromRedis, //replaced getHashValue from cacheService
+  updateHashInRedis,
   hashFieldExists,
   deleteHashFieldsFromRedis,
   getHashValues, //migrated from cacheService
@@ -1055,10 +1328,21 @@ module.exports = {
 
   //Set
   addToSetInRedis,
+  updateSetInRedis,
   getSetMembers,
   isMemberOfSet,
   removeFromSet,
   unionOfSets,
   intersectionOfSets,
   getSetSize,
+
+  // Sorted Set
+  addToSortedSetInRedis,
+  updateSortedSetInRedis,
+  getSortedSetMembers,
+  isMemberOfSortedSet,
+  removeFromSortedSet,
+  unionOfSortedSets,
+  intersectionOfSortedSets,
+  getSortedSetSize,
 }
