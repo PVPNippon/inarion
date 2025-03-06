@@ -36,6 +36,7 @@ import {
 } from '@/components/ui/custom-table'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import Papa from 'papaparse'
+import { useClassListHandler, useCustomTableHandler } from '@/utils/virtualDOMHackers'
 
 function getOccurrence(array, value) {
   return array.filter((v) => v === value).length
@@ -668,20 +669,10 @@ function Warning({ filteredOutData }) {
 function CsvTable({ csvData }) {
   const tableRef = useRef(null)
 
-  useEffect(() => {
-    if (tableRef.current) {
-      const scrollArea = tableRef.current.parentElement.parentElement.parentElement.children[1]
-      scrollArea.parentElement.classList.remove('h-[200px]')
-
-      //11 rows can fit into the screen, so if there are more than 11 rows, we need to set the fixed height and the rest will be scrollable
-      if (csvData.length >= 11) {
-        scrollArea.parentElement.classList.add('h-[392px]')
-      } else {
-        //otherwise, the height will be based on the number of rows in the table(32px per row) + header(40px)
-        scrollArea.parentElement.classList.add(`h-[${40 + csvData.length * 32}px]`)
-      }
-    }
-  }, [])
+  useCustomTableHandler({
+    tableRef,
+    classesToRemove: 'h-[200px]',
+  })
   return (
     <>
       <CustomTable ref={tableRef}>
