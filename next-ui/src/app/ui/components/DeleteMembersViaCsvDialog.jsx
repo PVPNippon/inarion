@@ -131,6 +131,17 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
   const [invalidFileType, setInvalidFileType] = useState(false)
   const [filteredOutData, setFilteredOutData] = useState([])
   const [uploadError, setUploadError] = useState(false)
+  const [dragState, setDragState] = useState(false)
+  const dragRef = useRef(null)
+
+  //a listener to add or remove the bg-accent class to the drag and drop area when a file is being dragged over
+  useEffect(() => {
+    if (dragState === true) {
+      useClassListHandler({ componentRef: dragRef, classesToAdd: 'bg-accent' })
+    } else {
+      useClassListHandler({ componentRef: dragRef, classesToRemove: 'bg-accent' })
+    }
+  }, [dragState])
 
   const initialState = {
     status: 'empty',
@@ -423,12 +434,19 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                 <>
                   {uploadState.status === 'empty' && (
                     <div
-                      className={`${groupsStyles.uploadArea} border-dashed hover:bg-accent focus:bg-accent`}
+                      ref={dragRef}
+                      className={`${groupsStyles.uploadArea} border-dashed`}
                       onDragOver={(e) => {
                         e.preventDefault()
+                        setDragState(true)
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault()
+                        setDragState(false)
                       }}
                       onDrop={(e) => {
                         e.preventDefault()
+                        setDragState(false)
                         //  if (e.dataTransfer.files[0].type !== 'text/csv') return false //removed on purpose because it's not user friendly
                         handleCsvUpload(e.dataTransfer.files[0])
                       }}
@@ -615,7 +633,7 @@ function Loader() {
     <>
       <div className={`${groupsStyles.uploadAreaExtended} border-dashed`}>
         <div className="loader"></div>
-        <p>Deletion in progress</p>
+        <p>Removal in progress</p>
       </div>
     </>
   )
@@ -678,8 +696,8 @@ function CsvTable({ csvData }) {
       <CustomTable ref={tableRef}>
         <CustomTableHeader>
           <CustomTableRow className="text-nowrap text-sm/4">
-            <CustomTableHead className="font-semibold">Member name</CustomTableHead>
-            <CustomTableHead className="font-semibold">Member email</CustomTableHead>
+            <CustomTableHead className="font-semibold px-6">Member name</CustomTableHead>
+            <CustomTableHead className="font-semibold px-6">Member email</CustomTableHead>
           </CustomTableRow>
         </CustomTableHeader>
         <CustomTableBody>
@@ -688,8 +706,8 @@ function CsvTable({ csvData }) {
               const values = Object.values(memberObj)
               return (
                 <CustomTableRow className="text-xs/4 text-nowrap rounded-none" key={values[1]}>
-                  <CustomTableCell>{values[0]}</CustomTableCell>
-                  <CustomTableCell>{values[1]}</CustomTableCell>
+                  <CustomTableCell className="px-6">{values[0]}</CustomTableCell>
+                  <CustomTableCell className="px-6">{values[1]}</CustomTableCell>
                 </CustomTableRow>
               )
             })}
