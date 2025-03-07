@@ -36,7 +36,7 @@ import {
 } from '@/components/ui/custom-table'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import Papa from 'papaparse'
-import { useClassListHandler, useCustomTableHandler } from '@/utils/virtualDOMHackers'
+import { classListHandler, customTableHandler } from '@/utils/virtualDOMHackers'
 
 function getOccurrence(array, value) {
   return array.filter((v) => v === value).length
@@ -137,9 +137,9 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
   //a listener to add or remove the bg-accent class to the drag and drop area when a file is being dragged over
   useEffect(() => {
     if (dragState === true) {
-      useClassListHandler({ componentRef: dragRef, classesToAdd: 'bg-accent' })
+      classListHandler({ componentRef: dragRef, classesToAdd: 'bg-accent' })
     } else {
-      useClassListHandler({ componentRef: dragRef, classesToRemove: 'bg-accent' })
+      classListHandler({ componentRef: dragRef, classesToRemove: 'bg-accent' })
     }
   }, [dragState])
 
@@ -267,7 +267,6 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
     setInvalidFileType(false)
     setUploadError(false)
     if (file.type !== 'text/csv') {
-      console.error('Only CSV files are allowed')
       setInvalidFileType(true)
       return
     }
@@ -687,10 +686,17 @@ function Warning({ filteredOutData }) {
 function CsvTable({ csvData }) {
   const tableRef = useRef(null)
 
-  useCustomTableHandler({
-    tableRef,
-    classesToRemove: 'h-[200px]',
-  })
+  useEffect(() => {
+    if (csvData.length === 0) return
+    const condition = csvData.length >= 11
+    customTableHandler({
+      tableRef,
+      classesToRemove: 'h-[200px]',
+      classesToAdd1: 'h-[392px]',
+      classesToAdd2: `h-[${40 + csvData.length * 32}px]`,
+      condition: condition,
+    })
+  }, [csvData])
   return (
     <>
       <CustomTable ref={tableRef}>
@@ -734,20 +740,6 @@ function DeletionError({ deletionResult }) {
             Members could not be removed from the group due to
             <br />
             an internal error. Please wait a while and try again.
-          </div>
-          <div>
-            <div
-              role="button"
-              onClick={() => {
-                navigator.clipboard.writeText(errorMessage)
-                alert('Detailed error message copied to clipboard')
-              }}
-              className="flex font-medium text-xs/4 gap-x-2.5 text-destructive cursor-pointer items-center
-              justify-center"
-            >
-              <Copy size={16} className="stroke-destructive" />
-              <span>Copy error message</span>
-            </div>
           </div>
         </div>
       </div>
@@ -815,18 +807,15 @@ function DeletionResultTable({ deletionResult }) {
   }, [])
 
   useEffect(() => {
-    if (resultTableRef.current) {
-      const scrollArea = resultTableRef.current.parentElement.parentElement.parentElement.children[1]
-      scrollArea.parentElement.classList.remove('h-[200px]')
-
-      //10 rows can fit into the screen, so if there are more than 10 rows, we need to set the fixed height and the rest will be scrollable
-      if (memberList.length >= 10) {
-        scrollArea.parentElement.classList.add('h-[360px]')
-      } else {
-        //otherwise, the height will be based on the number of rows in the table(32px per row) + header(40px)
-        scrollArea.parentElement.classList.add(`h-[${40 + memberList.length * 32}px]`)
-      }
-    }
+    if (memberList.length === 0) return
+    const condition = memberList.length >= 10
+    customTableHandler({
+      tableRef: resultTableRef,
+      classesToRemove: 'h-[200px]',
+      classesToAdd1: 'h-[360px]',
+      classesToAdd2: `h-[${40 + memberList.length * 32}px]`,
+      condition: condition,
+    })
   }, [memberList])
 
   return (
