@@ -37,6 +37,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import Papa from 'papaparse'
 import { classListHandler, customTableHandler } from '@/utils/virtualDOMHackers'
+const email = 'testadmin@pvp-test-domain2.com'
 
 function getOccurrence(array, value) {
   return array.filter((v) => v === value).length
@@ -319,37 +320,35 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
 
     try {
       dispatchUploadState({ type: 'deletionInProgress' })
-      const memberList = csvData.map((memberObj) => Object.values(memberObj)[1])
 
-      //getting email and token from local storage is a temporary measure, will change in the future
-      // const email = window.localStorage.getItem('email')
-      // console.log('email:', email)
-      const email = 'testadmin@pvp-test-domain2.com'
+      // try {
+      const groupResponse = await axios.get(`http://localhost:4000/api/groups/group/${groupEmail}/?userEmail=${email}`)
 
-      //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back
-      // const token = localStorage.getItem('jwtToken')
-      // console.log('TOKEN', token)
+      if (groupResponse.status === 200) {
+        const memberList = csvData.map((memberObj) => Object.values(memberObj)[1])
 
-      const response = await axios.delete(
-        `http://localhost:4000/api/groups/group/${groupEmail}/members/?userEmail=${email}`,
-        {
-          headers: {
-            //  Authorization: `Bearer ${token}`, // Pass the token in the Authorization header
-          },
-          data: { memberEmails: memberList },
-        }
-      )
-      console.log('RESPONSE FROM BE', response)
-      setDeletionResult({ status: 'success', responseData: response.data })
+        const response = await axios.delete(
+          `http://localhost:4000/api/groups/group/${groupEmail}/members/?userEmail=${email}`,
+          {
+            headers: {
+              //  Authorization: `Bearer ${token}`, // Pass the token in the Authorization header
+            },
+            data: { memberEmails: memberList },
+          }
+        )
+        setDeletionResult({ status: 'success', responseData: response.data })
+      }
     } catch (err) {
       console.log('error', err)
 
       //error 400 means that the deletion was attempted, but failed for all members. The most probable cause is that the user uploaded a wrong file where all email addresses are not members of the target group.
       //for all other scenarios, display a generic error(for now)
-      if (err.status === 400 && err.response.data) {
+      if (err.status === 404) {
+        setDeletionResult({ status: 'error', errorStatus: 404, errorDetails: err })
+      } else if (err.status === 400 && err.response.data) {
         setDeletionResult({ status: 'failure', responseData: err.response.data })
       } else {
-        setDeletionResult({ status: 'error', error: err })
+        setDeletionResult({ status: 'error', errorStatus: 500, errorDetails: err })
       }
     } finally {
       setTimeout(() => {
@@ -524,21 +523,23 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
             </DialogFooter>
           )}
           {(uploadState.status === 'showTable' || uploadState.status === 'showDeletionResult') && (
-            <DialogFooter className="xs:justify-end md:justify-between">
-              <Button
-                className={`${groupsStyles.buttonPaddingWide}`}
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setCsvData([])
-                  setFileName('')
-                  setDeletionResult([])
-                  setFilteredOutData([])
-                  dispatchUploadState({ type: 'empty' })
-                }}
-              >
-                Back
-              </Button>
+            <DialogFooter className={deletionResult.status === 'error' ? 'md:justify-end' : 'md:justify-between'}>
+              {deletionResult.status !== 'error' && (
+                <Button
+                  className={`${groupsStyles.buttonPaddingWide}`}
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setCsvData([])
+                    setFileName('')
+                    setDeletionResult([])
+                    setFilteredOutData([])
+                    dispatchUploadState({ type: 'empty' })
+                  }}
+                >
+                  Back
+                </Button>
+              )}
               {uploadState.status === 'showTable' && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -560,11 +561,11 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   </AlertDialogContent>
                 </AlertDialog>
               )}
-              {uploadState.status === 'showDeletionResult' && deletionResult.status !== 'error' && (
+              {uploadState.status === 'showDeletionResult' && (
                 <DialogClose asChild>
                   <Button
                     onClick={() => dispatchUploadState({ type: 'empty' })}
-                    className={`${groupsStyles.buttonPaddingWide}`}
+                    className={`${groupsStyles.buttonPaddingWide} `}
                   >
                     Close
                   </Button>
@@ -724,23 +725,28 @@ function CsvTable({ csvData }) {
 }
 
 function DeletionError({ deletionResult }) {
-  const errorMessage = JSON.stringify(deletionResult.error, null, 2)
-    .replace(/\\n/g, '\n')
-    .replace(/"/g, '')
-    .replace(/:/g, ': ')
-    .replace(/,/g, ',\n')
   return (
     <>
       <div className={`${groupsStyles.uploadAreaExtended} border-destructive`}>
         <CircleX size={80} strokeWidth={1} className="stroke-destructive" />
         <div className="flex flex-col gap-y-4 items-center justify-center text-center">
           <div className="font-semibold text-base/6">There was an error</div>
-          <div>
-            {' '}
-            Members could not be removed from the group due to
-            <br />
-            an internal error. Please wait a while and try again.
-          </div>
+          {deletionResult.errorStatus === 500 && (
+            <div>
+              {' '}
+              Members could not be removed from the group due to
+              <br />
+              an internal error. Please wait a while and try again.
+            </div>
+          )}
+          {deletionResult.errorStatus === 404 && (
+            <div>
+              {' '}
+              The group no longer exists, so members could not be
+              <br />
+              removed.
+            </div>
+          )}
         </div>
       </div>
     </>
