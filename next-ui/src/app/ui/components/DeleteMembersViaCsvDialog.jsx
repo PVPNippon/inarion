@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { groupsStyles } from '@/app/[locale]/groups/group-variables'
-import { Download, CloudUpload, X, Check, CircleX, Copy, TriangleAlert, CircleAlert } from 'lucide-react'
+import { Download, CloudUpload, X, Check, CircleX, TriangleAlert, CircleAlert } from 'lucide-react'
 import { CustomWidthDialogContent } from '@/components/ui/custom-dialog-content-width'
 import {
   CustomTable,
@@ -38,6 +38,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import Papa from 'papaparse'
 import { classListHandler, customTableHandler } from '@/utils/virtualDOMHackers'
 const email = 'testadmin@pvp-test-domain2.com'
+const uploadStateArray = ['empty', 'uploadComplete', 'showBadge', 'showTable', 'showDeletionResult']
 
 function getOccurrence(array, value) {
   return array.filter((v) => v === value).length
@@ -156,8 +157,8 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
       case 'uploadInProgress':
         return { status: 'uploadInProgress' }
 
-      case 'complete':
-        return { status: 'complete' }
+      case 'uploadComplete':
+        return { status: 'uploadComplete' }
 
       case 'showBadge':
         return { status: 'showBadge' }
@@ -201,7 +202,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
     setCsvData(filteredData)
     setFilteredOutData(filteredOut)
     setFileName(fileName)
-    dispatchUploadState({ type: 'complete' })
+    dispatchUploadState({ type: 'uploadComplete' })
 
     setTimeout(() => {
       dispatchUploadState({ type: 'showBadge' })
@@ -476,7 +477,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                       <p>Upload in progress</p>
                     </div>
                   )}
-                  {uploadState.status === 'complete' && (
+                  {uploadState.status === 'uploadComplete' && (
                     <div
                       className={`${groupsStyles.uploadArea} border-[#37B705] flex flex-col items-center justify-center gap-y-2`}
                     >
@@ -523,18 +524,34 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
             </DialogFooter>
           )}
           {(uploadState.status === 'showTable' || uploadState.status === 'showDeletionResult') && (
-            <DialogFooter className={deletionResult.status === 'error' ? 'md:justify-end' : 'md:justify-between'}>
-              {deletionResult.status !== 'error' && (
+            <DialogFooter
+              className={
+                uploadState.status === 'showDeletionResult' && deletionResult.status === 'error'
+                  ? 'md:justify-end'
+                  : 'md:justify-between'
+              }
+            >
+              {(uploadState.status === 'showTable' ||
+                (uploadState.status === 'showDeletionResult' && deletionResult.status !== 'error')) && (
                 <Button
                   className={`${groupsStyles.buttonPaddingWide}`}
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    setCsvData([])
-                    setFileName('')
-                    setDeletionResult([])
-                    setFilteredOutData([])
-                    dispatchUploadState({ type: 'empty' })
+                    const previousUploadStateStatus =
+                      uploadStateArray[
+                        uploadStateArray.indexOf(uploadState.status) > 0
+                          ? uploadStateArray.indexOf(uploadState.status) - 1
+                          : 0
+                      ]
+
+                    if (previousUploadStateStatus === 'empty') {
+                      setCsvData([])
+                      setFileName('')
+                      setDeletionResult([])
+                      setFilteredOutData([])
+                    }
+                    dispatchUploadState({ type: previousUploadStateStatus })
                   }}
                 >
                   Back
