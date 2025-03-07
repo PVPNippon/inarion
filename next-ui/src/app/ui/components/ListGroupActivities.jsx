@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { apiClient } from '@/utils/apiClient'
+import axios from 'axios'
 
 /**
  * Function ListGroupsActivities
@@ -25,18 +26,18 @@ function ListGroupsActivities() {
         return
       }
       try {
-        const response = await apiClient(
-          '/api/groups/get-activity', // Endpoint path relative to API_BASE_URL
-          'POST', // HTTP method
+        //temporarily bypass enctyption and authorzation
+        //TODO: when encryption module is back, rewrite the fetch logic to use the apiClient module instead.
+        const response = await axios.get(
+          `http://localhost:4000/api/groups/activities?userEmail=${email}`,
+
           {
-            userEmail: email,
-          },
-          {}, // Additional headers, if any
-          true // withCredentials flag
+            headers: {
+              //  Authorization: `Bearer ${token}`, // Pass the token in the Authorization header
+            },
+          }
         )
-        //WARNING:if you need to use the response data as an array or object, you need to parse it with JSON.parse()
-        //I'm not doing it here because I only display the response data as is for now.
-        setActivityList(response)
+        if (response) setActivityList(response.data)
       } catch (error) {
         console.error(error)
         setError(error)
@@ -58,9 +59,11 @@ function ListGroupsActivities() {
           Check
         </Button>
       </div>
-      {/* <div>{activityList && JSON.stringify(activityList)}</div> */}
+      <div className="max-h-[500px] overflow-y-scroll my-2 border border-input">
+        {activityList && JSON.stringify(activityList)}
+      </div>
       <p>{error && error.message}</p>
-      <div>{activityList && activityList}</div>
+      {/* <div>{activityList && activityList}</div> */}
     </div>
   )
 }
