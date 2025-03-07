@@ -1,6 +1,5 @@
 'use client'
-import React, { useState, useEffect, useContext } from 'react'
-import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
+import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { apiClient } from '@/utils/apiClient'
 
@@ -15,7 +14,7 @@ import { apiClient } from '@/utils/apiClient'
 //a temporary component for dev purposes.
 //on click of button, fetch group's activities and display in div(error or activity list)
 function ListGroupsActivities() {
-  const { email } = useContext(LoggedInUserContext)
+  const email = 'testadmin@pvp-test-domain2.com'
   const [activityList, setActivityList] = useState([])
   const [clickCount, setClickCount] = useState(0)
   const [error, setError] = useState(null)
