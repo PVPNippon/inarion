@@ -167,12 +167,16 @@ exports.getGroupActivity = async (req, res, next) => {
   }
 
   const { userEmail } = req.query
+  const applicationName = req.query.applicationName ?? 'groups_enterprise'
+  const eventName = req.query.eventName
   console.log('retrieving group activity: ', userEmail)
 
   try {
     // Fetch the list of group activity
-    const response = await groupsService.getAllGroupsLogs({
+    const response = await groupsService.getActivityLogs({
       userEmail,
+      applicationName,
+      eventName,
     })
 
     res.locals.data = response
@@ -202,11 +206,11 @@ exports.getGroupJoinedActivity = async (req, res, next) => {
 
   try {
     // Fetch the list of group joined activity in customer organization
-    const allActivities = await groupsService.getJoinGroupsLogs({
+    const response = await groupsService.getGroupJoinLogs({
       userEmail,
     })
 
-    res.locals.data = allActivities
+    res.locals.data = response
   } catch (error) {
     res.locals.statusCode = 500
     res.locals.data = { message: 'Error fetching group joined activity' }
