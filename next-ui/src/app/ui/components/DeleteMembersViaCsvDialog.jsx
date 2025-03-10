@@ -395,131 +395,127 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
             </DialogHeader>
 
             <div
-              className={`${groupsStyles.roundBorder} flex flex-col space-y-8 ${
+              className={`${groupsStyles.roundBorder} ${groupsStyles.thinShadow} flex flex-col space-y-6 ${
                 //temporarily set same height for all related screens
-                'h-[534px]'
+                'h-[538px]'
               } w-[768px] p-8`}
             >
               {uploadState.status !== 'deletionInProgress' && uploadState.status !== 'showDeletionResult' && (
                 <div className="flex flex-col gap-y-4">
-                  <div className="flex flex-col gap-y-1">
-                    <div className="font-semibold text-2xl/8">
-                      {uploadState.status === 'showTable' ? 'Confirm list' : 'Upload CSV'}
-                    </div>
-                    <div className="text-muted-foreground text-sm/5">
-                      {uploadState.status === 'showTable'
-                        ? 'Review the list of members set for removal.'
-                        : 'Upload a CSV file and review the list of member(s) who will be removed.'}
-                    </div>
-                  </div>
-                  <CsvTemplateDownloader
-                    hiddenClass={
-                      uploadState.status === 'showBadge' ||
-                      uploadState.status === 'showTable' ||
-                      uploadState.status === 'showDeletionResult'
-                        ? 'hidden'
-                        : ''
-                    }
-                  />
-                  {invalidFileType && (
-                    <div className="text-destructive text-sm/5">
-                      Invalid file type. Only CSV files are allowed. Please upload a file with extension .csv.
-                    </div>
-                  )}
-                  {uploadError && (
-                    <div className="text-destructive text-sm/5">
-                      Upload failed. Please check that the data in your CSV file is formatted correctly and try again.
-                    </div>
-                  )}
-                  {csvData && (
-                    <CsvFileBadge
-                      hiddenClass={uploadState.status === 'showBadge' ? '' : 'hidden'}
-                      fileName={fileName}
-                      setCsvData={setCsvData}
-                      dispatchUploadState={dispatchUploadState}
-                      setFilteredOutData={setFilteredOutData}
-                    />
-                  )}
-                </div>
-              )}
-              {uploadState !== null && (
-                <>
-                  {uploadState.status === 'empty' && (
-                    <div
-                      ref={dragRef}
-                      className={`${groupsStyles.uploadArea} border-dashed`}
-                      onDragOver={(e) => {
-                        e.preventDefault()
-                        setDragState(true)
-                      }}
-                      onDragLeave={(e) => {
-                        e.preventDefault()
-                        setDragState(false)
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault()
-                        setDragState(false)
-                        //  if (e.dataTransfer.files[0].type !== 'text/csv') return false //removed on purpose because it's not user friendly
-                        handleCsvUpload(e.dataTransfer.files[0])
-                      }}
-                    >
-                      <CloudUpload size={80} className="stroke-muted-foreground" strokeWidth={1} />
-                      <Button
-                        className={groupsStyles.buttonPadding}
-                        onClick={() => document.getElementById('file-upload-delete-members').click()}
-                        variant="outline"
-                      >
-                        Select a CSV file to upload
-                      </Button>
-                      <span>or</span>
-                      <span>Drag and drop it here</span>
-                      <input
-                        accept=".csv"
-                        id="file-upload-delete-members" //N.B. the id must be unique or it will clash with other compoments
-                        onChange={(e) => {
-                          handleCsvUpload(e.target.files[0])
-                        }}
-                        type="file"
-                        className="hidden"
-                      />
-                    </div>
-                  )}
-                  {uploadState.status === 'uploadInProgress' && (
-                    <div className={`${groupsStyles.uploadArea} border-dashed`}>
-                      <div className="loader"></div>
-                      <p>Upload in progress</p>
-                    </div>
-                  )}
-                  {uploadState.status === 'uploadComplete' && (
-                    <div
-                      className={`${groupsStyles.uploadArea} border-[#37B705] flex flex-col items-center justify-center gap-y-2`}
-                    >
-                      <Check size={80} color={groupsStyles.semanticLightModeSuccess} strokeWidth={1} />
-                      <p>Upload complete</p>
-                    </div>
-                  )}
-                  {uploadState.status === 'showTable' && (
-                    <>
-                      {filteredOutData && filteredOutData.length > 0 && <Warning filteredOutData={filteredOutData} />}
-                      <CsvTable csvData={csvData} />
-                    </>
-                  )}
-                  {uploadState.status === 'deletionInProgress' && <Loader />}
-                  {uploadState.status === 'showDeletionResult' && (
-                    <div>
-                      <div>
-                        {deletionResult && deletionResult.status === 'error' && (
-                          <DeletionError deletionResult={deletionResult} />
-                        )}
-
-                        {deletionResult &&
-                          (deletionResult.status === 'success' || deletionResult.status === 'failure') && (
-                            <DeletionResultScreen deletionResult={deletionResult} />
-                          )}
+                  <div className="flex flex-col gap-y-4">
+                    <div className="flex flex-col gap-y-1">
+                      <div className="font-semibold text-2xl/8">
+                        {uploadState.status === 'showTable' ? 'Confirm list' : 'Upload CSV'}
+                      </div>
+                      <div className="text-muted-foreground text-sm/5">
+                        {uploadState.status === 'showTable'
+                          ? 'Review the list of members set for removal.'
+                          : 'Upload a CSV file and review the list of member(s) who will be removed.'}
                       </div>
                     </div>
-                  )}
-                </>
+                    <CsvTemplateDownloader
+                      hiddenClass={
+                        uploadState.status === 'showBadge' ||
+                        uploadState.status === 'showTable' ||
+                        uploadState.status === 'showDeletionResult'
+                          ? 'hidden'
+                          : ''
+                      }
+                    />
+                    {invalidFileType && (
+                      <div className="text-destructive text-sm/5">
+                        Invalid file type. Only CSV files are allowed. Please upload a file with extension .csv.
+                      </div>
+                    )}
+                    {uploadError && (
+                      <div className="text-destructive text-sm/5">
+                        Upload failed. Please check that the data in your CSV file is formatted correctly and try again.
+                      </div>
+                    )}
+                    {uploadState.status === 'showTable' && filteredOutData && filteredOutData.length > 0 && (
+                      <Warning filteredOutData={filteredOutData} />
+                    )}
+                    {csvData && (
+                      <CsvFileBadge
+                        hiddenClass={uploadState.status === 'showBadge' ? '' : 'hidden'}
+                        fileName={fileName}
+                        setCsvData={setCsvData}
+                        dispatchUploadState={dispatchUploadState}
+                        setFilteredOutData={setFilteredOutData}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {uploadState.status === 'empty' && (
+                <div
+                  ref={dragRef}
+                  className={`${groupsStyles.uploadArea} border-dashed`}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setDragState(true)
+                  }}
+                  onDragLeave={(e) => {
+                    e.preventDefault()
+                    setDragState(false)
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setDragState(false)
+                    //  if (e.dataTransfer.files[0].type !== 'text/csv') return false //removed on purpose because it's not user friendly
+                    handleCsvUpload(e.dataTransfer.files[0])
+                  }}
+                >
+                  <CloudUpload size={80} className="stroke-muted-foreground" strokeWidth={1} />
+                  <Button
+                    className={groupsStyles.buttonPadding}
+                    onClick={() => document.getElementById('file-upload-delete-members').click()}
+                    variant="outline"
+                  >
+                    Select a CSV file to upload
+                  </Button>
+                  <span>or</span>
+                  <span>Drag and drop it here</span>
+                  <input
+                    accept=".csv"
+                    id="file-upload-delete-members" //N.B. the id must be unique or it will clash with other compoments
+                    onChange={(e) => {
+                      handleCsvUpload(e.target.files[0])
+                    }}
+                    type="file"
+                    className="hidden"
+                  />
+                </div>
+              )}
+              {uploadState.status === 'uploadInProgress' && (
+                <div className={`${groupsStyles.uploadArea} border-dashed`}>
+                  <div className="loader"></div>
+                  <p>Upload in progress</p>
+                </div>
+              )}
+              {uploadState.status === 'uploadComplete' && (
+                <div
+                  className={`${groupsStyles.uploadArea} border-[#37B705] flex flex-col items-center justify-center gap-y-2`}
+                >
+                  <Check size={80} color={groupsStyles.semanticLightModeSuccess} strokeWidth={1} />
+                  <p>Upload complete</p>
+                </div>
+              )}
+              {uploadState.status === 'showTable' && <CsvTable csvData={csvData} />}
+              {uploadState.status === 'deletionInProgress' && <Loader />}
+              {uploadState.status === 'showDeletionResult' && (
+                <div>
+                  <div>
+                    {deletionResult && deletionResult.status === 'error' && (
+                      <DeletionError deletionResult={deletionResult} />
+                    )}
+
+                    {deletionResult && (deletionResult.status === 'success' || deletionResult.status === 'failure') && (
+                      <DeletionResultScreen deletionResult={deletionResult} />
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -610,7 +606,7 @@ export default DeleteMembersViaCsvDialog
 
 function CsvTemplateDownloader({ hiddenClass }) {
   return (
-    <div className={`flex text-sm/5 gap-x-2.5 items-center ${hiddenClass}`}>
+    <div className={`flex text-sm/5 gap-x-2.5 items-center ${hiddenClass} h-[36px]`}>
       <a
         href="/templates/members-list-sample.csv"
         download="members-list-sample.csv"
@@ -670,11 +666,11 @@ function Warning({ filteredOutData }) {
   return (
     <Dialog>
       <div className="flex flex-row text-sm/5 gap-x-1">
-        <p className="text-destructive">
-          {`${filteredOutData.length} entries in the uploaded file were excluded from the list.`}{' '}
-        </p>
+        <div className="text-destructive">
+          {`${filteredOutData.length} entries in the uploaded file were excluded from the list.`}
+        </div>
         <DialogTrigger asChild>
-          <p className={`w-fit ${groupsStyles.secondaryTextChart5} cursor-pointer`}>See details</p>
+          <div className={`w-fit ${groupsStyles.secondaryTextChart5} cursor-pointer `}>See details</div>
         </DialogTrigger>
       </div>
       <CustomWidthDialogContent customDialogCloseClassName="right-4 top-4" className="min-w-[600px]">
