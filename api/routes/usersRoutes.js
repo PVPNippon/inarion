@@ -25,9 +25,14 @@ router.post('/2sv-off', usersController.turnOffTwoSVForUsers)
 // Route to delete multiple users
 router.delete('/', usersController.deleteUsers)
 
+// Route to list all roles assignments
 router.get('/role/assignments', usersController.listRoleAssignments)
 
+// Route to list all role names
 router.get('/role/names', usersController.listRoleNames)
+
+// Route to list all OUs in customer domain
+router.get('/orgunits', usersController.listOrgUnits)
 
 router.use(encryptResponseMiddleware)
 

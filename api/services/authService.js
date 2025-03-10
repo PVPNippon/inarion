@@ -201,6 +201,7 @@ async function initializeGoogleAuth(credentials) {
         'https://www.googleapis.com/auth/admin.directory.user',
         'https://www.googleapis.com/auth/admin.directory.domain',
         'https://www.googleapis.com/auth/admin.directory.rolemanagement',
+        'https://www.googleapis.com/auth/admin.directory.orgunit',
       ],
     })
     // logger.debug(`GoogleAuth client initialized successfully.`)
