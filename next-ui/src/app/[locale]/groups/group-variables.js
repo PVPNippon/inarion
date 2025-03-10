@@ -6,6 +6,9 @@ export const groupsStyles = {
   //semantic/light mode/success
   semanticLightModeSuccess: '#37B705',
 
+  //semantic/dark mode/failure
+  semanticDarkModeFailure: '#F39D3D',
+
   //buttons
   buttonPadding: 'py-2 px-6 gap-x-2.5', //top-bottom 8px left-right 24px gap 10px
   buttonPaddingWide: 'py-2 px-8 gap-x-2.5', //top-bottom 8px left-right 32px gap 10px

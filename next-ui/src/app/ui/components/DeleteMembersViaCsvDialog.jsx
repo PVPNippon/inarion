@@ -37,13 +37,26 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import Papa from 'papaparse'
 import { classListHandler, customTableHandler } from '@/utils/virtualDOMHackers'
-const email = 'testadmin@pvp-test-domain2.com'
 const uploadStateArray = ['empty', 'uploadComplete', 'showBadge', 'showTable', 'showDeletionResult']
+const email = 'testadmin@pvp-test-domain2.com' //TODO:temporary bypass, remove when the apiClient module is ready
 
+/**
+ * Returns the number of occurrences of a given value in an array.
+ * @param {array} array - the array to search in
+ * @param {*} value - the value to search for
+ * @returns {number} the number of occurrences
+ */
 function getOccurrence(array, value) {
   return array.filter((v) => v === value).length
 }
 
+/**
+ * Calculates the reason for a filtered out item from a CSV data array.
+ *
+ * @param {array} allDataArray - The array of all data from the CSV file.
+ * @param {object} filteredOutItem - The item that was filtered out.
+ * @returns {string} The reason for the item being filtered out.
+ */
 function calculateReason(allDataArray, filteredOutItem) {
   if (filteredOutItem.email === '') {
     return 'Email address empty'
@@ -78,8 +91,8 @@ function mapAndFilterCsvData(data, setFilteredOutData) {
   const mappedData = data.map((item) => {
     const values = Array.isArray(item) ? item : Object.values(item)
     return {
-      name: values[0],
-      email: values[1],
+      name: values[0].trim(),
+      email: values[1].trim(),
     }
   })
 
@@ -97,7 +110,7 @@ function mapAndFilterCsvData(data, setFilteredOutData) {
     const allEmails = mappedData.map((item) => item.email).filter((email) => email !== '')
 
     filteredOut = mappedData.reduce((acc, item) => {
-      if (item.email === '' && item.name === '') return acc
+      if ((item.email === '' && item.name === '') || item.email.includes('Member Email')) return acc
       if (!uniqueDataArray.includes(item)) {
         item.invalidReason = calculateReason(allEmails, item)
         acc.push(item)
@@ -149,27 +162,33 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
     status: 'empty',
   }
 
+  /**
+   * Handles the state of the upload process, such as whether the upload is in progress, complete, or showing a badge or table.
+   * @param {object} state - The current state of the upload.
+   * @param {object} action - The action to take on the state.
+   * @returns {object} The new state after taking the action.
+   */
   const uploadReducer = (state, action) => {
     switch (action.type) {
-      case 'empty':
+      case 'empty': //start screen
         return initialState
 
-      case 'uploadInProgress':
+      case 'uploadInProgress': //upload in progress (spinner)
         return { status: 'uploadInProgress' }
 
-      case 'uploadComplete':
+      case 'uploadComplete': //upload complete(green checkbox)
         return { status: 'uploadComplete' }
 
-      case 'showBadge':
+      case 'showBadge': //display a removable badge with the file name
         return { status: 'showBadge' }
 
-      case 'showTable':
+      case 'showTable': //display the parsed csv data as a table
         return { status: 'showTable' }
 
-      case 'deletionInProgress':
+      case 'deletionInProgress': //deletion in progress (spinner2)
         return { status: 'deletionInProgress' }
 
-      case 'showDeletionResult':
+      case 'showDeletionResult': //display the deletion result, which has 4 possible outcomes: success, partial success, nw error or group does not exist
         return { status: 'showDeletionResult' }
 
       default:
@@ -179,6 +198,13 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
 
   const [uploadState, dispatchUploadState] = useReducer(uploadReducer, initialState)
 
+  /**
+   * Resets the component states to their initial values.
+   *
+   * This function clears the CSV data, file name, and filtered out data,
+   * resets any file type and upload errors, clears the deletion result,
+   * and sets the upload state to 'empty'.
+   */
   function resetStates() {
     setCsvData([])
     setFileName('')
@@ -202,6 +228,8 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
    */
   function handleUploadedDataAndState(data, fileName) {
     const [filteredData, filteredOut] = mapAndFilterCsvData(data, setFilteredOutData)
+
+    //if filteredData is empty, it means the file wasn't parsed correctly, so display upload error and return
     if (filteredData.length === 0) {
       setFilteredOutData([])
       setUploadError(true)
@@ -209,6 +237,8 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
       return
     }
 
+    //otherwise, set the filtered and filtered out data to correstponding states and update the upload state
+    //we need to store the filtered out data to display a separate table with the reason for each filtered out item
     setCsvData(filteredData)
     setFilteredOutData(filteredOut)
     setFileName(fileName)
@@ -414,15 +444,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                           : 'Upload a CSV file and review the list of member(s) who will be removed.'}
                       </div>
                     </div>
-                    <CsvTemplateDownloader
-                      hiddenClass={
-                        uploadState.status === 'showBadge' ||
-                        uploadState.status === 'showTable' ||
-                        uploadState.status === 'showDeletionResult'
-                          ? 'hidden'
-                          : ''
-                      }
-                    />
+                    {uploadStateArray.indexOf(uploadState.status) <= 1 && <CsvTemplateDownloader />}
                     {invalidFileType && (
                       <div className="text-destructive text-sm/5">
                         Invalid file type. Only CSV files are allowed. Please upload a file with extension .csv.
@@ -436,9 +458,8 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                     {uploadState.status === 'showTable' && filteredOutData && filteredOutData.length > 0 && (
                       <Warning filteredOutData={filteredOutData} />
                     )}
-                    {csvData && (
+                    {csvData && uploadState.status === 'showBadge' && (
                       <CsvFileBadge
-                        hiddenClass={uploadState.status === 'showBadge' ? '' : 'hidden'}
                         fileName={fileName}
                         setCsvData={setCsvData}
                         dispatchUploadState={dispatchUploadState}
@@ -605,9 +626,9 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
 
 export default DeleteMembersViaCsvDialog
 
-function CsvTemplateDownloader({ hiddenClass }) {
+function CsvTemplateDownloader() {
   return (
-    <div className={`flex text-sm/5 gap-x-2.5 items-center ${hiddenClass} h-[36px]`}>
+    <div className={`flex text-sm/5 gap-x-2.5 items-center  h-[36px]`}>
       <a
         href="/templates/members-list-sample.csv"
         download="members-list-sample.csv"
@@ -785,7 +806,7 @@ function DeletionResultScreen({ deletionResult }) {
         <div className={`flex text-base gap-x-2  items-center `}>
           {(deletionResult.status === 'failure' || deletionResult.responseData.undeletedMembers.length > 0) && (
             <>
-              <TriangleAlert size={21} className="stroke-chart-5" strokeWidth={1.5} />
+              <TriangleAlert size={21} color={groupsStyles.semanticDarkModeFailure} strokeWidth={1.5} />
               <div>Removal failed for some users.</div>
               <a className={groupsStyles.secondaryTextChart5} href="http://localhost:3000" target="_blank">
                 Learn more
@@ -825,10 +846,18 @@ function DeletionResultTable({ deletionResult }) {
 
     if (data.undeletedMembers.length > 0) {
       undeletedMembersArray = data.undeletedMembers.map((member) => {
+        let reason
+        if (member.statusCode === 400 || member.statusCode === 404) {
+          reason = 'Not a member'
+        } else if (member.statusCode === 403 && member.errorMessage.includes('Request rate higher than configured')) {
+          reason = 'Request rate exceeded'
+        } else {
+          reason = '-'
+        }
         return {
           email: member.email,
           status: 'Removal failed',
-          reason: member.statusCode === 400 || member.statusCode === 404 ? 'Not a member' : '-',
+          reason,
         }
       })
     }
