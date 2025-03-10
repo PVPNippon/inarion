@@ -13,6 +13,7 @@ import CreateGroup from '@/app/ui/components/CreateGroup'
 import ListGroupSettings from '@/app/ui/components/ListGroupSettings'
 import { Separator } from '@/components/ui/separator'
 import DeleteMembersViaCsv2 from '@/app/ui/components/DeleteMembersViaCsv2'
+import AddMembersViaCsv from '@/app/ui/components/AddMembersViaCsv'
 
 /**
  * A component that displays a Google Groups page.
@@ -51,6 +52,9 @@ function GroupsDashboard() {
       <CreateGroup></CreateGroup>
       <Separator className="my-4" />
       <ListGroupSettings></ListGroupSettings>
+      <Separator className="my-4" />
+      <AddMembersViaCsv></AddMembersViaCsv>
+      <Separator className="my-4" />
     </main>
   )
 }

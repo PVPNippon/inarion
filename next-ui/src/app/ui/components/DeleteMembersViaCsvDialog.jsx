@@ -347,6 +347,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
             data: { memberEmails: memberList },
           }
         )
+        console.log('RESPONSE FROM BACKEND for status 200', response)
         setDeletionResult({ status: 'success', responseData: response.data })
       }
     } catch (err) {
