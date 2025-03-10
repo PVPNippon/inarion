@@ -179,6 +179,16 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
 
   const [uploadState, dispatchUploadState] = useReducer(uploadReducer, initialState)
 
+  function resetStates() {
+    setCsvData([])
+    setFileName('')
+    setInvalidFileType(false)
+    setFilteredOutData([])
+    setUploadError(false)
+    setDeletionResult([])
+    dispatchUploadState({ type: 'empty' })
+  }
+
   /**
    * A function that takes a parsed CSV data array and a file name as arguments.
    * It filters out invalid or duplicate email addresses from the data array
@@ -206,7 +216,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
 
     setTimeout(() => {
       dispatchUploadState({ type: 'showBadge' })
-    }, 3000)
+    }, 1000)
   }
 
   /**
@@ -360,7 +370,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
 
   return (
     <div>
-      <Dialog>
+      <Dialog onOpenChange={() => resetStates()}>
         <DialogTrigger asChild>
           <Button variant="default">Delete Members via CSV</Button>
         </DialogTrigger>
@@ -371,6 +381,9 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
           customWidth="w-[880px]"
           customDialogCloseClassName="right-4 top-[-38px]"
           className="space-y-14"
+          onInteractOutside={(e) => {
+            resetStates()
+          }}
         >
           <div className="flex flex-col p-4 space-y-7">
             <DialogHeader>
@@ -580,10 +593,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
               )}
               {uploadState.status === 'showDeletionResult' && (
                 <DialogClose asChild>
-                  <Button
-                    onClick={() => dispatchUploadState({ type: 'empty' })}
-                    className={`${groupsStyles.buttonPaddingWide} `}
-                  >
+                  <Button onClick={() => resetStates()} className={`${groupsStyles.buttonPaddingWide} `}>
                     Close
                   </Button>
                 </DialogClose>
