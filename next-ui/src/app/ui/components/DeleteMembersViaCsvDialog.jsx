@@ -1,6 +1,7 @@
 'use client'
 import React, { useState, useEffect, useRef, useReducer } from 'react'
-import axios from 'axios'
+
+//shadcn and custom components
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -23,8 +24,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
-import { groupsStyles } from '@/app/[locale]/groups/group-variables'
-import { Download, CloudUpload, X, Check, CircleX, TriangleAlert, CircleAlert } from 'lucide-react'
 import { CustomWidthDialogContent } from '@/components/ui/custom-dialog-content-width'
 import {
   CustomTable,
@@ -35,8 +34,21 @@ import {
   CustomTableCell,
 } from '@/components/ui/custom-table'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import Papa from 'papaparse'
+
+//icons
+import { Download, CloudUpload, X, Check, CircleX, TriangleAlert, CircleAlert } from 'lucide-react'
+
+//utility functions and custom hooks
 import { classListHandler, customTableHandler } from '@/utils/virtualDOMHackers'
+
+//variables
+import { groupsStyles } from '@/app/[locale]/groups/group-variables'
+
+//third party libraries
+import axios from 'axios'
+import Papa from 'papaparse'
+
+//constants
 const uploadStateArray = ['empty', 'uploadComplete', 'showBadge', 'showTable', 'showDeletionResult']
 const email = 'testadmin@pvp-test-domain2.com' //TODO:temporary bypass, remove when the apiClient module is ready
 
@@ -83,6 +95,7 @@ function calculateReason(allDataArray, filteredOutItem) {
  * @returns {Array} - An array of unique and valid mapped data objects,
  *                    each containing a name and email.
  */
+//the reason the parsed data comes in 2 different formats is because of macOS csvexport where a user might check the  "Include table names" checkbox
 function mapAndFilterCsvData(data, setFilteredOutData) {
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
   let filteredOut = []
@@ -106,11 +119,15 @@ function mapAndFilterCsvData(data, setFilteredOutData) {
   ]
   console.log('uniqueDataArray', uniqueDataArray)
 
+  //if the length of the data array is greater than the unique data array, extract the filtered out data
+  //we need the data to display a separate table with the reason for each filtered out item
   if (data.length > uniqueDataArray.length) {
     const allEmails = mappedData.map((item) => item.email).filter((email) => email !== '')
 
     filteredOut = mappedData.reduce((acc, item) => {
-      if ((item.email === '' && item.name === '') || item.email.includes('Member Email')) return acc
+      if ((item.email === '' && item.name === '') || item.email.includes('Member Email')) return acc //skip empty rows and headers
+
+      //calculate the reason for the filtered out item
       if (!uniqueDataArray.includes(item)) {
         item.invalidReason = calculateReason(allEmails, item)
         acc.push(item)
@@ -139,27 +156,24 @@ function validateParsedDataArray(data) {
   )
 }
 
+/**
+ * A Dialog component for deleting multiple group members via a CSV file.
+ * @param {object} props - The component props.
+ * @param {string} props.groupName - The name of the group.
+ * @param {string} props.groupEmail - The email address of the group.
+ * @returns {ReactElement} The DeleteMembersViaCsvDialog component.
+ */
 function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
-  const [deletionResult, setDeletionResult] = useState([])
-  const [csvData, setCsvData] = useState([])
-  const [fileName, setFileName] = useState('')
-  const [invalidFileType, setInvalidFileType] = useState(false)
-  const [filteredOutData, setFilteredOutData] = useState([])
-  const [uploadError, setUploadError] = useState(false)
-  const [dragState, setDragState] = useState(false)
-  const dragRef = useRef(null)
-
-  //a listener to add or remove the bg-accent class to the drag and drop area when a file is being dragged over
-  useEffect(() => {
-    if (dragState === true) {
-      classListHandler({ componentRef: dragRef, classesToAdd: 'bg-accent' })
-    } else {
-      classListHandler({ componentRef: dragRef, classesToRemove: 'bg-accent' })
-    }
-  }, [dragState])
-
+  const [deletionResult, setDeletionResult] = useState([]) //state for the deletion result
+  const [csvData, setCsvData] = useState([]) //state for the parsed CSV data
+  const [fileName, setFileName] = useState('') //state for the name of the CSV file
+  const [invalidFileType, setInvalidFileType] = useState(false) //state for invalid file type error message, displayed when non-csv file upload is attempted
+  const [filteredOutData, setFilteredOutData] = useState([]) //state for the filtered out incorrect csv data(empty or invalid email addresses, duplicates etc)
+  const [uploadError, setUploadError] = useState(false) //state for upload error message(if any) diplayed when csv file is not parsed correctly
+  const [dragState, setDragState] = useState(false) //state for the drag and drop area to trigger event when a file is being dragged over
+  const dragRef = useRef(null) //reference to the drag and drop area
   const initialState = {
-    status: 'empty',
+    status: 'empty', //initial upload state(start screen)
   }
 
   /**
@@ -168,6 +182,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
    * @param {object} action - The action to take on the state.
    * @returns {object} The new state after taking the action.
    */
+  //Note: action type(case) names and status names do not need to be the same, I just unified them for simplicity
   const uploadReducer = (state, action) => {
     switch (action.type) {
       case 'empty': //start screen
@@ -176,7 +191,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
       case 'uploadInProgress': //upload in progress (spinner)
         return { status: 'uploadInProgress' }
 
-      case 'uploadComplete': //upload complete(green checkbox)
+      case 'uploadComplete': //upload complete(green check)
         return { status: 'uploadComplete' }
 
       case 'showBadge': //display a removable badge with the file name
@@ -188,7 +203,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
       case 'deletionInProgress': //deletion in progress (spinner2)
         return { status: 'deletionInProgress' }
 
-      case 'showDeletionResult': //display the deletion result, which has 4 possible outcomes: success, partial success, nw error or group does not exist
+      case 'showDeletionResult': //display the deletion result, which has 4 possible outcomes: success, partial success, nw error or group does not exist anymore
         return { status: 'showDeletionResult' }
 
       default:
@@ -196,7 +211,16 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
     }
   }
 
-  const [uploadState, dispatchUploadState] = useReducer(uploadReducer, initialState)
+  const [uploadState, dispatchUploadState] = useReducer(uploadReducer, initialState) //state for the upload process
+
+  //a listener to add or remove the bg-accent class to the drag and drop area when a file is being dragged over
+  useEffect(() => {
+    if (dragState === true) {
+      classListHandler({ componentRef: dragRef, classesToAdd: 'bg-accent' })
+    } else {
+      classListHandler({ componentRef: dragRef, classesToRemove: 'bg-accent' })
+    }
+  }, [dragState])
 
   /**
    * Resets the component states to their initial values.
@@ -229,7 +253,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
   function handleUploadedDataAndState(data, fileName) {
     const [filteredData, filteredOut] = mapAndFilterCsvData(data, setFilteredOutData)
 
-    //if filteredData is empty, it means the file wasn't parsed correctly, so display upload error and return
+    //if filteredData is empty, it means the data format is incorrect or all data is invalid, so display upload error and return
     if (filteredData.length === 0) {
       setFilteredOutData([])
       setUploadError(true)
@@ -244,6 +268,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
     setFileName(fileName)
     dispatchUploadState({ type: 'uploadComplete' })
 
+    //display the green check for 1 second, then display the badge with the filename
     setTimeout(() => {
       dispatchUploadState({ type: 'showBadge' })
     }, 1000)
@@ -278,7 +303,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
   However, checking the checkbox returns a completely different format of data, so we need to handle it separately. It's an array of arrays where
   the first array has length 1 and contains the table name(i.e. the name of the file which were exported), the second array has length 2 and contains table headers.
   The rest of arrays have length 2 and contain a table row data.
-  Note that we only need the member email (second column) for the deletion. First column (name) can be empty or has an incorrect value. Third or more columns(if present) will be ignored.
+  Note that we only need the member email (second column) for the deletion. First column (name) can be empty or has an incorrect(i.e. not matching the actual user name) value. Third or more columns(if present) will be ignored.
   **/
   function fallbackParse(file) {
     Papa.parse(file, {
@@ -293,9 +318,14 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
           return
         }
 
-        if (validateParsedDataArray) {
+        //if parsed data passes validation, remove the table name and table headers and further the data for mapping and filtering
+        //otherwise, display upload error
+        if (validateParsedDataArray(resultDataArray) === true) {
           const tableDataArrays = resultDataArray.slice(2) //remove table name and table headers
           handleUploadedDataAndState(tableDataArrays, file.name)
+        } else {
+          setUploadError(true)
+          dispatchUploadState({ type: 'empty' })
         }
       },
     })
@@ -306,19 +336,23 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
    * @param {File} file - The CSV file to be parsed.
    */
   function handleCsvUpload(file) {
+    //clear errors
     setInvalidFileType(false)
     setUploadError(false)
+
+    //check file type and display error message if not csv
     if (file.type !== 'text/csv') {
       setInvalidFileType(true)
       return
     }
 
+    //display spinner
     dispatchUploadState({ type: 'uploadInProgress' })
 
-    //TODO(maria) :IMPORTANT: remove timeout when testing is completed
     setTimeout(() => {
       //Add try-catch for unexpected scenarios such as unsupported encoding etc.
       try {
+        //attempt parsing the file in a normal way
         Papa.parse(file, {
           header: true,
           skipEmptyLines: true,
@@ -327,12 +361,14 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
             const resultData = results
             console.log('results:', results)
 
+            //if data is empty, return and display upload error
             if (resultData.data.length === 0) {
               setUploadError(true)
               dispatchUploadState({ type: 'empty' })
               return
             }
 
+            //if the error array is not empty and it contains specific errors, attempt at fallback parse. Otherwise, display upload error
             if (resultData.errors.length > 0) {
               if (
                 resultData.errors[0]?.code === 'UndetectableDelimiter' &&
@@ -353,18 +389,30 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
         setUploadError(true)
         dispatchUploadState({ type: 'empty' })
       }
-    }, 3000) // simulate a 3-second delay for dev purposes
+    }, 1000) // simulate upload time
   }
 
+  /**
+   * A function to delete the members in the CSV file from the specified group.
+   * It takes the group email and the parsed CSV data as parameters.
+   * It first checks if the group exists and if the CSV data is not empty.
+   * If the checks pass, it sends a DELETE request to the API with the group email and the list of member emails in the CSV file.
+   * It then sets the component state with the response from the API.
+   * If there is an error, it catches the error and sets the component state with the error details.
+   * Finally, it imitates a 3 second delay before displaying the deletion result.
+   */
   const handleDelete = async () => {
     if (!groupEmail || csvData.length === 0) return
 
     try {
-      dispatchUploadState({ type: 'deletionInProgress' })
+      dispatchUploadState({ type: 'deletionInProgress' }) //display spinner
 
-      // try {
+      //make sure the group still exists
+      //I added this check in case someone else has deleted the group unbeknowst to the admin, but it's still displayed in UI due to timelag or cached data
+      //It will help to reduce API calls since each member is deleted individually
       const groupResponse = await axios.get(`http://localhost:4000/api/groups/group/${groupEmail}/?userEmail=${email}`)
 
+      //if the group still exists, proceed wih the 2nd API call to delete the members
       if (groupResponse.status === 200) {
         const memberList = csvData.map((memberObj) => Object.values(memberObj)[1])
 
@@ -378,11 +426,14 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
           }
         )
         console.log('RESPONSE FROM BACKEND for status 200', response)
+        //if all members have been deleted successfully, the backend will send a 200 response. If deletion was successfull partially, it will send a 207 response.
+        //  Set the component state accordingly.
         setDeletionResult({ status: 'success', responseData: response.data })
       }
     } catch (err) {
       console.log('error', err)
 
+      //error 404 means that the group no longer exists
       //error 400 means that the deletion was attempted, but failed for all members. The most probable cause is that the user uploaded a wrong file where all email addresses are not members of the target group.
       //for all other scenarios, display a generic error(for now)
       if (err.status === 404) {
@@ -395,7 +446,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
     } finally {
       setTimeout(() => {
         dispatchUploadState({ type: 'showDeletionResult' })
-      }, 3000) //imitate a 3 second delay
+      }, 1000) //imitate a 1 second delay
     }
   }
 
@@ -412,9 +463,6 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
           customWidth="w-[880px]"
           customDialogCloseClassName="right-4 top-[-38px]"
           className="space-y-14"
-          onInteractOutside={(e) => {
-            resetStates()
-          }}
         >
           <div className="flex flex-col p-4 space-y-7">
             <DialogHeader>
@@ -427,7 +475,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
 
             <div
               className={`${groupsStyles.roundBorder} ${groupsStyles.thinShadow} flex flex-col space-y-6 ${
-                //temporarily set same height for all related screens
+                //set fixed height so that all related screens look consistent
                 'h-[538px]'
               } w-[768px] p-8`}
             >
@@ -485,7 +533,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   onDrop={(e) => {
                     e.preventDefault()
                     setDragState(false)
-                    //  if (e.dataTransfer.files[0].type !== 'text/csv') return false //removed on purpose because it's not user friendly
+                    //  if (e.dataTransfer.files[0].type !== 'text/csv') return false //removed on purpose because it's not user friendly(keep it for no for the case we decide to add it back)
                     handleCsvUpload(e.dataTransfer.files[0])
                   }}
                 >
