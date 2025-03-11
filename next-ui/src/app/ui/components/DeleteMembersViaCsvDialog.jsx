@@ -49,6 +49,7 @@ import axios from 'axios'
 import Papa from 'papaparse'
 
 //constants
+//upload state array for the "Back button"(states which are not needed to be returned to via Back btn(such as "uploadInProgress" etc) are omitted)
 const uploadStateArray = ['empty', 'uploadComplete', 'showBadge', 'showTable', 'showDeletionResult']
 const email = 'testadmin@pvp-test-domain2.com' //TODO:temporary bypass, remove when the apiClient module is ready
 
@@ -492,32 +493,40 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                           : 'Upload a CSV file and review the list of member(s) who will be removed.'}
                       </div>
                     </div>
+                    {/* Download csv template link */}
                     {uploadStateArray.indexOf(uploadState.status) <= 1 && <CsvTemplateDownloader />}
+
+                    {/* Error messages */}
                     {invalidFileType && (
                       <div className="text-destructive text-sm/5">
                         Invalid file type. Only CSV files are allowed. Please upload a file with extension .csv.
                       </div>
                     )}
+
                     {uploadError && (
                       <div className="text-destructive text-sm/5">
                         Upload failed. Please check that the data in your CSV file is formatted correctly and try again.
                       </div>
                     )}
+
+                    {/* Warning component if there is a filtered out data */}
                     {uploadState.status === 'showTable' && filteredOutData && filteredOutData.length > 0 && (
                       <Warning filteredOutData={filteredOutData} />
                     )}
+
+                    {/* CSV file badge */}
                     {csvData && uploadState.status === 'showBadge' && (
                       <CsvFileBadge
                         fileName={fileName}
-                        setCsvData={setCsvData}
                         dispatchUploadState={dispatchUploadState}
-                        setFilteredOutData={setFilteredOutData}
+                        resetStates={resetStates}
                       />
                     )}
                   </div>
                 </div>
               )}
 
+              {/* Upload area */}
               {uploadState.status === 'empty' && (
                 <div
                   ref={dragRef}
@@ -558,12 +567,16 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   />
                 </div>
               )}
+
+              {/* Upload in progress spinner */}
               {uploadState.status === 'uploadInProgress' && (
                 <div className={`${groupsStyles.uploadArea} border-dashed`}>
                   <div className="loader"></div>
                   <p>Upload in progress</p>
                 </div>
               )}
+
+              {/* Upload complete message and green check icon */}
               {uploadState.status === 'uploadComplete' && (
                 <div
                   className={`${groupsStyles.uploadArea} border-[#37B705] flex flex-col items-center justify-center gap-y-2`}
@@ -572,51 +585,70 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   <p>Upload complete</p>
                 </div>
               )}
+
+              {/* CSV table with parsed data */}
               {uploadState.status === 'showTable' && <CsvTable csvData={csvData} />}
+
+              {/* Deletion in progress spinner */}
               {uploadState.status === 'deletionInProgress' && <Loader />}
+
+              {/* Deletion result table or error */}
               {uploadState.status === 'showDeletionResult' && (
                 <div>
-                  <div>
-                    {deletionResult && deletionResult.status === 'error' && (
-                      <DeletionError deletionResult={deletionResult} />
-                    )}
+                  {/* Deletion error screen */}
+                  {/* Comes in 2 variants: group no longer exists or internal error */}
+                  {deletionResult && deletionResult.status === 'error' && (
+                    <DeletionError deletionResult={deletionResult} />
+                  )}
 
-                    {deletionResult && (deletionResult.status === 'success' || deletionResult.status === 'failure') && (
-                      <DeletionResultScreen deletionResult={deletionResult} />
-                    )}
-                  </div>
+                  {/* Deletion result screen */}
+                  {/* Comes in 2 variants: success(all members deleted) or failure(some/all members not deleted) */}
+                  {deletionResult && (deletionResult.status === 'success' || deletionResult.status === 'failure') && (
+                    <DeletionResultScreen deletionResult={deletionResult} />
+                  )}
                 </div>
               )}
             </div>
           </div>
-          {uploadState.status !== 'showTable' && uploadState.status !== 'showDeletionResult' && (
-            <DialogFooter>
-              <Button
-                className={groupsStyles.buttonPaddingWide}
-                onClick={() => {
-                  dispatchUploadState({ type: 'showTable' })
-                }}
-                disabled={uploadState.status !== 'showBadge' && uploadState.status !== 'showTable'}
-              >
-                Next
-              </Button>
-            </DialogFooter>
-          )}
-          {(uploadState.status === 'showTable' || uploadState.status === 'showDeletionResult') && (
+
+          {/* Dialog footer with Next button */}
+          {uploadState.status !== 'showTable' &&
+            uploadState.status !== 'deletionInProgress' &&
+            uploadState.status !== 'showDeletionResult' && (
+              <DialogFooter>
+                <Button
+                  className={groupsStyles.buttonPaddingWide}
+                  onClick={() => {
+                    dispatchUploadState({ type: 'showTable' })
+                  }}
+                  disabled={uploadState.status !== 'showBadge' && uploadState.status !== 'showTable'}
+                >
+                  Next
+                </Button>
+              </DialogFooter>
+            )}
+
+          {/* Dialog footer with Back and Remove/Close buttons */}
+          {(uploadState.status === 'showTable' ||
+            uploadState.status === 'deletionInProgress' ||
+            uploadState.status === 'showDeletionResult') && (
             <DialogFooter
               className={
-                uploadState.status === 'showDeletionResult' && deletionResult.status === 'error'
+                uploadState.status === 'deletionInProgress' ||
+                (uploadState.status === 'showDeletionResult' && deletionResult.status === 'error')
                   ? 'md:justify-end'
                   : 'md:justify-between'
               }
             >
               {(uploadState.status === 'showTable' ||
                 (uploadState.status === 'showDeletionResult' && deletionResult.status !== 'error')) && (
+                // Back button
                 <Button
                   className={`${groupsStyles.buttonPaddingWide}`}
                   type="button"
                   variant="outline"
                   onClick={() => {
+                    // The Back button leads back to the previous upload state(or initial state if the previous state is not found in the uploadStateArray)
                     const previousUploadStateStatus =
                       uploadStateArray[
                         uploadStateArray.indexOf(uploadState.status) > 0
@@ -624,6 +656,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                           : 0
                       ]
 
+                    //Clear the state if the previous state is the initial state
                     if (previousUploadStateStatus === 'empty') {
                       setCsvData([])
                       setFileName('')
@@ -636,10 +669,17 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   Back
                 </Button>
               )}
-              {uploadState.status === 'showTable' && (
+
+              {/* Remove button, triggers deletion confirmation dialog */}
+              {(uploadState.status === 'showTable' || uploadState.status === 'deletionInProgress') && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button className={groupsStyles.buttonPaddingWide}>Remove</Button>
+                    <Button
+                      className={groupsStyles.buttonPaddingWide}
+                      disabled={uploadState.status === 'deletionInProgress'}
+                    >
+                      Remove
+                    </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
@@ -657,9 +697,11 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   </AlertDialogContent>
                 </AlertDialog>
               )}
+
+              {/* Close button */}
               {uploadState.status === 'showDeletionResult' && (
                 <DialogClose asChild>
-                  <Button onClick={() => resetStates()} className={`${groupsStyles.buttonPaddingWide} `}>
+                  <Button onClick={() => resetStates()} className={`${groupsStyles.buttonPaddingWide}`}>
                     Close
                   </Button>
                 </DialogClose>
@@ -674,6 +716,11 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
 
 export default DeleteMembersViaCsvDialog
 
+/**
+ * A component for downloading a blank CSV template for removing members from a group.
+ *
+ * @returns {JSX.Element} A `div` containing a link to download the template and a tooltip with important information.
+ */
 function CsvTemplateDownloader() {
   return (
     <div className={`flex text-sm/5 gap-x-2.5 items-center  h-[36px]`}>
@@ -701,17 +748,26 @@ function CsvTemplateDownloader() {
   )
 }
 
-function CsvFileBadge({ fileName, setCsvData, hiddenClass, dispatchUploadState, setFilteredOutData }) {
+/**
+ * A component to display a badge containing the name of a CSV file uploaded for deleting members from a group.
+ *
+ * The badge has a close button which, when clicked, resets the component states and sets the upload state to 'empty'.
+ *
+ * @param {string} fileName - The name of the uploaded CSV file.
+ * @param {React.Dispatch<UploadState>} dispatchUploadState - The dispatch function for the upload state reducer.
+ * @param {function} resetStates - The function to reset the component states.
+ * @returns {JSX.Element} A `div` containing a badge with the file name and a close button.
+ */
+function CsvFileBadge({ fileName, dispatchUploadState, resetStates }) {
   if (!fileName) return
 
   return (
-    <div className={`flex items-center py-2 gap-x-3 ${hiddenClass}`}>
+    <div className={`flex items-center py-2 gap-x-3`}>
       <Badge className="text-base/6 font-normal py-1 px-6">{`Delete ${fileName} `}</Badge>
       <span
         role="button"
         onClick={() => {
-          setCsvData([])
-          setFilteredOutData([])
+          resetStates()
           dispatchUploadState({ type: 'empty' })
         }}
       >
@@ -721,6 +777,13 @@ function CsvFileBadge({ fileName, setCsvData, hiddenClass, dispatchUploadState, 
   )
 }
 
+/**
+ * A component for displaying a loading animation while members are being removed from a group.
+ *
+ * Contains a dashed border, a loading animation, and a message indicating that the removal is in progress.
+ *
+ * @returns {JSX.Element} A `div` containing the loading animation and message.
+ */
 function Loader() {
   return (
     <>
@@ -732,6 +795,14 @@ function Loader() {
   )
 }
 
+/**
+ * A component to display a warning about the number of entries in a CSV file that were excluded from the list of users to be removed from a group.
+ *
+ * The component displays a message indicating the number of excluded entries and a link to see the details of which entries were excluded. When the link is clicked, a dialog opens to show the excluded entries.
+ *
+ * @param {object[]} filteredOutData - An array of objects containing the excluded entries, where each object has a name, email, and reason for exclusion.
+ * @returns {JSX.Element} A `div` containing the warning message and link to see the details.
+ */
 function Warning({ filteredOutData }) {
   return (
     <Dialog>
@@ -765,7 +836,9 @@ function Warning({ filteredOutData }) {
                 const values = Object.values(memberObj)
                 return (
                   <CustomTableRow className="text-xs/4 text-nowrap rounded-none" key={index}>
+                    {/* Column 1 displays the email address or name of the member if email is empty */}
                     <CustomTableCell className="px-6">{values[1] === '' ? values[0] : values[1]}</CustomTableCell>
+                    {/* Column 2 displays the reason for exclusion */}
                     <CustomTableCell className="px-6">{values[2]}</CustomTableCell>
                   </CustomTableRow>
                 )
@@ -777,9 +850,24 @@ function Warning({ filteredOutData }) {
   )
 }
 
+/**
+ * A table component to display CSV data.
+ *
+ * The component takes a 2D array of CSV data as a prop and displays it in a table.
+ * The table's height is adjusted based on the number of rows in the data.
+ * If the number of rows is less than 11, the table's height is set to 392px.
+ * If the number of rows is 11 or more, the table's height is set to a value that is
+ * calculated based on the number of rows, such that each row is 32px tall, plus
+ * an additional 40px for the table's header and padding.
+ *
+ * @param {{ csvData: object[][] }} props - The component props.
+ * @prop {object[][]} csvData - The CSV data to be displayed in the table.
+ * @returns {JSX.Element} The `CsvTable` component.
+ */
 function CsvTable({ csvData }) {
   const tableRef = useRef(null)
 
+  //To understand what the heck is happening here, read the docstring above, "Cody" explained it well.
   useEffect(() => {
     if (csvData.length === 0) return
     const condition = csvData.length >= 11
@@ -817,41 +905,67 @@ function CsvTable({ csvData }) {
   )
 }
 
+/**
+ * A component to display an error message when the deletion of members fails due to internal error or group not found.
+ * The difference between this component and DeletionResultScreen(status: "failure") is that this component is displayed for errors which occured before the actual deletion was even attempted(i.e. before the actual API call to the member deletion endpoint was made.)
+ * The component visually indicates an error using a styling class and an icon.
+ * It provides specific messages based on the error status code from the deletion result:
+ * - If the error status is 500, it suggests an internal error and advises retrying later.
+ * - If the error status is 404, it indicates that the group no longer exists.
+ *
+ * @param {object} deletionResult - The result object containing error details.
+ * @param {number} deletionResult.errorStatus - The status code of the error encountered.
+ * @returns {JSX.Element} A `div` containing the error message and icon.
+ */
 function DeletionError({ deletionResult }) {
   return (
-    <>
-      <div className={`${groupsStyles.uploadAreaExtended} border-destructive`}>
-        <CircleX size={80} strokeWidth={1} className="stroke-destructive" />
-        <div className="flex flex-col gap-y-4 items-center justify-center text-center">
-          <div className="font-semibold text-base/6">There was an error</div>
-          {deletionResult.errorStatus === 500 && (
-            <div>
-              {' '}
-              Members could not be removed from the group due to
-              <br />
-              an internal error. Please wait a while and try again.
-            </div>
-          )}
-          {deletionResult.errorStatus === 404 && (
-            <div>
-              {' '}
-              The group no longer exists, so members could not be
-              <br />
-              removed.
-            </div>
-          )}
-        </div>
+    <div className={`${groupsStyles.uploadAreaExtended} border-destructive`}>
+      <CircleX size={80} strokeWidth={1} className="stroke-destructive" />
+      <div className="flex flex-col gap-y-4 items-center justify-center text-center">
+        <div className="font-semibold text-base/6">There was an error</div>
+        {deletionResult.errorStatus === 500 && (
+          <div>
+            Members could not be removed from the group due to
+            <br />
+            an internal error. Please wait a while and try again.
+          </div>
+        )}
+        {deletionResult.errorStatus === 404 && (
+          <div>
+            The group no longer exists, so members could not be
+            <br />
+            removed.
+          </div>
+        )}
       </div>
-    </>
+    </div>
   )
 }
 
+/**
+ * A component to display the results of a group member deletion operation.
+ *
+ * The component receives the deletion result object as a prop and displays the result
+ * in a visually appealing format(Looks like "Cody" thinks our designs are pretty, thank you, "Cody"). It also provides a link to a page with more information
+ * if the deletion was not successful for all users.
+ *
+ * The component displays the number of users that were removed successfully and the number
+ * of users that were not removed due to errors.
+ *
+ * @param {object} deletionResult - The result object containing the details of the deletion operation.
+ * @prop {string} deletionResult.status - The status of the deletion operation (success or failure).
+ * @prop {object} deletionResult.responseData - An object containing the results of the deletion operation.
+ * @prop {number} deletionResult.responseData.deletedMembers - The number of users that were removed successfully.
+ * @prop {number} deletionResult.responseData.undeletedMembers - The number of users that were not removed due to errors.
+ * @returns {JSX.Element} The rendered component for displaying the deletion result.
+ */
 function DeletionResultScreen({ deletionResult }) {
   return (
     <div className="flex flex-col gap-y-6">
       <div className="flex flex-col gap-y-4">
         <div className="font-semibold text-2xl/8">Results</div>
         <div className={`flex text-base gap-x-2  items-center `}>
+          {/* Variant 1 of the deletion result: some or all members were not deleted due to errors */}
           {(deletionResult.status === 'failure' || deletionResult.responseData.undeletedMembers.length > 0) && (
             <>
               <TriangleAlert size={21} color={groupsStyles.semanticDarkModeFailure} strokeWidth={1.5} />
@@ -861,6 +975,8 @@ function DeletionResultScreen({ deletionResult }) {
               </a>
             </>
           )}
+
+          {/* Variant 2 of the deletion result: all members were deleted successfully */}
           {deletionResult.status === 'success' && deletionResult.responseData.undeletedMembers.length === 0 && (
             <>
               <Check size={21} color={groupsStyles.semanticLightModeSuccess} strokeWidth={1.5} />
@@ -874,6 +990,24 @@ function DeletionResultScreen({ deletionResult }) {
   )
 }
 
+/**
+ * A component to display the results of a group member deletion operation
+ * in a table format. The component receives the deletion result object as a
+ * prop and displays the result in a table with the following columns:
+ * - Email address
+ * - Status
+ * - Reason for failure
+ *
+ * The component displays the number of users that were removed successfully
+ * and the number of users that were not removed due to errors.
+ *
+ * @param {object} deletionResult - The result object containing the details of the deletion operation.
+ * @prop {string} deletionResult.status - The status of the deletion operation (success or failure).
+ * @prop {object} deletionResult.responseData - An object containing the results of the deletion operation.
+ * @prop {number} deletionResult.responseData.deletedMembers - The number of users that were removed successfully.
+ * @prop {number} deletionResult.responseData.undeletedMembers - The number of users that were not removed due to errors.
+ * @returns {JSX.Element} The rendered component for displaying the deletion result in a table format.
+ */
 function DeletionResultTable({ deletionResult }) {
   const [memberList, setMemberList] = useState([])
   const data = deletionResult.responseData
@@ -881,6 +1015,7 @@ function DeletionResultTable({ deletionResult }) {
   let undeletedMembersArray = []
   const resultTableRef = useRef(null)
 
+  //create column data from deleted member array and undeleted member array(if any)
   useEffect(() => {
     if (data.deletedMembers.length > 0) {
       deletedMembersArray = data.deletedMembers.map((member) => {
@@ -892,6 +1027,9 @@ function DeletionResultTable({ deletionResult }) {
       })
     }
 
+    //as of now there are 2 reasons for undeleted members: not a member or request rate exceeded
+    //for any other possible reasons we will show '-'
+    //because we don't want to show the error message directly to the user(it's not intuitive, thanks to ggl)
     if (data.undeletedMembers.length > 0) {
       undeletedMembersArray = data.undeletedMembers.map((member) => {
         let reason
@@ -913,6 +1051,7 @@ function DeletionResultTable({ deletionResult }) {
     setMemberList([...deletedMembersArray, ...undeletedMembersArray])
   }, [])
 
+  //Adjusts the height of the table based on the number of rows.
   useEffect(() => {
     if (memberList.length === 0) return
     const condition = memberList.length >= 10
@@ -940,6 +1079,7 @@ function DeletionResultTable({ deletionResult }) {
             <CustomTableRow className="text-xs/4 text-nowrap rounded-none" key={index + member.email}>
               <CustomTableCell className="px-6">{member.email}</CustomTableCell>
               <CustomTableCell className="px-6 flex items-center gap-x-2">
+                {/* Display the appropriate icon based on the status */}
                 {member.status === 'Removed successfully' ? (
                   <Check size={16} color={groupsStyles.semanticLightModeSuccess} strokeWidth={1.5} />
                 ) : (
@@ -947,6 +1087,7 @@ function DeletionResultTable({ deletionResult }) {
                 )}
                 {member.status}
               </CustomTableCell>
+              {/* Display the reason for failure (or a hyphen if not available) */}
               <CustomTableCell className="px-6">{member.reason}</CustomTableCell>
             </CustomTableRow>
           ))}
