@@ -34,9 +34,32 @@ export const groupElementIds = {
   exportWindowOption2: 'csvFormat',
   closeExportDialog: 'closeExportDialog',
   csvDownloadButton: 'csvDownloadGroupMemberships',
+
+  //member deletion by csv dialog window
+  deleteMembersByCsvFileInput: 'deleteMembersByCsvFileInput',
 }
 
 export const groupStrings = {
   //nested table
   defaultExportFileName: 'memberships_for_',
+
+  //member deletion by csv dialog window
+  deleteMembersByCsvTemplateLink: '/templates/members-list-sample.csv',
+  deleteMembersByCsvTemplateFileName: 'members-list-sample.csv',
+  uploadStates: {
+    empty: 'empty',
+    uploadInProgress: 'uploadInProgress',
+    uploadComplete: 'uploadComplete',
+    showBadge: 'showBadge',
+    showTable: 'showTable',
+    deletionInProgress: 'deletionInProgress',
+    showDeletionResult: 'showDeletionResult',
+  },
+  deletionResultStatuses: {
+    success: 'success',
+    failure: 'failure',
+    error: 'error',
+  },
 }
+
+export const emailRegex = new RegExp('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$')

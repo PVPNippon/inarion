@@ -42,7 +42,7 @@ import { Download, CloudUpload, X, Check, CircleX, TriangleAlert, CircleAlert } 
 import { classListHandler, customTableHandler } from '@/utils/virtualDOMHackers'
 
 //variables
-import { groupsStyles } from '@/app/[locale]/groups/group-variables'
+import { groupsStyles, groupStrings, groupElementIds, emailRegex } from '@/app/ui/variables/group-variables'
 
 //third party libraries
 import axios from 'axios'
@@ -50,7 +50,13 @@ import Papa from 'papaparse'
 
 //constants
 //upload state array for the "Back button"(states which are not needed to be returned to via Back btn(such as "uploadInProgress" etc) are omitted)
-const uploadStateArray = ['empty', 'uploadComplete', 'showBadge', 'showTable', 'showDeletionResult']
+const uploadStateArray = [
+  groupStrings.uploadStates.empty,
+  groupStrings.uploadStates.uploadComplete,
+  groupStrings.uploadStates.showBadge,
+  groupStrings.uploadStates.showTable,
+  groupStrings.uploadStates.showDeletionResult,
+]
 const email = 'testadmin@pvp-test-domain2.com' //TODO:temporary bypass, remove when the apiClient module is ready
 
 /**
@@ -98,7 +104,6 @@ function calculateReason(allDataArray, filteredOutItem) {
  */
 //the reason the parsed data comes in 2 different formats is because of macOS csvexport where a user might check the  "Include table names" checkbox
 function mapAndFilterCsvData(data, setFilteredOutData) {
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
   let filteredOut = []
 
   //handle mapping of different data formats(arrays or objects)
@@ -174,7 +179,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
   const [dragState, setDragState] = useState(false) //state for the drag and drop area to trigger event when a file is being dragged over
   const dragRef = useRef(null) //reference to the drag and drop area
   const initialState = {
-    status: 'empty', //initial upload state(start screen)
+    status: groupStrings.uploadStates.empty, //initial upload state(start screen)
   }
 
   /**
@@ -186,26 +191,26 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
   //Note: action type(case) names and status names do not need to be the same, I just unified them for simplicity
   const uploadReducer = (state, action) => {
     switch (action.type) {
-      case 'empty': //start screen
+      case groupStrings.uploadStates.empty: //start screen
         return initialState
 
-      case 'uploadInProgress': //upload in progress (spinner)
-        return { status: 'uploadInProgress' }
+      case groupStrings.uploadStates.uploadInProgress: //upload in progress (spinner)
+        return { status: groupStrings.uploadStates.uploadInProgress }
 
-      case 'uploadComplete': //upload complete(green check)
-        return { status: 'uploadComplete' }
+      case groupStrings.uploadStates.uploadComplete: //upload complete(green check)
+        return { status: groupStrings.uploadStates.uploadComplete }
 
-      case 'showBadge': //display a removable badge with the file name
-        return { status: 'showBadge' }
+      case groupStrings.uploadStates.showBadge: //display a removable badge with the file name
+        return { status: groupStrings.uploadStates.showBadge }
 
-      case 'showTable': //display the parsed csv data as a table
-        return { status: 'showTable' }
+      case groupStrings.uploadStates.showTable: //display the parsed csv data as a table
+        return { status: groupStrings.uploadStates.showTable }
 
-      case 'deletionInProgress': //deletion in progress (spinner2)
-        return { status: 'deletionInProgress' }
+      case groupStrings.uploadStates.deletionInProgress: //deletion in progress (spinner2)
+        return { status: groupStrings.uploadStates.deletionInProgress }
 
-      case 'showDeletionResult': //display the deletion result, which has 4 possible outcomes: success, partial success, nw error or group does not exist anymore
-        return { status: 'showDeletionResult' }
+      case groupStrings.uploadStates.showDeletionResult: //display the deletion result, which has 4 possible outcomes: success, partial success, nw error or group does not exist anymore
+        return { status: groupStrings.uploadStates.showDeletionResult }
 
       default:
         return state
@@ -237,7 +242,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
     setFilteredOutData([])
     setUploadError(false)
     setDeletionResult([])
-    dispatchUploadState({ type: 'empty' })
+    dispatchUploadState({ type: groupStrings.uploadStates.empty })
   }
 
   /**
@@ -258,7 +263,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
     if (filteredData.length === 0) {
       setFilteredOutData([])
       setUploadError(true)
-      dispatchUploadState({ type: 'empty' })
+      dispatchUploadState({ type: groupStrings.uploadStates.empty })
       return
     }
 
@@ -267,11 +272,11 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
     setCsvData(filteredData)
     setFilteredOutData(filteredOut)
     setFileName(fileName)
-    dispatchUploadState({ type: 'uploadComplete' })
+    dispatchUploadState({ type: groupStrings.uploadStates.uploadComplete })
 
     //display the green check for 1 second, then display the badge with the filename
     setTimeout(() => {
-      dispatchUploadState({ type: 'showBadge' })
+      dispatchUploadState({ type: groupStrings.uploadStates.showBadge })
     }, 1000)
   }
 
@@ -315,7 +320,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
         if (resultDataArray.length <= 2) {
           //the first 2 arrays are table name and table headers, so if there is no other data, it's not a valid CSV
           setUploadError(true)
-          dispatchUploadState({ type: 'empty' })
+          dispatchUploadState({ type: groupStrings.uploadStates.empty })
           return
         }
 
@@ -326,7 +331,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
           handleUploadedDataAndState(tableDataArrays, file.name)
         } else {
           setUploadError(true)
-          dispatchUploadState({ type: 'empty' })
+          dispatchUploadState({ type: groupStrings.uploadStates.empty })
         }
       },
     })
@@ -348,7 +353,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
     }
 
     //display spinner
-    dispatchUploadState({ type: 'uploadInProgress' })
+    dispatchUploadState({ type: groupStrings.uploadStates.uploadInProgress })
 
     setTimeout(() => {
       //Add try-catch for unexpected scenarios such as unsupported encoding etc.
@@ -365,7 +370,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
             //if data is empty, return and display upload error
             if (resultData.data.length === 0) {
               setUploadError(true)
-              dispatchUploadState({ type: 'empty' })
+              dispatchUploadState({ type: groupStrings.uploadStates.empty })
               return
             }
 
@@ -379,7 +384,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                 fallbackParse(file)
               } else {
                 setUploadError(true)
-                dispatchUploadState({ type: 'empty' })
+                dispatchUploadState({ type: groupStrings.uploadStates.empty })
               }
               return
             }
@@ -388,7 +393,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
         })
       } catch (error) {
         setUploadError(true)
-        dispatchUploadState({ type: 'empty' })
+        dispatchUploadState({ type: groupStrings.uploadStates.empty })
       }
     }, 1000) // simulate upload time
   }
@@ -406,7 +411,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
     if (!groupEmail || csvData.length === 0) return
 
     try {
-      dispatchUploadState({ type: 'deletionInProgress' }) //display spinner
+      dispatchUploadState({ type: groupStrings.uploadStates.deletionInProgress }) //display spinner
 
       //make sure the group still exists
       //I added this check in case someone else has deleted the group unbeknowst to the admin, but it's still displayed in UI due to timelag or cached data
@@ -429,7 +434,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
         console.log('RESPONSE FROM BACKEND for status 200', response)
         //if all members have been deleted successfully, the backend will send a 200 response. If deletion was successfull partially, it will send a 207 response.
         //  Set the component state accordingly.
-        setDeletionResult({ status: 'success', responseData: response.data })
+        setDeletionResult({ status: groupStrings.deletionResultStatuses.success, responseData: response.data })
       }
     } catch (err) {
       console.log('error', err)
@@ -438,15 +443,15 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
       //error 400 means that the deletion was attempted, but failed for all members. The most probable cause is that the user uploaded a wrong file where all email addresses are not members of the target group.
       //for all other scenarios, display a generic error(for now)
       if (err.status === 404) {
-        setDeletionResult({ status: 'error', errorStatus: 404, errorDetails: err })
+        setDeletionResult({ status: groupStrings.deletionResultStatuses.error, errorStatus: 404, errorDetails: err })
       } else if (err.status === 400 && err.response.data) {
-        setDeletionResult({ status: 'failure', responseData: err.response.data })
+        setDeletionResult({ status: groupStrings.deletionResultStatuses.failure, responseData: err.response.data })
       } else {
-        setDeletionResult({ status: 'error', errorStatus: 500, errorDetails: err })
+        setDeletionResult({ status: groupStrings.deletionResultStatuses.error, errorStatus: 500, errorDetails: err })
       }
     } finally {
       setTimeout(() => {
-        dispatchUploadState({ type: 'showDeletionResult' })
+        dispatchUploadState({ type: groupStrings.uploadStates.showDeletionResult })
       }, 1000) //imitate a 1 second delay
     }
   }
@@ -480,54 +485,57 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                 'h-[538px]'
               } w-[768px] p-8`}
             >
-              {uploadState.status !== 'deletionInProgress' && uploadState.status !== 'showDeletionResult' && (
-                <div className="flex flex-col gap-y-4">
+              {uploadState.status !== groupStrings.uploadStates.deletionInProgress &&
+                uploadState.status !== groupStrings.uploadStates.showDeletionResult && (
                   <div className="flex flex-col gap-y-4">
-                    <div className="flex flex-col gap-y-1">
-                      <div className="font-semibold text-2xl/8">
-                        {uploadState.status === 'showTable' ? 'Confirm list' : 'Upload CSV'}
+                    <div className="flex flex-col gap-y-4">
+                      <div className="flex flex-col gap-y-1">
+                        <div className="font-semibold text-2xl/8">
+                          {uploadState.status === groupStrings.uploadStates.showTable ? 'Confirm list' : 'Upload CSV'}
+                        </div>
+                        <div className="text-muted-foreground text-sm/5">
+                          {uploadState.status === groupStrings.uploadStates.showTable
+                            ? 'Review the list of members set for removal.'
+                            : 'Upload a CSV file and review the list of member(s) who will be removed.'}
+                        </div>
                       </div>
-                      <div className="text-muted-foreground text-sm/5">
-                        {uploadState.status === 'showTable'
-                          ? 'Review the list of members set for removal.'
-                          : 'Upload a CSV file and review the list of member(s) who will be removed.'}
-                      </div>
+
+                      {/* Download csv template link */}
+                      {uploadStateArray.indexOf(uploadState.status) <= 1 && <CsvTemplateDownloader />}
+
+                      {/* Error messages */}
+                      {invalidFileType && (
+                        <div className="text-destructive text-sm/5">
+                          Invalid file type. Only CSV files are allowed. Please upload a file with extension .csv.
+                        </div>
+                      )}
+
+                      {uploadError && (
+                        <div className="text-destructive text-sm/5">
+                          Upload failed. Please check that the data in your CSV file is formatted correctly and try
+                          again.
+                        </div>
+                      )}
+
+                      {/* Warning component if there is a filtered out data */}
+                      {uploadState.status === groupStrings.uploadStates.showTable &&
+                        filteredOutData &&
+                        filteredOutData.length > 0 && <Warning filteredOutData={filteredOutData} />}
+
+                      {/* CSV file badge */}
+                      {csvData && uploadState.status === groupStrings.uploadStates.showBadge && (
+                        <CsvFileBadge
+                          fileName={fileName}
+                          dispatchUploadState={dispatchUploadState}
+                          resetStates={resetStates}
+                        />
+                      )}
                     </div>
-                    {/* Download csv template link */}
-                    {uploadStateArray.indexOf(uploadState.status) <= 1 && <CsvTemplateDownloader />}
-
-                    {/* Error messages */}
-                    {invalidFileType && (
-                      <div className="text-destructive text-sm/5">
-                        Invalid file type. Only CSV files are allowed. Please upload a file with extension .csv.
-                      </div>
-                    )}
-
-                    {uploadError && (
-                      <div className="text-destructive text-sm/5">
-                        Upload failed. Please check that the data in your CSV file is formatted correctly and try again.
-                      </div>
-                    )}
-
-                    {/* Warning component if there is a filtered out data */}
-                    {uploadState.status === 'showTable' && filteredOutData && filteredOutData.length > 0 && (
-                      <Warning filteredOutData={filteredOutData} />
-                    )}
-
-                    {/* CSV file badge */}
-                    {csvData && uploadState.status === 'showBadge' && (
-                      <CsvFileBadge
-                        fileName={fileName}
-                        dispatchUploadState={dispatchUploadState}
-                        resetStates={resetStates}
-                      />
-                    )}
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Upload area */}
-              {uploadState.status === 'empty' && (
+              {uploadState.status === groupStrings.uploadStates.empty && (
                 <div
                   ref={dragRef}
                   className={`${groupsStyles.uploadArea} border-dashed`}
@@ -549,7 +557,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   <CloudUpload size={80} className="stroke-muted-foreground" strokeWidth={1} />
                   <Button
                     className={groupsStyles.buttonPadding}
-                    onClick={() => document.getElementById('file-upload-delete-members').click()}
+                    onClick={() => document.getElementById(groupElementIds.deleteMembersByCsvFileInput).click()}
                     variant="outline"
                   >
                     Select a CSV file to upload
@@ -558,7 +566,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                   <span>Drag and drop it here</span>
                   <input
                     accept=".csv"
-                    id="file-upload-delete-members" //N.B. the id must be unique or it will clash with other compoments
+                    id={groupElementIds.deleteMembersByCsvFileInput}
                     onChange={(e) => {
                       handleCsvUpload(e.target.files[0])
                     }}
@@ -569,7 +577,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
               )}
 
               {/* Upload in progress spinner */}
-              {uploadState.status === 'uploadInProgress' && (
+              {uploadState.status === groupStrings.uploadStates.uploadInProgress && (
                 <div className={`${groupsStyles.uploadArea} border-dashed`}>
                   <div className="loader"></div>
                   <p>Upload in progress</p>
@@ -577,7 +585,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
               )}
 
               {/* Upload complete message and green check icon */}
-              {uploadState.status === 'uploadComplete' && (
+              {uploadState.status === groupStrings.uploadStates.uploadComplete && (
                 <div
                   className={`${groupsStyles.uploadArea} border-[#37B705] flex flex-col items-center justify-center gap-y-2`}
                 >
@@ -587,41 +595,46 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
               )}
 
               {/* CSV table with parsed data */}
-              {uploadState.status === 'showTable' && <CsvTable csvData={csvData} />}
+              {uploadState.status === groupStrings.uploadStates.showTable && <CsvTable csvData={csvData} />}
 
               {/* Deletion in progress spinner */}
-              {uploadState.status === 'deletionInProgress' && <Loader />}
+              {uploadState.status === groupStrings.uploadStates.deletionInProgress && <Loader />}
 
               {/* Deletion result table or error */}
-              {uploadState.status === 'showDeletionResult' && (
+              {uploadState.status === groupStrings.uploadStates.showDeletionResult && (
                 <div>
                   {/* Deletion error screen */}
                   {/* Comes in 2 variants: group no longer exists or internal error */}
-                  {deletionResult && deletionResult.status === 'error' && (
+                  {deletionResult && deletionResult.status === groupStrings.deletionResultStatuses.error && (
                     <DeletionError deletionResult={deletionResult} />
                   )}
 
                   {/* Deletion result screen */}
                   {/* Comes in 2 variants: success(all members deleted) or failure(some/all members not deleted) */}
-                  {deletionResult && (deletionResult.status === 'success' || deletionResult.status === 'failure') && (
-                    <DeletionResultScreen deletionResult={deletionResult} />
-                  )}
+                  {deletionResult &&
+                    (deletionResult.status === groupStrings.deletionResultStatuses.success ||
+                      deletionResult.status === groupStrings.deletionResultStatuses.failure) && (
+                      <DeletionResultScreen deletionResult={deletionResult} />
+                    )}
                 </div>
               )}
             </div>
           </div>
 
           {/* Dialog footer with Next button */}
-          {uploadState.status !== 'showTable' &&
-            uploadState.status !== 'deletionInProgress' &&
-            uploadState.status !== 'showDeletionResult' && (
+          {uploadState.status !== groupStrings.uploadStates.showTable &&
+            uploadState.status !== groupStrings.uploadStates.deletionInProgress &&
+            uploadState.status !== groupStrings.uploadStates.showDeletionResult && (
               <DialogFooter>
                 <Button
                   className={groupsStyles.buttonPaddingWide}
                   onClick={() => {
-                    dispatchUploadState({ type: 'showTable' })
+                    dispatchUploadState({ type: groupStrings.uploadStates.showTable })
                   }}
-                  disabled={uploadState.status !== 'showBadge' && uploadState.status !== 'showTable'}
+                  disabled={
+                    uploadState.status !== groupStrings.uploadStates.showBadge &&
+                    uploadState.status !== groupStrings.uploadStates.showTable
+                  }
                 >
                   Next
                 </Button>
@@ -629,19 +642,21 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
             )}
 
           {/* Dialog footer with Back and Remove/Close buttons */}
-          {(uploadState.status === 'showTable' ||
-            uploadState.status === 'deletionInProgress' ||
-            uploadState.status === 'showDeletionResult') && (
+          {(uploadState.status === groupStrings.uploadStates.showTable ||
+            uploadState.status === groupStrings.uploadStates.deletionInProgress ||
+            uploadState.status === groupStrings.uploadStates.showDeletionResult) && (
             <DialogFooter
               className={
-                uploadState.status === 'deletionInProgress' ||
-                (uploadState.status === 'showDeletionResult' && deletionResult.status === 'error')
+                uploadState.status === groupStrings.uploadStates.deletionInProgress ||
+                (uploadState.status === groupStrings.uploadStates.showDeletionResult &&
+                  deletionResult.status === groupStrings.deletionResultStatuses.error)
                   ? 'md:justify-end'
                   : 'md:justify-between'
               }
             >
-              {(uploadState.status === 'showTable' ||
-                (uploadState.status === 'showDeletionResult' && deletionResult.status !== 'error')) && (
+              {(uploadState.status === groupStrings.uploadStates.showTable ||
+                (uploadState.status === groupStrings.uploadStates.showDeletionResult &&
+                  deletionResult.status !== groupStrings.deletionResultStatuses.error)) && (
                 // Back button
                 <Button
                   className={`${groupsStyles.buttonPaddingWide}`}
@@ -657,12 +672,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
                       ]
 
                     //Clear the state if the previous state is the initial state
-                    if (previousUploadStateStatus === 'empty') {
-                      setCsvData([])
-                      setFileName('')
-                      setDeletionResult([])
-                      setFilteredOutData([])
-                    }
+                    if (previousUploadStateStatus === groupStrings.uploadStates.empty) resetStates()
                     dispatchUploadState({ type: previousUploadStateStatus })
                   }}
                 >
@@ -671,12 +681,13 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
               )}
 
               {/* Remove button, triggers deletion confirmation dialog */}
-              {(uploadState.status === 'showTable' || uploadState.status === 'deletionInProgress') && (
+              {(uploadState.status === groupStrings.uploadStates.showTable ||
+                uploadState.status === groupStrings.uploadStates.deletionInProgress) && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
                       className={groupsStyles.buttonPaddingWide}
-                      disabled={uploadState.status === 'deletionInProgress'}
+                      disabled={uploadState.status === groupStrings.uploadStates.deletionInProgress}
                     >
                       Remove
                     </Button>
@@ -699,7 +710,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
               )}
 
               {/* Close button */}
-              {uploadState.status === 'showDeletionResult' && (
+              {uploadState.status === groupStrings.uploadStates.showDeletionResult && (
                 <DialogClose asChild>
                   <Button onClick={() => resetStates()} className={`${groupsStyles.buttonPaddingWide}`}>
                     Close
@@ -725,8 +736,8 @@ function CsvTemplateDownloader() {
   return (
     <div className={`flex text-sm/5 gap-x-2.5 items-center  h-[36px]`}>
       <a
-        href="/templates/members-list-sample.csv"
-        download="members-list-sample.csv"
+        href={groupStrings.deleteMembersByCsvTemplateLink}
+        download={groupStrings.deleteMembersByCsvTemplateFileName}
         className={`w-fit flex text-sm/5 gap-x-2.5 ${groupsStyles.secondaryTextChart5}`}
       >
         <Download size={20} />
@@ -768,7 +779,7 @@ function CsvFileBadge({ fileName, dispatchUploadState, resetStates }) {
         role="button"
         onClick={() => {
           resetStates()
-          dispatchUploadState({ type: 'empty' })
+          dispatchUploadState({ type: groupStrings.uploadStates.empty })
         }}
       >
         <X size={24} className="stroke-muted-foreground cursor-pointer" />
@@ -964,9 +975,10 @@ function DeletionResultScreen({ deletionResult }) {
     <div className="flex flex-col gap-y-6">
       <div className="flex flex-col gap-y-4">
         <div className="font-semibold text-2xl/8">Results</div>
-        <div className={`flex text-base gap-x-2  items-center `}>
+        <div className={`flex text-base gap-x-2 items-center`}>
           {/* Variant 1 of the deletion result: some or all members were not deleted due to errors */}
-          {(deletionResult.status === 'failure' || deletionResult.responseData.undeletedMembers.length > 0) && (
+          {(deletionResult.status === groupStrings.deletionResultStatuses.failure ||
+            deletionResult.responseData.undeletedMembers.length > 0) && (
             <>
               <TriangleAlert size={21} color={groupsStyles.semanticDarkModeFailure} strokeWidth={1.5} />
               <div>Removal failed for some users.</div>
@@ -977,12 +989,13 @@ function DeletionResultScreen({ deletionResult }) {
           )}
 
           {/* Variant 2 of the deletion result: all members were deleted successfully */}
-          {deletionResult.status === 'success' && deletionResult.responseData.undeletedMembers.length === 0 && (
-            <>
-              <Check size={21} color={groupsStyles.semanticLightModeSuccess} strokeWidth={1.5} />
-              <div>{`${deletionResult.responseData.deletedMembers.length} member(s) were removed successfully`}</div>
-            </>
-          )}
+          {deletionResult.status === groupStrings.deletionResultStatuses.success &&
+            deletionResult.responseData.undeletedMembers.length === 0 && (
+              <>
+                <Check size={21} color={groupsStyles.semanticLightModeSuccess} strokeWidth={1.5} />
+                <div>{`${deletionResult.responseData.deletedMembers.length} member(s) were removed successfully`}</div>
+              </>
+            )}
         </div>
       </div>
       <DeletionResultTable deletionResult={deletionResult} />
