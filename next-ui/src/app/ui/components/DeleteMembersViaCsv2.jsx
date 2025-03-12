@@ -15,14 +15,14 @@ import DeleteMembersViaCsvDialog from '@/app/ui/components/DeleteMembersViaCsvDi
  * @returns {JSX.Element} The rendered component for deleting multiple members from a group.
  */
 
-function DeleteMembersViaCsv() {
+function DeleteMembersViaCsv2() {
   const [groupName, setGroupName] = useState('')
   const [groupEmail, setGroupEmail] = useState('')
 
   return (
     <div className="ms-5">
       <h1 className="my-6 font-semibold">Delete multiple members from a group by CSV</h1>
-      <h2 className="mb-4 text-orange-500"> Imitate group1</h2>
+      <h2 className="mb-4 text-orange-500"> Imitate group2</h2>
       <div className="flex w-full max-w-3xl items-center space-x-2 mb-7">
         <Input
           type="email"
@@ -43,4 +43,4 @@ function DeleteMembersViaCsv() {
     </div>
   )
 }
-export default DeleteMembersViaCsv
+export default DeleteMembersViaCsv2

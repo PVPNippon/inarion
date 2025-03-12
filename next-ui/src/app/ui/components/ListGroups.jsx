@@ -37,18 +37,19 @@ function ListGroups() {
         // setGroupList(response)
 
         //Temporary bypass encryption
-        email = window.localStorage.getItem('email')
-        console.log('email:', email)
+        // email = window.localStorage.getItem('email')
+        // console.log('email:', email)
+        email = 'testadmin@pvp-test-domain2.com'
         //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back
-        const token = localStorage.getItem('jwtToken')
-        console.log('TOKEN', token)
+        // const token = localStorage.getItem('jwtToken')
+        // console.log('TOKEN', token)
 
         const response = await axios.get(
           `http://localhost:4000/api/groups/?userEmail=${email}`,
 
           {
             headers: {
-              Authorization: `Bearer ${token}`, // Pass the token in the Authorization header
+              // Authorization: `Bearer ${token}`, // Pass the token in the Authorization header
             },
           }
         )

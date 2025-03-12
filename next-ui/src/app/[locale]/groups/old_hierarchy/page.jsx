@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiClient } from '@/utils/apiClient'
 import { ExternalLinkIcon, SearchIcon, EyeIcon, Ellipsis, CircleAlert } from 'lucide-react'
-import { groupsStyles } from '../group-variables'
+import { groupsStyles } from '@/app/ui/variables/group-variables'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -72,12 +72,13 @@ function OldNestedGroupsLister() {
         setEmptyResult(false)
 
         //getting email and token from local storage is a temporary measure, so I'm not refactoring or improving this part
-        email = window.localStorage.getItem('email')
-        console.log('email:', email)
+        // email = window.localStorage.getItem('email')
+        // console.log('email:', email)
+        email = 'testadmin@pvp-test-domain2.com'
 
         //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back
-        const token = localStorage.getItem('jwtToken')
-        console.log('TOKEN', token)
+        // const token = localStorage.getItem('jwtToken')
+        // console.log('TOKEN', token)
 
         // const response = await apiClient(
         //   '/api/groups/get-nested-membership', // Endpoint path relative to API_BASE_URL
@@ -95,7 +96,7 @@ function OldNestedGroupsLister() {
           `http://localhost:4000/api/groups/target/${query}/nested-membership?userEmail=${email}`,
           {
             headers: {
-              Authorization: `Bearer ${token}`,
+              // Authorization: `Bearer ${token}`,
             },
             method: 'GET',
             cache: 'no-store', //this disables cache
@@ -184,15 +185,16 @@ function HierarchyButton({ groupList, query }) {
     const newTab = window.open(`/groups/hierarchy/graph?target=${query}`, '_blank')
 
     try {
-      const email = window.localStorage.getItem('email')
-      console.log('email:', email)
+      // const email = window.localStorage.getItem('email')
+      // console.log('email:', email)
+      const email = 'testadmin@pvp-test-domain2.com'
 
-      const token = localStorage.getItem('jwtToken')
-      console.log('TOKEN', token)
+      // const token = localStorage.getItem('jwtToken')
+      // console.log('TOKEN', token)
       //while FE is broken, falling back to the good old fetch(beware of cache though)
       const response = await fetch(`http://localhost:4000/api/groups/target/${query}/hierarchy?userEmail=${email}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          // Authorization: `Bearer ${token}`,
         },
         method: 'GET',
         cache: 'no-store', //this disables cache

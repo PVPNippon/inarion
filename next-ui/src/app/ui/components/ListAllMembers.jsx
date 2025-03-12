@@ -57,23 +57,23 @@ function ListAllMembers() {
         //   {}, // Additional headers, if any
         //   true // withCredentials flag
         // )
-        // //WARNING:if you need to use the response data as an array or object, you need to parse it with JSON.parse()
-        // //I'm not doing it here because I only display the response data as is for now.
+
         // setMembers(response)
 
-        //Temporary bypass encryption
-        email = window.localStorage.getItem('email')
-        console.log('email:', email)
-        //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back
-        const token = localStorage.getItem('jwtToken')
-        console.log('TOKEN', token)
+        //Temporary bypass encryption and authorzation
+        // email = window.localStorage.getItem('email')
+        // console.log('email:', email)
 
+        // const token = localStorage.getItem('jwtToken')
+        // console.log('TOKEN', token)
+
+        email = 'testadmin@pvp-test-domain2.com'
         const response = await axios.get(
           `http://localhost:4000/api/groups/group/${inputValue}/descendants?userEmail=${email}`,
 
           {
             headers: {
-              Authorization: `Bearer ${token}`, // Pass the token in the Authorization header
+              //   Authorization: `Bearer ${token}`, // Pass the token in the Authorization header
             },
           }
         )
