@@ -428,10 +428,36 @@ async function listRoleAssignments({ userEmail, client }) {
   return roleAssignments // Return the role assignments
 }
 
+/**
+ * Retrieves all organizational units in the organization.
+ *
+ * This function takes the email address of the user to impersonate and an optional existing impersonated auth client.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to list all organizational units in the organization.
+ *
+ * @param {Object} params - The parameters needed to list the organizational units.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {Object} [params.client] - An existing impersonated auth client for Directory API.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of objects, each containing details of an organizational unit.
+ * @throws {Error} - Throws an error if there is an issue with the API call.
+ */
+async function listOrgUnits({ userEmail, client }) {
+  // Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+
+  const response = await directory.orgunits.list({
+    customerId: 'my_customer',
+    type: 'all', // fetch all OU hierarchy paths
+  })
+
+  return response.data
+}
+
 module.exports = {
   listUsers,
   turnOffTwoSVForUsersWithRateLimit,
   deleteUsersWithRateLimit,
   listRoleNames,
   listRoleAssignments,
+  listOrgUnits,
 }
