@@ -123,7 +123,6 @@ function mapAndFilterCsvData(data, setFilteredOutData) {
       mappedData.filter((item) => item.email !== '' && emailRegex.test(item.email)).map((item) => [item.email, item])
     ).values(),
   ]
-  console.log('uniqueDataArray', uniqueDataArray)
 
   //if the length of the data array is greater than the unique data array, extract the filtered out data
   //we need the data to display a separate table with the reason for each filtered out item
@@ -140,7 +139,7 @@ function mapAndFilterCsvData(data, setFilteredOutData) {
       }
       return acc
     }, [])
-    console.log('filteredOutData', filteredOut)
+
     setFilteredOutData(filteredOut)
   }
 
@@ -365,7 +364,6 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
 
           complete: function (results) {
             const resultData = results
-            console.log('results:', results)
 
             //if data is empty, return and display upload error
             if (resultData.data.length === 0) {
@@ -431,7 +429,6 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
             data: { memberEmails: memberList },
           }
         )
-        console.log('RESPONSE FROM BACKEND for status 200', response)
         //if all members have been deleted successfully, the backend will send a 200 response. If deletion was successfull partially, it will send a 207 response.
         //  Set the component state accordingly.
         setDeletionResult({ status: groupStrings.deletionResultStatuses.success, responseData: response.data })
@@ -797,12 +794,10 @@ function CsvFileBadge({ fileName, dispatchUploadState, resetStates }) {
  */
 function Loader() {
   return (
-    <>
-      <div className={`${groupsStyles.uploadAreaExtended} border-dashed`}>
-        <div className="loader"></div>
-        <p>Removal in progress</p>
-      </div>
-    </>
+    <div className={`${groupsStyles.uploadAreaExtended} border-dashed`}>
+      <div className="loader"></div>
+      <p>Removal in progress</p>
+    </div>
   )
 }
 
