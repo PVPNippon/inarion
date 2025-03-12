@@ -69,7 +69,10 @@ router.delete('/group/:groupEmail/members', groupsController.deleteMembers)
 router.delete('/members/member/:memberEmail', groupsController.deleteMemberFromGroups)
 
 //route to create a group
-router.post('/', groupsController.createGroup)
+//router.post('/', groupsController.createGroup)
+
+//route to create groups
+router.post('/', groupsController.createGroups)
 
 //route to get a group's settings
 router.get(

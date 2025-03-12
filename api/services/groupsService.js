@@ -130,7 +130,7 @@ async function listGroupMembers({ userEmail, groupEmail, includeDerivedMembershi
  * @param {Object} params - The parameters needed to retrieve activity logs.
  * @param {string} params.userEmail - The email address of the user to impersonate.
  * @param {string} params.applicationName - The application name to retrieve activity logs for.
- * @param {string} params.eventName - The type of logs to retrieve.      
+ * @param {string} params.eventName - The type of logs to retrieve.
  * @param {Object} [params.client=null] - An existing impersonated auth client for Reports API.
  * @returns {Promise<Object[]>} - A promise that resolves to the list of activity logs or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
@@ -158,7 +158,7 @@ async function getActivityLogs({ userEmail, applicationName, eventName, client }
     if (typeof activitiesResponse.data.items === 'undefined') {
       break
     }
-    
+
     activityLogs.push(...activitiesResponse.data.items)
   } while ((requestObj.pageToken = activitiesResponse.data.nextPageToken))
 
@@ -184,26 +184,13 @@ async function getGroupJoinLogs({ userEmail, client }) {
 
   const applicationToEvents = {
     // https://developers.google.com/admin-sdk/reports/v1/appendix/activity/admin-group-settings#ADD_GROUP_MEMBER
-    'admin': [
-      'ADD_GROUP_MEMBER',
-    ],
+    admin: ['ADD_GROUP_MEMBER'],
 
     // https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups
-    'groups': [
-      'accept_invitation',
-      'add_user',
-      'approve_join_request',
-      'join',
-      'join_via_mail',
-    ],
+    groups: ['accept_invitation', 'add_user', 'approve_join_request', 'join', 'join_via_mail'],
 
     // https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups-enterprise
-    'groups_enterprise': [
-      'accept_invitation',
-      'add_member',
-      'approve_join_request',
-      'join',
-    ],
+    groups_enterprise: ['accept_invitation', 'add_member', 'approve_join_request', 'join'],
   }
 
   const requests = []
@@ -795,18 +782,64 @@ async function deleteMemberFromGroupsWithRateLimit({ userEmail, groupEmails, mem
 async function createGroup({ userEmail, groupEmail, client }) {
   //Retrieve an existing impersonated auth client for Directory API or create a new one
   const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+  let response
 
   //If a wrong client instance type is provided (i.e. "drive" instead of "directory") or something is wrong with the client,
   //the "directory.groups.insert" method will return an error like "Cannot read properties of undefined (reading 'insert')"
   //We catch the error in the corresponding groupsController function.
   //If you are calling this function directly, you should catch the error yourself from wherever you call it.
-  const response = await directory.groups.insert({
-    resource: {
-      email: groupEmail,
-    },
+  try {
+    response = await directory.groups.insert({
+      resource: {
+        email: groupEmail,
+      },
+    })
+  } catch (error) {
+    response = error
+  }
+
+  // console.log('response', response)
+  return response
+}
+
+async function createGroups({ userEmail, groupEmails, client }) {
+  //Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+
+  const createdGroups = [] // Container for successfully created groups
+  const uncreatedGroups = [] // Container for failed groups
+
+  const responseArray = []
+  groupEmails.forEach((groupEmail) => {
+    const x = new Promise((resolve, reject) => {
+      resolve(
+        createGroup({
+          groupEmail,
+          client: directoryClient,
+        })
+      )
+    })
+    responseArray.push(x)
+  })
+  await Promise.all(responseArray).then((results) => {
+    results.forEach((result, index) => {
+      if (result.status === 200) {
+        createdGroups.push({
+          email: groupEmails[index],
+          statusCode: result.status,
+        })
+        // If the creation of a group failed, put the group email, statusCode and the error message to the uncreatedGroups array.
+      } else {
+        uncreatedGroups.push({
+          email: groupEmails[index],
+          statusCode: result.status,
+          errorMessage: result.errors,
+        })
+      }
+    })
   })
 
-  return response
+  return { createdGroups, uncreatedGroups }
 }
 
 /**
@@ -930,6 +963,7 @@ module.exports = {
   deleteMembersWithRateLimit,
   deleteMemberFromGroupsWithRateLimit,
   createGroup,
+  createGroups,
   getSettings,
   addMembers,
 }
