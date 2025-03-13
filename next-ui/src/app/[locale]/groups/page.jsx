@@ -9,7 +9,7 @@ import ListGroupJoinedActivities from '@/app/ui/components/ListGroupJoinedActivi
 import ExportGroups from '@/app/ui/components/ExportGroups'
 import DeleteMembersViaCsv from '@/app/ui/components/DeleteMembersViaCsv'
 import DeleteMemberFromGroups from '@/app/ui/components/DeleteMemberFromGroups'
-import { CreateGroups, CreateGroupsWithSerialNumbers } from '@/app/ui/components/CreateGroups'
+import { CreateGroup, CreateGroups, CreateGroupsWithSerialNumbers } from '@/app/ui/components/CreateGroups'
 import ListGroupSettings from '@/app/ui/components/ListGroupSettings'
 import { Separator } from '@/components/ui/separator'
 import DeleteMembersViaCsv2 from '@/app/ui/components/DeleteMembersViaCsv2'
@@ -48,6 +48,8 @@ function GroupsDashboard() {
       <DeleteMembersViaCsv2></DeleteMembersViaCsv2>
       <Separator className="my-4" />
       <DeleteMemberFromGroups></DeleteMemberFromGroups>
+      <Separator className="my-4" />
+      <CreateGroup></CreateGroup>
       <Separator className="my-4" />
       <CreateGroups></CreateGroups>
       <Separator className="my-4" />
