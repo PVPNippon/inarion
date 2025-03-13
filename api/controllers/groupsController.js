@@ -219,6 +219,7 @@ exports.getGroupJoinedActivity = async (req, res, next) => {
   next()
 }
 
+// DEPRECATED
 /**
  * Retrieves a table of all groups that a given group or user is a member of, either directly or indirectly.
  * The table contains columns for the group email, the type of membership (direct or indirect), and the timestamp
@@ -615,48 +616,34 @@ exports.addMembers = async (req, res, next) => {
   next()
 }
 
-
-
-exports.listParents = async (req, res, next) => {
+/**
+ * Retrieves a table of all groups that a given group or user is a member of, either directly or indirectly.
+ * The table contains columns for the group email, the type of membership (direct or indirect), and the timestamp
+ * of when the membership was created.
+ *
+ * @param {Object} req - The request object containing `userEmail` and `type` in the query parameter, and `targetEmail` in the path parameter.
+ * @param {Object} res - The response object used to return the table of nested membership or an error message.
+ * @param {Function} next - The next middleware function in the stack.
+ * @returns {Promise<void>} Responds with the table of nested membership or an error message.
+ * @throws {Error} Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+exports.getNestedTable = async (req, res, next) => {
   if (res.locals.cached) {
     return next()
   }
 
   const { userEmail } = req.query
   const { targetEmail } = req.params
-
-  try {
-    const parents = await groupsService.listParents({
-      userEmail,
-      targetEmail
-    })
-
-    res.locals.data = parents
-    logger.debug('Returning list of groups', { storeLocation: 'both' })
-  } catch (error) {
-    res.locals.statusCode = 500
-    res.locals.data = { message: 'Error fetching groups' }
-    logger.error(error)
-  }
-  next()
-}
-
-exports.getNestedMembershipTest = async (req, res, next) => {
-  if (res.locals.cached) {
-    return next()
-  }
-
-  const { userEmail } = req.query
-  const { targetEmail } = req.params
+  const targetType = req.query.type
   
   try {
-    const ancestors = await groupsService.getNestedTableTest({
+    const table = await groupsService.getNestedTables({
       userEmail,
-      targetEmail
+      targetEmail,
+      targetType,
     })
 
-    res.locals.data = ancestors
-    logger.debug('Returning list of groups', { storeLocation: 'both' })
+    res.locals.data = table
   } catch (error) {
     res.locals.statusCode = 500
     res.locals.data = { message: 'Error fetching groups' }
