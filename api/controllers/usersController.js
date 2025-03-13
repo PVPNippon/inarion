@@ -259,3 +259,34 @@ exports.listRoleAssignments = async (req, res, next) => {
   next()
 }
 //
+
+/**
+ * Retrieves the list of organizational units in the domain.
+ *
+ * This function extracts the `userEmail` from the query parameters and uses it
+ * to fetch the list of organizational units associated with the domain. The list
+ * is then stored in `res.locals.data` and passed to the next middleware function.
+ *
+ * @param {Object} req - The request object containing the `userEmail` in the query parameters.
+ * @param {Object} res - The response object used to store the list of organizational units.
+ * @param {Function} next - The next middleware function in the stack.
+ * @returns {Promise<void>} - Passes control to the next middleware function.
+ * @throws {Error} - Sends a 500 status code if there is an error fetching organizational units.
+ */
+
+exports.listOrgUnits = async (req, res, next) => {
+  const { userEmail } = req.query
+
+  try {
+    // Get the list of organizational units
+    const orgunits = await usersService.listOrgUnits({ userEmail })
+    logger.debug(`Fetched ${orgunits.organizationUnits.length} organizational units from the domain.`)
+
+    // Pass the list of organizational units
+    res.locals.data = orgunits
+  } catch (error) {
+    logger.error(error)
+    res.status(500).json({ message: 'Error fetching orgunits.' })
+  }
+  next()
+}

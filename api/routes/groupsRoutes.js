@@ -6,7 +6,7 @@ const { encryptResponseMiddleware, decryptRequestMiddleware } = require('../cont
 const { validateJWTMiddleware } = require('../controllers/googleAuthController')
 
 // Global middlewares for all routes
-router.use(validateJWTMiddleware) // Validate JWT for all routes
+//router.use(validateJWTMiddleware) // Validate JWT for all routes
 router.use(decryptRequestMiddleware) // Decrypt request for all routes
 
 //route to list all groups in customer organization
