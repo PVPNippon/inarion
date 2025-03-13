@@ -170,6 +170,7 @@ export function CreateGroupsWithSerialNumbers() {
   const [group, setGroup] = useState(null)
   const [clickCount, setClickCount] = useState(0)
   const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
   let email
 
   function serialEmails(nrOfGroups, inputValue) {
@@ -184,6 +185,7 @@ export function CreateGroupsWithSerialNumbers() {
     const createGroups = async (req, res) => {
       if (inputValue === '' || nrOfGroups < 1) return
       if (confirm(`Are you sure you want to create ${nrOfGroups} groups with email base ${inputValue}?`)) {
+        setLoading(true)
         try {
           //getting email and token from local storage is a temporary measure, will change in the future
           // email = window.localStorage.getItem('email')
@@ -212,6 +214,8 @@ export function CreateGroupsWithSerialNumbers() {
         } catch (error) {
           console.error(error)
           setError(error)
+        } finally {
+          setLoading(false)
         }
       }
     }
@@ -245,6 +249,8 @@ export function CreateGroupsWithSerialNumbers() {
           Go
         </Button>
       </div>
+      {loading && <div className="loader items-center justify-center"></div>}
+
       <div>{group && JSON.stringify(group)}</div>
       <p>{error && error.message}</p>
       {/* <div>{group && group}</div> */}

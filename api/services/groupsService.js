@@ -766,78 +766,89 @@ async function deleteMemberFromGroupsWithRateLimit({ userEmail, groupEmails, mem
 }
 
 /**
- * Creates a new group using the Google Admin Directory API.
+ * Creates a group using the Google Directory API.
  *
- * This function takes the `userEmail`, `groupEmail`, and an optional `client` from the argument object.
- * It uses these values to make an API call to create a new group with the specified email address.
+ * This function takes the `userEmail`, `groupEmail` and optional `client` from the argument object `params`.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to create a group.
  *
- * @param {Object} params - The parameters needed to create a new group.
+ * @param {Object} params - The parameters needed to create a group.
  * @param {string} params.userEmail - The email address of the user to impersonate.
  * @param {string} params.groupEmail - The email address of the group to be created.
- * @param {Object} [params.client=null] - An existing impersonated auth client for Directory API.
- * @returns {Promise<Object>} - A promise that resolves to the response from the API call.
- * @throws {Error} - Throws an error if there is an issue with the API call or if the client is incorrect.
+ * @param {Object} [params.client=null] - The impersonated auth client configured for Directory API used to authenticate the API call.
+ * @returns {Promise<Object>} - A promise that resolves to the response of the API call.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-
 async function createGroup({ userEmail, groupEmail, client }) {
   //Retrieve an existing impersonated auth client for Directory API or create a new one
   const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
-  let response
 
   //If a wrong client instance type is provided (i.e. "drive" instead of "directory") or something is wrong with the client,
   //the "directory.groups.insert" method will return an error like "Cannot read properties of undefined (reading 'insert')"
   //We catch the error in the corresponding groupsController function.
   //If you are calling this function directly, you should catch the error yourself from wherever you call it.
-  try {
-    response = await directory.groups.insert({
-      resource: {
-        email: groupEmail,
-      },
-    })
-  } catch (error) {
-    response = error
-  }
 
-  // console.log('response', response)
+  const response = await directory.groups.insert({
+    resource: {
+      email: groupEmail,
+    },
+  })
+
   return response
 }
 
 async function createGroups({ userEmail, groupEmails, client }) {
-  //Retrieve an existing impersonated auth client for Directory API or create a new one
+  /**
+   * Calculates the delay in milliseconds to be applied between sequential requests based on the index.
+   * The delay values are as follows:
+   * - 0ms if index is less than 50
+   * - 25ms if index is between 50 and 100
+   * - 50ms if index is between 100 and 500
+   * - 250ms if index is 500 or more
+   * @param {number} index - The index of the current request
+   * @return {number} The delay in milliseconds
+   */
+  //A temporary function until we have an exponential backoff utiliy function.
+  //IMPORTANT: Don't use it as a reference, its main goal is to guarantee group creation for testing and not provide the best UX.
+  function calculateDelay(index) {
+    let delay
+    if (index >= 500) {
+      delay = 250
+    } else if (index >= 100) {
+      delay = 50
+    } else if (index >= 50) {
+      delay = 25
+    } else {
+      delay = 0
+    }
+    return delay
+  }
+  // Retrieve an existing impersonated auth client for Directory API or create a new one
   const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
 
   const createdGroups = [] // Container for successfully created groups
   const uncreatedGroups = [] // Container for failed groups
 
-  const responseArray = []
-  groupEmails.forEach((groupEmail) => {
-    const x = new Promise((resolve, reject) => {
-      resolve(
-        createGroup({
-          groupEmail,
-          client: directoryClient,
-        })
-      )
-    })
-    responseArray.push(x)
-  })
-  await Promise.all(responseArray).then((results) => {
-    results.forEach((result, index) => {
-      if (result.status === 200) {
-        createdGroups.push({
-          email: groupEmails[index],
-          statusCode: result.status,
-        })
-        // If the creation of a group failed, put the group email, statusCode and the error message to the uncreatedGroups array.
-      } else {
-        uncreatedGroups.push({
-          email: groupEmails[index],
-          statusCode: result.status,
-          errorMessage: result.errors,
-        })
-      }
-    })
-  })
+  // Process groups sequentially with delays
+  for (let i = 0; i < groupEmails.length; i++) {
+    const groupEmail = groupEmails[i]
+
+    // Apply delay (except for the first request)
+    if (i > 0) {
+      await new Promise((resolve) => setTimeout(resolve, calculateDelay(i)))
+    }
+
+    // Create the group
+    try {
+      const result = await createGroup({
+        groupEmail,
+        client: directoryClient,
+      })
+      createdGroups.push({ email: groupEmail, statusCode: result.status })
+    } catch (error) {
+      uncreatedGroups.push({ email: groupEmail, statusCode: error.status, errorMessage: error.errors })
+    }
+  }
 
   return { createdGroups, uncreatedGroups }
 }
