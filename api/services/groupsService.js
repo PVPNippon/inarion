@@ -1002,9 +1002,23 @@ async function getNestedTables({ userEmail, targetEmail, targetType = 'group', c
     throw new Error('targetType must be either group or user')
   }
 
-  const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+  let directoryClient = client
 
-  let groups = await listParents({ userEmail, targetEmail, client: directoryClient })
+  if (!directoryClient) {
+    try {
+      directoryClient = await getImpersonatedClientInstanceForAdmin(userEmail, 'directory')
+    } catch (error) {
+      throw new Error('Error getting impersonated client for Directory API')
+    }
+  }
+
+  let groups
+  
+  try {
+    groups = await listParents({ userEmail, targetEmail, client: directoryClient })
+  } catch (error) {
+    throw new Error('Error listing parents')
+  }
 
   if (targetType === 'group' && groups.length === 0) {
     return null // Consider returning more appropriate value
@@ -1018,22 +1032,40 @@ async function getNestedTables({ userEmail, targetEmail, targetType = 'group', c
   let groupsWithAllUsersInOrg = null
 
   if (targetType === 'group') {
-    originalTarget = await getGroupByEmail({ userEmail, groupEmail: targetEmail, client: directoryClient })
+    try {
+      originalTarget = await getGroupByEmail({ userEmail, groupEmail: targetEmail, client: directoryClient })
+    } catch (error) {
+      throw new Error('Error getting the target group instance')
+    }
     originalTargetPrimaryEmail = originalTarget.email
     originalTargetEmailsSet = new Set(groupsUtilityFunctions.extractEmailsFromGroup(originalTarget))
   } else {  // targetType === 'user'
-    originalTarget = await getUserByEmail({ userEmail, targetEmail, client: directoryClient })
+    try {
+      originalTarget = await getUserByEmail({ userEmail, targetEmail, client: directoryClient })
+    } catch (error) {
+      throw new Error('Error getting the target user instance')
+    }
     originalTargetPrimaryEmail = originalTarget.primaryEmail
     originalTargetEmailsSet = new Set(groupsUtilityFunctions.extractEmailsFromUser(originalTarget))
   
-    groupsWithAllUsersInOrg = await listParents({ userEmail, targetEmail: originalTarget.customerId, client: directoryClient })
+    try {
+      groupsWithAllUsersInOrg = await listParents({ userEmail, targetEmail: originalTarget.customerId, client: directoryClient })
+    } catch (error) {
+      throw new Error('Error listing groups with All Users In The Organization')
+    }
 
     if (groups.length === 0 && groupsWithAllUsersInOrg.length === 0) {
       return null // Consider returning more appropriate value
     }
   }
 
-  const joinLogs = await getGroupJoinLogs({ userEmail })
+  let joinLogs
+
+  try {
+    joinLogs = await getGroupJoinLogs({ userEmail })
+  } catch (error) {
+    throw new Error('Error getting group join logs')
+  }
 
   const directParentsMap = new Map()
 
@@ -1084,11 +1116,12 @@ async function getNestedTables({ userEmail, targetEmail, targetType = 'group', c
     groups.forEach(group => parentsMap.set(group.email, []))
 
     for (let i = 0; i < groups.length; i++) {
+      const group = groups[i]
+
       if (parentsArray[i].status === 'rejected') {
-        continue
+        throw new Error(`Error listing parents for ${group.email}`)
       }
 
-      const group = groups[i]
       const groupEmailsSet = new Set(groupsUtilityFunctions.extractEmailsFromGroup(group))
 
       const parents = parentsArray[i].value
@@ -1166,12 +1199,7 @@ function createTables(parentsMap) {
     tablesMap.set(targetEmail, table)
   }
 
-  const tablesObj = {}
-  for (const [email, table] of tablesMap) {
-    tablesObj[email] = table
-  }
-
-  return tablesObj
+  return Object.fromEntries(tablesMap)
 }
 
 
