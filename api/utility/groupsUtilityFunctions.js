@@ -91,31 +91,21 @@ function extractTimestampFromGroupJoinLogForAdmin(joinLog, groupEmail, memberEma
   // applicationName: admin
   // eventName: ADD_GROUP_MEMBER
 
-  let groupEmailInLog = null
-  let memberEmailInLog = null
+  let groupEmailInLog
+  let memberEmailInLog
 
   for (const event of joinLog.events) {
     // groupEmail is in parameters[].value where parameters[].name === GROUP_EMAIL
-    for (const parameter of event.parameters) {
-      if (parameter.name === 'GROUP_EMAIL') {
-        groupEmailInLog = parameter.value
-        break
-      }
-    }
+    groupEmailInLog = event.parameters.find(parameter => parameter.name === 'GROUP_EMAIL')?.value
 
-    if (groupEmailInLog !== groupEmail) {
+    if (!groupEmailInLog || groupEmailInLog !== groupEmail) {
       continue
     }
 
     // memberEmail is in parameters[].value where parameters[].name === USER_EMAIL
-    for (const parameter of event.parameters) {
-      if (parameter.name === 'USER_EMAIL') {
-        memberEmailInLog = parameter.value
-        break
-      }
-    }
+    memberEmailInLog = event.parameters.find(parameter => parameter.name === 'USER_EMAIL')?.value
 
-    if (memberEmailsSet.has(memberEmailInLog)) {
+    if (memberEmailInLog && memberEmailsSet.has(memberEmailInLog)) {
       return joinLog.id.time
     }
   }
@@ -126,38 +116,28 @@ function extractTimestampFromGroupJoinLogForAdmin(joinLog, groupEmail, memberEma
 function extractTimestampFromGroupJoinLogForGroups(joinLog, groupEmail, memberEmailsSet) {
   // applicationName: groups
 
-  let groupEmailInLog = null
-  let memberEmailInLog = null
+  let groupEmailInLog
+  let memberEmailInLog
 
   for (const event of joinLog.events) {
     // groupEmail is in parameters[].value where parameters[].name === group_email
-    for (const parameter of event.parameters) {
-      if (parameter.name === 'group_email') {
-        groupEmailInLog = parameter.value
-        break
-      }
-    }
+    groupEmailInLog = event.parameters.find(parameter => parameter.name === 'group_email')?.value
 
-    if (groupEmailInLog !== groupEmail) {
+    if (!groupEmailInLog || groupEmailInLog !== groupEmail) {
       continue
     }
 
     if (event.name === 'add_user' || event.name === 'approve_join_request') {
       // For eventName: add_user, approve_join_request
       // memberEmail is in parameters[].value where parameters[].name === user_email
-      for (const parameter of event.parameters) {
-        if (parameter.name === 'user_email') {
-          memberEmailInLog = parameter.value
-          break
-        }
-      }
+      memberEmailInLog = event.parameters.find(parameter => parameter.name === 'user_email')?.value
     } else {
       // For eventName: accept_invitation, join, join_via_mail
       // memberEmail is in actor.email
       memberEmailInLog = joinLog.actor.email
     }
 
-    if (memberEmailsSet.has(memberEmailInLog)) {
+    if (memberEmailInLog && memberEmailsSet.has(memberEmailInLog)) {
       return joinLog.id.time
     }
   }
@@ -168,38 +148,28 @@ function extractTimestampFromGroupJoinLogForGroups(joinLog, groupEmail, memberEm
 function extractTimestampFromGroupJoinLogForGroupsEnterprise(joinLog, groupEmail, memberEmailsSet) {
   // applicationName: groups_enterprise
 
-  let groupEmailInLog = null
-  let memberEmailInLog = null
+  let groupEmailInLog
+  let memberEmailInLog
 
   for (const event of joinLog.events) {
     // groupEmail is in parameters[].value where parameters[].name === group_id
-    for (const parameter of event.parameters) {
-      if (parameter.name === 'group_id') {
-        groupEmailInLog = parameter.value
-        break
-      }
-    }
+    groupEmailInLog = event.parameters.find(parameter => parameter.name === 'group_id')?.value
 
-    if (groupEmailInLog !== groupEmail) {
+    if (!groupEmailInLog || groupEmailInLog !== groupEmail) {
       continue
     }
 
     if (event.name === 'add_member' || event.name === 'approve_join_request') {
       // For eventName: add_member, approve_join_request
       // memberEmail is in parameters[].value where parameters[].name === member_id
-      for (const parameter of event.parameters) {
-        if (parameter.name === 'member_id') {
-          memberEmailInLog = parameter.value
-          break
-        }
-      }
+      memberEmailInLog = event.parameters.find(parameter => parameter.name === 'member_id')?.value
     } else {
       // For eventName: accept_invitation, join
       // memberEmail is in actor.email
       memberEmailInLog = joinLog.actor.email
     }
 
-    if (memberEmailsSet.has(memberEmailInLog)) {
+    if (memberEmailInLog && memberEmailsSet.has(memberEmailInLog)) {
       return joinLog.id.time
     }
   }
