@@ -797,32 +797,24 @@ async function createGroup({ userEmail, groupEmail, client }) {
   return response
 }
 
+/**
+ * Creates multiple groups using the Google Directory API.
+ *
+ * This function takes the `userEmail`, an array of `groupEmails`, and an optional `client` from the argument object `params`.
+ * It uses these values to authorize a JWT client, which it then uses to make requests to the Google Admin Directory API
+ * to create each group sequentially.
+ *
+ * @param {Object} params - The parameters needed to create groups.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {string[]} params.groupEmails - An array of email addresses for the groups to be created.
+ * @param {Object} [params.client=null] - The impersonated auth client configured for Directory API used to authenticate the API call.
+ * @returns {Promise<Object>} - A promise that resolves to an object containing two arrays:
+ *   - `createdGroups`: an array of objects for successfully created groups, each containing `email` and `statusCode`.
+ *   - `uncreatedGroups`: an array of objects for failed groups, each containing `email`, `statusCode`, and `errorMessage`.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+
 async function createGroups({ userEmail, groupEmails, client }) {
-  /**
-   * Calculates the delay in milliseconds to be applied between sequential requests based on the index.
-   * The delay values are as follows:
-   * - 0ms if index is less than 50
-   * - 25ms if index is between 50 and 100
-   * - 50ms if index is between 100 and 500
-   * - 250ms if index is 500 or more
-   * @param {number} index - The index of the current request
-   * @return {number} The delay in milliseconds
-   */
-  //A temporary function until we have an exponential backoff utiliy function.
-  //IMPORTANT: Don't use it as a reference, its main goal is to guarantee group creation for testing and not provide the best UX.
-  function calculateDelay(index) {
-    let delay
-    if (index >= 500) {
-      delay = 250
-    } else if (index >= 100) {
-      delay = 50
-    } else if (index >= 50) {
-      delay = 25
-    } else {
-      delay = 0
-    }
-    return delay
-  }
   // Retrieve an existing impersonated auth client for Directory API or create a new one
   const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
 
@@ -833,10 +825,10 @@ async function createGroups({ userEmail, groupEmails, client }) {
   for (let i = 0; i < groupEmails.length; i++) {
     const groupEmail = groupEmails[i]
 
-    // Apply delay (except for the first request)
-    if (i > 0) {
-      await new Promise((resolve) => setTimeout(resolve, calculateDelay(i)))
-    }
+    // It doesn't look the delay calculation was applied at all, it just sends requests sequentially, so I removed the delay logic.
+    //While it helps to prevent hitting limits, it takes time (about 10 mins to create 500 groups).
+    //When exponentional backoff utility function is available, will switch to it.
+    await new Promise((resolve) => setTimeout(resolve, 0))
 
     // Create the group
     try {

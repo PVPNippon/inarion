@@ -4,7 +4,31 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { apiClient } from '@/utils/apiClient'
 import axios from 'axios'
+import CsvDownloadButton from 'react-json-to-csv'
 
+/**
+ * Component for creating a single group.
+ *
+ * This component allows the user to input a single group email address.
+ * When the "Go" button is clicked, the component sends a POST request to the server with the provided email address.
+ * The server then creates the group and returns the results which are then displayed in the component.
+ *
+ * States:
+ * - `inputValue`: The email address of the group to be created.
+ * - `group`: The result of the group creation operation returned from the server.
+ * - `clickCount`: A counter used to trigger the group creation operation.
+ * - `error`: Any error message encountered during the group creation process.
+ *
+ * Side Effects:
+ * - Uses `useEffect` to send a group creation request whenever `clickCount` changes.
+ * - Displays file contents and creation results within the component.
+ *
+ * API:
+ * - Sends a POST request to `http://localhost:4000/api/groups/?userEmail=${email}`
+ *   with the necessary credentials and data.
+ *
+ * @returns {JSX.Element} The rendered component for creating a single group.
+ */
 export function CreateGroup() {
   const [inputValue, setInputValue] = useState('')
   const [group, setGroup] = useState(null)
@@ -18,15 +42,7 @@ export function CreateGroup() {
         if (inputValue === '') {
           return
         }
-        //getting email and token from local storage is a temporary measure, will change in the future
-        // email = window.localStorage.getItem('email')
-        // console.log('email:', email)
         email = 'testadmin@pvp-test-domain2.com'
-
-        //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back
-        // const token = localStorage.getItem('jwtToken')
-        // console.log('TOKEN', token)
-
         const response = await axios.post(
           `http://localhost:4000/api/groups/?userEmail=${email}`,
 
@@ -44,6 +60,8 @@ export function CreateGroup() {
       } catch (error) {
         console.error(error)
         setError(error)
+      } finally {
+        setInputValue('')
       }
     }
     setError(null)
@@ -53,6 +71,7 @@ export function CreateGroup() {
   return (
     <div className="ms-5">
       <h1 className="my-6">Greate group</h1>
+      <div>Input a group email address in full(subdomain OK).</div>
       <div className="flex w-full max-w-sm items-center space-x-2 mb-7">
         <Input
           type="email"
@@ -68,36 +87,49 @@ export function CreateGroup() {
       </div>
       <div>{group && JSON.stringify(group)}</div>
       <p>{error && error.message}</p>
-      {/* <div>{group && group}</div> */}
     </div>
   )
 }
 
 /**
- * A temporary component for dev purposes.
- * On click of button, create a group and display in div(error or group details)
+ * Component for creating multiple groups using a CSV file.
+ *
+ * This component allows the user to upload a CSV file containing a list of group email addresses.
+ * When the "Go" button is clicked, the component sends a POST request to the server with the list
+ * of group email addresses. The server then creates the groups and returns the results which are then
+ * displayed in the component.
+ *
+ * States:
+ * - `data`: An array of group email addresses retrieved from the uploaded CSV file.
+ * - `group`: The results of the group creation operation returned from the server.
+ * - `clickCount`: A counter used to trigger the group creation operation.
+ * - `error`: Any error message encountered during the group creation process.
+ * - `loading`: A boolean indicating whether the group creation operation is in progress.
+ *
+ * Side Effects:
+ * - Uses `useEffect` to trigger the group creation operation whenever `clickCount` changes.
+ *
+ * API:
+ * - Sends a POST request to `http://localhost:4000/api/groups/?userEmail=${email}`
+ *   with the list of group email addresses.
+ *
+ * @returns {JSX.Element} The rendered component for creating multiple groups using a CSV file.
  */
-//Please note that it's a temporary UI created hastily for testing/visualization purposes and it's not dev-quality
-export function CreateGroups() {
+export function CreateGroupsByCsv() {
   const [data, setData] = useState([])
   const [group, setGroup] = useState(null)
   const [clickCount, setClickCount] = useState(0)
   const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [failedGroups, setFailedGroups] = useState([])
   let email
 
   useEffect(() => {
     const createGroups = async (req, res) => {
       try {
         if (data.length === 0) return
-        //getting email and token from local storage is a temporary measure, will change in the future
-        // email = window.localStorage.getItem('email')
-        // console.log('email:', email)
+        setLoading(true)
         email = 'testadmin@pvp-test-domain2.com'
-
-        //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back
-        // const token = localStorage.getItem('jwtToken')
-        // console.log('TOKEN', token)
-
         const response = await axios.post(
           `http://localhost:4000/api/groups/?userEmail=${email}`,
 
@@ -111,10 +143,24 @@ export function CreateGroups() {
           }
         )
 
-        if (response) setGroup(response.data)
+        if (response) {
+          console.log('response data', response.data)
+          setGroup(response.data)
+          if (response.data.uncreatedGroups.length > 0) {
+            const csvData = response.data.uncreatedGroups.map((group) => {
+              const obj = {
+                email: group.email,
+              }
+              return obj
+            })
+            setFailedGroups(csvData)
+          }
+        }
       } catch (error) {
         console.error(error)
         setError(error)
+      } finally {
+        setLoading(false)
       }
     }
     setError(null)
@@ -124,7 +170,17 @@ export function CreateGroups() {
   return (
     <div className="ms-5">
       <h1 className="my-6 font-semibold">Create groups by CSV</h1>
-      <div className="flex w-full max-w-sm items-center space-x-2 mb-7">
+      <div className="flex space-x-2 items-center mb-3">
+        <div>Upload a CSV file and then click →</div>
+        <Button onClick={() => setClickCount(clickCount + 1)} type="submit">
+          Go
+        </Button>
+      </div>
+      <small className="text-orange-700">
+        The CSV file should contain a list of group email addresses(subdomain OK), no header row, all addresses in
+        column A.
+      </small>
+      <div className="flex w-full max-w-sm items-center space-x-2 mb-7 mt-3">
         <div className="flex">
           <input
             accept=".csv"
@@ -139,12 +195,13 @@ export function CreateGroups() {
                */
               reader.onload = () => {
                 let results = reader.result.split('\r\n')
-                results = results.filter((item) => item !== '')
+                results = results
+                  .filter((item) => item !== '' && item !== 'email' && typeof item === 'string')
+                  .map((item) => item.trim().replace(/"/g, ''))
                 document.getElementById('create-groups-csv-out').innerHTML = reader.result
                 setData(results)
               }
               // start reading the file. When it is done, calls the onload event defined above.
-
               reader.readAsText(document.getElementById('create-groups-csv-input').files[0])
             }}
             type="file"
@@ -153,17 +210,43 @@ export function CreateGroups() {
             <p>File contents will appear here</p>
           </pre>
         </div>
-        <Button onClick={() => setClickCount(clickCount + 1)} type="submit">
-          Go
-        </Button>
       </div>
-      <div>{group && JSON.stringify(group)}</div>
+      {loading && <div className="loader items-center justify-center"></div>}
+      <div>{group && JSON.stringify(group.message)}</div>
       <p>{error && error.message}</p>
-      {/* <div>{group && group}</div> */}
+      {failedGroups.length > 0 && (
+        <CsvDownloadButton data={failedGroups} filename="failed-groups">
+          <div className="text-red-500 my-3">Download failed groups as csv</div>
+        </CsvDownloadButton>
+      )}
     </div>
   )
 }
 
+/**
+ * Component for creating multiple groups with serial numbers using a single email address.
+ *
+ * This component allows the user to input a group email base and the number of groups to be created.
+ * Upon clicking the "Go" button, it triggers the creation of groups using the provided email base and the number of groups.
+ *
+ * States:
+ * - `inputValue`: The email base to create groups.
+ * - `nrOfGroups`: The number of groups to be created.
+ * - `group`: Stores the response data indicating the result of the group creation process.
+ * - `clickCount`: A counter to trigger the group creation request.
+ * - `error`: Any error message encountered during the group creation process.
+ * - `loading`: A boolean indicating if the group creation request is in progress.
+ * - `failedGroups`: An array of groups that failed to be created.
+ *
+ * Side Effects:
+ * - Uses `useEffect` to send a group creation request whenever `clickCount` changes.
+ * - Displays file contents and creation results within the component.
+ *
+ * API:
+ * - Sends a POST request to `http://localhost:4000/api/groups/` with the necessary credentials and data.
+ *
+ * @returns {JSX.Element} The rendered component for creating multiple groups with serial numbers.
+ */
 export function CreateGroupsWithSerialNumbers() {
   const [inputValue, setInputValue] = useState('')
   const [nrOfGroups, setNrOfGroups] = useState(10)
@@ -171,6 +254,7 @@ export function CreateGroupsWithSerialNumbers() {
   const [clickCount, setClickCount] = useState(0)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [failedGroups, setFailedGroups] = useState([])
   let email
 
   function serialEmails(nrOfGroups, inputValue) {
@@ -183,18 +267,13 @@ export function CreateGroupsWithSerialNumbers() {
 
   useEffect(() => {
     const createGroups = async (req, res) => {
+      setGroup(null)
+      setFailedGroups([])
       if (inputValue === '' || nrOfGroups < 1) return
       if (confirm(`Are you sure you want to create ${nrOfGroups} groups with email base ${inputValue}?`)) {
         setLoading(true)
         try {
-          //getting email and token from local storage is a temporary measure, will change in the future
-          // email = window.localStorage.getItem('email')
-          // console.log('email:', email)
           email = 'testadmin@pvp-test-domain2.com'
-
-          //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back
-          // const token = localStorage.getItem('jwtToken')
-          // console.log('TOKEN', token)
           const data = serialEmails(nrOfGroups, inputValue)
 
           const response = await axios.post(
@@ -210,11 +289,24 @@ export function CreateGroupsWithSerialNumbers() {
             }
           )
 
-          if (response) setGroup(response.data)
+          if (response) {
+            console.log('response data', response.data)
+            setGroup(response.data)
+            if (response.data.uncreatedGroups.length > 0) {
+              const csvData = response.data.uncreatedGroups.map((group) => {
+                const obj = {
+                  email: group.email,
+                }
+                return obj
+              })
+              setFailedGroups(csvData)
+            }
+          }
         } catch (error) {
           console.error(error)
           setError(error)
         } finally {
+          setInputValue('')
           setLoading(false)
         }
       }
@@ -226,8 +318,11 @@ export function CreateGroupsWithSerialNumbers() {
   return (
     <div className="ms-5">
       <h1 className="my-6 font-semibold">Create groups with serial numbers</h1>
-      <p className="my-6 text-orange-500">Enter a group email base and the number of groups(between 1 and 1000):</p>
-      <div className="flex w-full max-w-sm items-center space-x-2 mb-7">
+      <p className="mt-6 mb-3 text-orange-500">
+        Enter a group email base and the number of groups(between 1 and 1000):
+      </p>
+      <small className="text-orange-700">All groups will be created with primary domain.</small>
+      <div className="flex w-full max-w-sm items-center space-x-2 mb-7 mt-3">
         <Input
           type="string"
           value={inputValue}
@@ -249,11 +344,16 @@ export function CreateGroupsWithSerialNumbers() {
           Go
         </Button>
       </div>
+
       {loading && <div className="loader items-center justify-center"></div>}
 
-      <div>{group && JSON.stringify(group)}</div>
+      {group && <div>{`Result: ${group.message}`}</div>}
       <p>{error && error.message}</p>
-      {/* <div>{group && group}</div> */}
+      {failedGroups.length > 0 && (
+        <CsvDownloadButton data={failedGroups} filename="failed-groups">
+          <div className="text-red-500 my-3">Download failed groups as csv</div>
+        </CsvDownloadButton>
+      )}
     </div>
   )
 }
