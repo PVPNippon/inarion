@@ -70,8 +70,8 @@ export function CreateGroup() {
   }, [clickCount])
   return (
     <div className="ms-5">
-      <h1 className="my-6">Greate group</h1>
-      <div>Input a group email address in full(subdomain OK).</div>
+      <h1 className="mt-6 mb-3 font-semibold">Greate group</h1>
+      <div className="mb-3">Input a group email address in full(subdomain OK).</div>
       <div className="flex w-full max-w-sm items-center space-x-2 mb-7">
         <Input
           type="email"
@@ -160,6 +160,7 @@ export function CreateGroupsByCsv() {
         console.error(error)
         setError(error)
       } finally {
+        setData([])
         setLoading(false)
       }
     }
@@ -169,7 +170,7 @@ export function CreateGroupsByCsv() {
   }, [clickCount])
   return (
     <div className="ms-5">
-      <h1 className="my-6 font-semibold">Create groups by CSV</h1>
+      <h1 className="mt-6 mb-3 font-semibold">Create groups by CSV</h1>
       <div className="flex space-x-2 items-center mb-3">
         <div>Upload a CSV file and then click →</div>
         <Button onClick={() => setClickCount(clickCount + 1)} type="submit">
@@ -212,7 +213,12 @@ export function CreateGroupsByCsv() {
         </div>
       </div>
       {loading && <div className="loader items-center justify-center"></div>}
-      <div>{group && JSON.stringify(group.message)}</div>
+      {group && (
+        <div>
+          <div>{`Result: ${group.message}`}</div>
+          <div>*To see full response data, check the console IN BROWSER.</div>
+        </div>
+      )}
       <p>{error && error.message}</p>
       {failedGroups.length > 0 && (
         <CsvDownloadButton data={failedGroups} filename="failed-groups">
@@ -346,8 +352,12 @@ export function CreateGroupsWithSerialNumbers() {
       </div>
 
       {loading && <div className="loader items-center justify-center"></div>}
-
-      {group && <div>{`Result: ${group.message}`}</div>}
+      {group && (
+        <div>
+          <div>{`Result: ${group.message}`}</div>
+          <div>*To see full response data, check the console IN BROWSER.</div>
+        </div>
+      )}
       <p>{error && error.message}</p>
       {failedGroups.length > 0 && (
         <CsvDownloadButton data={failedGroups} filename="failed-groups">

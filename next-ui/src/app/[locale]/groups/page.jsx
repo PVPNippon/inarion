@@ -12,53 +12,60 @@ import DeleteMemberFromGroups from '@/app/ui/components/DeleteMemberFromGroups'
 import { CreateGroup, CreateGroupsByCsv, CreateGroupsWithSerialNumbers } from '@/app/ui/components/CreateGroups'
 import ListGroupSettings from '@/app/ui/components/ListGroupSettings'
 import { Separator } from '@/components/ui/separator'
-import DeleteMembersViaCsv2 from '@/app/ui/components/DeleteMembersViaCsv2'
 import AddMembersViaCsv from '@/app/ui/components/AddMembersViaCsv'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-/**
- * A component that displays a Google Groups page.
- *
- * It is a placeholder that contains examples of all the components that can be used to display information about Google Groups.
- *
- * @returns {JSX.Element} A JSX element that displays a Google Groups page.
- */
-//A temporary page for groups feature development.
-//It reflects data for various groups routes in the UI, for dev purposes.
 function GroupsDashboard() {
   return (
-    <main className="overflow-auto">
-      <h2>Google Groups Page</h2>
-      <p>This is a placeholder for the groups page.</p>
-      <ListGroups></ListGroups>
-      <Separator className="my-4" />
-      <ListGroupsActivities></ListGroupsActivities>
-      <Separator className="my-4" />
-      <ListGroupJoinedActivities></ListGroupJoinedActivities>
-      <Separator className="my-4" />
-      <GetGroup></GetGroup>
-      <Separator className="my-4" />
-      <ListDirectMembers></ListDirectMembers>
-      <Separator className="my-4" />
-      <ListAllMembers></ListAllMembers>
-      <Separator className="my-4" />
-      <ExportGroups></ExportGroups>
-      <Separator className="my-4" />
-      <DeleteMembersViaCsv></DeleteMembersViaCsv>
-      <Separator className="my-4" />
-      <DeleteMembersViaCsv2></DeleteMembersViaCsv2>
-      <Separator className="my-4" />
-      <DeleteMemberFromGroups></DeleteMemberFromGroups>
-      <Separator className="my-4" />
-      <CreateGroup></CreateGroup>
-      <Separator className="my-4" />
-      <CreateGroupsByCsv></CreateGroupsByCsv>
-      <Separator className="my-4" />
-      <CreateGroupsWithSerialNumbers></CreateGroupsWithSerialNumbers>
-      <Separator className="my-4" />
-      <ListGroupSettings></ListGroupSettings>
-      <Separator className="my-4" />
-      <AddMembersViaCsv></AddMembersViaCsv>
-      <Separator className="my-4" />
+    <main className="overflow-auto space-y-7">
+      <h2 className="text-3xl font-semibold text-center">Temporary Page for Google Groups</h2>
+      <Tabs defaultValue="devtools">
+        <TabsList className="flex m-auto w-fit">
+          <TabsTrigger value="devtools" className="text-md ">
+            DevTools
+          </TabsTrigger>
+          <TabsTrigger value="features" className="text-md">
+            Features
+          </TabsTrigger>
+          <TabsTrigger value="apis" className="text-md">
+            Backend response data
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="devtools">
+          <CreateGroup></CreateGroup>
+          <Separator className="my-4" />
+          <CreateGroupsByCsv></CreateGroupsByCsv>
+          <Separator className="my-4" />
+          <CreateGroupsWithSerialNumbers></CreateGroupsWithSerialNumbers>
+          <Separator className="my-4" />
+          <AddMembersViaCsv></AddMembersViaCsv>
+          <Separator className="my-4" />
+        </TabsContent>
+        <TabsContent value="features">
+          <ExportGroups></ExportGroups>
+          <Separator className="my-4" />
+          <DeleteMembersViaCsv></DeleteMembersViaCsv>
+          <Separator className="my-4" />
+          <DeleteMemberFromGroups></DeleteMemberFromGroups>
+          <Separator className="my-4" />
+        </TabsContent>
+        <TabsContent value="apis">
+          <ListGroups></ListGroups>
+          <Separator className="my-4" />
+          <ListGroupsActivities></ListGroupsActivities>
+          <Separator className="my-4" />
+          <ListGroupJoinedActivities></ListGroupJoinedActivities>
+          <Separator className="my-4" />
+          <GetGroup></GetGroup>
+          <Separator className="my-4" />
+          <ListDirectMembers></ListDirectMembers>
+          <Separator className="my-4" />
+          <ListAllMembers></ListAllMembers>
+          <Separator className="my-4" />
+          <ListGroupSettings></ListGroupSettings>
+          <Separator className="my-4" />
+        </TabsContent>
+      </Tabs>
     </main>
   )
 }
