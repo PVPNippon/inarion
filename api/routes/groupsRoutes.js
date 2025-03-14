@@ -50,6 +50,7 @@ router.get('/activities', groupsController.getGroupActivity)
 //route to get group joined activity(all "add_member" and "accept_invitation" logs for all groups in cx domain)
 router.get('/joined-activities', groupsController.getGroupJoinedActivity)
 
+// DEPRECATED
 //route to get nested membership table for a member(group or user)
 router.get('/target/:targetEmail/nested-membership', groupsController.getNestedMembership)
 
@@ -81,6 +82,9 @@ router.get(
   groupsController.getSettings,
   groupsCacheMiddleware.storeSettings
 )
+
+//route to get nested membership table for an entity (group or user)
+router.get('/target/:targetEmail/nested-table', groupsController.getNestedTable)
 
 router.use(encryptResponseMiddleware) // Encrypt request for all routes
 
