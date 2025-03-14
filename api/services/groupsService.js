@@ -131,7 +131,7 @@ async function listGroupMembers({ userEmail, groupEmail, includeDerivedMembershi
  * @param {Object} params - The parameters needed to retrieve activity logs.
  * @param {string} params.userEmail - The email address of the user to impersonate.
  * @param {string} params.applicationName - The application name to retrieve activity logs for.
- * @param {string} params.eventName - The type of logs to retrieve.      
+ * @param {string} params.eventName - The type of logs to retrieve.
  * @param {Object} [params.client=null] - An existing impersonated auth client for Reports API.
  * @returns {Promise<Object[]>} - A promise that resolves to the list of activity logs or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
@@ -159,7 +159,7 @@ async function getActivityLogs({ userEmail, applicationName, eventName, client }
     if (typeof activitiesResponse.data.items === 'undefined') {
       break
     }
-    
+
     activityLogs.push(...activitiesResponse.data.items)
   } while ((requestObj.pageToken = activitiesResponse.data.nextPageToken))
 
@@ -185,26 +185,13 @@ async function getGroupJoinLogs({ userEmail, client }) {
 
   const applicationToEvents = {
     // https://developers.google.com/admin-sdk/reports/v1/appendix/activity/admin-group-settings#ADD_GROUP_MEMBER
-    'admin': [
-      'ADD_GROUP_MEMBER',
-    ],
+    admin: ['ADD_GROUP_MEMBER'],
 
     // https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups
-    'groups': [
-      'accept_invitation',
-      'add_user',
-      'approve_join_request',
-      'join',
-      'join_via_mail',
-    ],
+    groups: ['accept_invitation', 'add_user', 'approve_join_request', 'join', 'join_via_mail'],
 
     // https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups-enterprise
-    'groups_enterprise': [
-      'accept_invitation',
-      'add_member',
-      'approve_join_request',
-      'join',
-    ],
+    groups_enterprise: ['accept_invitation', 'add_member', 'approve_join_request', 'join'],
   }
 
   const requests = []
@@ -805,17 +792,18 @@ async function deleteMemberFromGroupsWithRateLimit({ userEmail, groupEmails, mem
 }
 
 /**
- * Creates a new group using the Google Admin Directory API.
+ * Creates a group using the Google Directory API.
  *
- * This function takes the `userEmail`, `groupEmail`, and an optional `client` from the argument object.
- * It uses these values to make an API call to create a new group with the specified email address.
+ * This function takes the `userEmail`, `groupEmail` and optional `client` from the argument object `params`.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to create a group.
  *
- * @param {Object} params - The parameters needed to create a new group.
+ * @param {Object} params - The parameters needed to create a group.
  * @param {string} params.userEmail - The email address of the user to impersonate.
  * @param {string} params.groupEmail - The email address of the group to be created.
- * @param {Object} [params.client=null] - An existing impersonated auth client for Directory API.
- * @returns {Promise<Object>} - A promise that resolves to the response from the API call.
- * @throws {Error} - Throws an error if there is an issue with the API call or if the client is incorrect.
+ * @param {Object} [params.client=null] - The impersonated auth client configured for Directory API used to authenticate the API call.
+ * @returns {Promise<Object>} - A promise that resolves to the response of the API call.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 async function createGroup({ userEmail, groupEmail, client }) {
   //Retrieve an existing impersonated auth client for Directory API or create a new one
@@ -825,6 +813,7 @@ async function createGroup({ userEmail, groupEmail, client }) {
   //the "directory.groups.insert" method will return an error like "Cannot read properties of undefined (reading 'insert')"
   //We catch the error in the corresponding groupsController function.
   //If you are calling this function directly, you should catch the error yourself from wherever you call it.
+
   const response = await directory.groups.insert({
     resource: {
       email: groupEmail,
@@ -832,6 +821,54 @@ async function createGroup({ userEmail, groupEmail, client }) {
   })
 
   return response
+}
+
+/**
+ * Creates multiple groups using the Google Directory API.
+ *
+ * This function takes the `userEmail`, an array of `groupEmails`, and an optional `client` from the argument object `params`.
+ * It uses these values to authorize a JWT client, which it then uses to make requests to the Google Admin Directory API
+ * to create each group sequentially.
+ *
+ * @param {Object} params - The parameters needed to create groups.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {string[]} params.groupEmails - An array of email addresses for the groups to be created.
+ * @param {Object} [params.client=null] - The impersonated auth client configured for Directory API used to authenticate the API call.
+ * @returns {Promise<Object>} - A promise that resolves to an object containing two arrays:
+ *   - `createdGroups`: an array of objects for successfully created groups, each containing `email` and `statusCode`.
+ *   - `uncreatedGroups`: an array of objects for failed groups, each containing `email`, `statusCode`, and `errorMessage`.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+
+async function createGroups({ userEmail, groupEmails, client }) {
+  // Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+
+  const createdGroups = [] // Container for successfully created groups
+  const uncreatedGroups = [] // Container for failed groups
+
+  // Process groups sequentially with delays
+  for (let i = 0; i < groupEmails.length; i++) {
+    const groupEmail = groupEmails[i]
+
+    // It doesn't look the delay calculation was applied at all, it just sends requests sequentially, so I removed the delay logic.
+    //While it helps to prevent hitting limits, it takes time (about 10 mins to create 500 groups).
+    //When exponentional backoff utility function is available, will switch to it.
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    // Create the group
+    try {
+      const result = await createGroup({
+        groupEmail,
+        client: directoryClient,
+      })
+      createdGroups.push({ email: groupEmail, statusCode: result.status })
+    } catch (error) {
+      uncreatedGroups.push({ email: groupEmail, statusCode: error.status, errorMessage: error.errors })
+    }
+  }
+
+  return { createdGroups, uncreatedGroups }
 }
 
 /**
@@ -1214,6 +1251,7 @@ module.exports = {
   deleteMembersWithRateLimit,
   deleteMemberFromGroupsWithRateLimit,
   createGroup,
+  createGroups,
   getSettings,
   addMembers,
   getNestedTables,

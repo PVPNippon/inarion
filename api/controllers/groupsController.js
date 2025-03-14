@@ -531,6 +531,47 @@ exports.createGroup = async (req, res, next) => {
   next()
 }
 
+exports.createGroups = async (req, res, next) => {
+  const { userEmail } = req.query
+  const { groupEmails } = req.body
+
+  // Eliminate duplicate group emails if any.
+  const uniqueGroupEmails = [...new Set(groupEmails)]
+
+  try {
+    const response = await groupsService.createGroups({
+      userEmail,
+      groupEmails: uniqueGroupEmails,
+    })
+
+    if (response.uncreatedGroups.length === 0) {
+      // All requested groups were created successfully.
+      response.message = 'Created all requested groups successfully'
+      res.locals.statusCode = 200
+    } else if (response.uncreatedGroups.length > 0) {
+      // Some requested groups were created successfully, but some were not.
+      response.message = `${response.uncreatedGroups.length} groups were not created.`
+      res.locals.statusCode = 207
+    } else {
+      // No requested members were added to the group.
+      response.message = 'Failed to create requested groups.'
+
+      // If one of the status codes are in 500, the status code of the response should be 500 (Internal Server Error).
+      // Otherwise it should be 400 (Bad Request).
+      res.locals.statusCode = response.uncreatedGroups.some(({ statusCode }) => statusCode >= 500 && statusCode < 600)
+        ? 500
+        : 400
+    }
+
+    res.locals.data = response
+  } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: 'Error creating groups.' }
+    logger.error(error)
+  }
+  next()
+}
+
 /**
  * Retrieves a group's settings.
  *

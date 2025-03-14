@@ -44,8 +44,15 @@ function AddMembersViaCsv() {
   }, [clickCount])
   return (
     <div className="ms-5">
-      <h1 className="my-6">Add members by CSV</h1>
-      <div className="flex w-full max-w-3xl items-center space-x-2 mb-7">
+      <h1 className="mt-6 mb-3 font-semibold">Add members by CSV</h1>
+      <div className="text-red-500 mb-3">
+        Warning: no exponential backoff yet. You risk hitting the rate limit when adding more than 200 members at
+        once(depending on current usage, it could be much less).
+      </div>
+      <small className="text-orange-700">
+        The CSV file should contain a list of member email addresses, no header row, all addresses in column A.
+      </small>
+      <div className="flex w-full max-w-3xl items-center space-x-2 mb-7 mt-3">
         <Input
           type="email"
           value={inputValue}
