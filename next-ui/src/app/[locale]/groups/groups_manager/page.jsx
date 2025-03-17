@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiClient } from '@/utils/apiClient'
 import { ExternalLinkIcon, SearchIcon, EyeIcon, Ellipsis, CircleAlert } from 'lucide-react'
 import { groupsStyles } from '@/app/ui/variables/group-variables'
@@ -25,6 +24,16 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { CustomIconExport } from '@/app/ui/svg-icons/custom-icons'
+import {
+  CustomTable,
+  CustomTableHeader,
+  CustomTableBody,
+  CustomTableRow,
+  CustomTableCell,
+  CustomTableHead,
+} from '@/components/ui/custom-table'
+import { Checkbox } from '@/components/ui/checkbox'
+import { customTableHandler, classListHandler } from '@/utils/virtualDOMHackers'
 
 function GroupsManager() {
   const [groupList, setGroupList] = useState([])
@@ -33,13 +42,12 @@ function GroupsManager() {
   const [emptyResult, setEmptyResult] = useState(false)
   const [query, setQuery] = useState('')
   const [hiddenClass, setHiddenClass] = useState('')
-
   const email = 'testadmin@pvp-test-domain2.com'
 
   useEffect(() => {
     const controller = new AbortController()
 
-    async function fetchGroupsTable() {
+    function fetchGroupsTable() {
       if (query === '') return
 
       try {
@@ -49,43 +57,63 @@ function GroupsManager() {
         setGroupList([])
         setEmptyResult(false)
 
-        setTimeout(() => {
-          const groupsDummyData = [
-            {
-              name: 'group1',
-              email: 'group1@pvp-test-domain2.com',
-              members: 50,
-              hasExternalMembers: true,
-              restrictFromLeaving: true,
-              emailAliases: ['group1@sub.pvp-test-domain2.com', 'group1@alias.pvp-test-domain2.com'],
-              settings: [],
-            },
-            {
-              name: 'group2',
-              email: 'group2@pvp-test-domain2.com',
-              members: 100,
-              hasExternalMembers: false,
-              restrictFromLeaving: false,
-              emailAliases: ['dev@pvp-test-domain2.com', 'group2@alias.pvp-test-domain2.com'],
-              settings: [],
-            },
-            {
-              name: 'group3',
-              email: 'group3@pvp-test-domain2.com',
-              members: 10,
-              hasExternalMembers: true,
-              restrictFromLeaving: false,
-              emailAliases: ['group3@alias.pvp-test-domain2.com'],
-              settings: [],
-            },
-          ]
+        const groupsDummyData = [
+          {
+            name: 'group1',
+            email: 'group1@pvp-test-domain2.com',
+            members: 50,
+            hasExternalMembers: true,
+            restrictFromLeaving: true,
+            emailAliases: ['group1@sub.pvp-test-domain2.com', 'group1@alias.pvp-test-domain2.com'],
+            settings: [],
+          },
+          {
+            name: 'group2',
+            email: 'group2@pvp-test-domain2.com',
+            members: 100,
+            hasExternalMembers: false,
+            restrictFromLeaving: false,
+            emailAliases: ['dev@pvp-test-domain2.com', 'group2@alias.pvp-test-domain2.com'],
+            settings: [],
+          },
+          {
+            name: 'group3',
+            email: 'group3@pvp-test-domain2.com',
+            members: 10,
+            hasExternalMembers: true,
+            restrictFromLeaving: false,
+            emailAliases: ['group3@alias.pvp-test-domain2.com'],
+            settings: [],
+          },
 
-          console.log('groupsDummyData', groupsDummyData)
-        })
+          {
+            name: 'dummy group g-g-g-g-g',
+            email: 'dummy-group-email-for-testing@pvp-test-domain2.com',
+            members: 1,
+            hasExternalMembers: false,
+            restrictFromLeaving: false,
+            emailAliases: ['dummy-alias@alias.pvp-test-domain2.com'],
+            settings: [],
+          },
+          {
+            name: 'dummy group g-g-g-g-g2',
+            email: 'dummy-group-email-for-testing2@pvp-test-domain2.com',
+            members: 888,
+            hasExternalMembers: false,
+            restrictFromLeaving: false,
+            emailAliases: ['dummy-alias2@alias.pvp-test-domain2.com'],
+            settings: [],
+          },
+        ]
+
+        console.log('groupsDummyData', groupsDummyData)
+        setGroupList(groupsDummyData)
       } catch (error) {
         setError(error)
       } finally {
-        setIsLoading(false)
+        setTimeout(() => {
+          setIsLoading(false)
+        }, 3000)
       }
     }
     fetchGroupsTable()
@@ -106,7 +134,7 @@ function GroupsManager() {
       {!isLoading && !error && query && (
         <TopPanel query={query} hiddenClass={hiddenClass} setHiddenClass={setHiddenClass} groupList={groupList} />
       )}
-      {!isLoading && !error && groupList.length > 0 && <div>Placeholder for the table</div>}
+      {!isLoading && !error && groupList.length > 0 && <GroupsTable groupList={groupList} />}
       {error && <ErrorMessage message={error.message} />}
       {emptyResult && <EmptyResult />}
     </div>
@@ -217,5 +245,87 @@ function TopPanel({ query, hiddenClass, setHiddenClass }) {
         </Button>
       </div>
     </div>
+  )
+}
+
+function GroupsTable({ groupList }) {
+  const tableRef = useRef(null)
+  const customTableRowRefs = useRef([])
+
+  useEffect(() => {
+    if (tableRef.current) {
+      customTableHandler({ tableRef, classesToRemove: 'h-[200px]' })
+
+      customTableRowRefs.current.forEach((ref) => {
+        ref.classList.remove('border-none')
+      })
+    }
+  }, [customTableRowRefs])
+
+  return (
+    <CustomTable ref={tableRef}>
+      <CustomTableHeader>
+        <CustomTableRow>
+          <CustomTableHead className={`px-0`}></CustomTableHead>
+          <CustomTableHead className={` w-[1px] px-0`}></CustomTableHead>
+          <CustomTableHead className="text-nowrap ">
+            <Checkbox />
+            <span className="ms-3">Name</span>
+          </CustomTableHead>
+          <CustomTableHead className="text-nowrap">Email address</CustomTableHead>
+          <CustomTableHead className="text-nowrap">Members</CustomTableHead>
+          <CustomTableHead className="text-nowrap">Has external members?</CustomTableHead>
+          <CustomTableHead className="text-nowrap">Restrict members from leaving</CustomTableHead>
+          <CustomTableHead className="text-nowrap">Alias address</CustomTableHead>
+          <CustomTableHead className=" mx-0 px-0 w-[1px] leading-none"></CustomTableHead>
+          <CustomTableHead className={`px-2`}></CustomTableHead>
+        </CustomTableRow>
+      </CustomTableHeader>
+      <CustomTableBody>
+        <CustomTableRow key={'empty-row'} className={`border-none py-0`}>
+          <CustomTableCell className={`text-[8px] py-0 leading-none bg-background`}>&nbsp;</CustomTableCell>
+        </CustomTableRow>
+        {groupList.map((group, index) => (
+          <React.Fragment key={`${group.email}-fragment-${index}`}>
+            <CustomTableRow
+              key={`${group.email}-row-${index}`} // Use a unique key for each row based on group.email}
+              className="hover:bg-background"
+              ref={(ref) => (customTableRowRefs.current[index] = ref)}
+            >
+              <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>
+                &nbsp;
+              </CustomTableCell>
+              <CustomTableCell className={`w-[4px] text-nowrap border border-r-0 border-input rounded-l-lg ps-0 flex`}>
+                &nbsp;
+              </CustomTableCell>
+              <CustomTableCell className="text-nowrap border border-y border-input border-x-0">
+                <Checkbox />
+                <span className="ms-3"> {group.name}</span>
+              </CustomTableCell>
+              <CustomTableCell className="text-nowrap border-y border-input">{group.email}</CustomTableCell>
+              <CustomTableCell className="text-nowrap border-y border-input ">{group.members}</CustomTableCell>
+              <CustomTableCell className="text-nowrap border-y border-input">
+                {group.hasExternalMembers === true ? 'Yes' : 'No'}
+              </CustomTableCell>
+              <CustomTableCell className="text-nowrap border-y border-input">
+                {group.restrictFromLeaving === true ? 'Yes' : 'No'}
+              </CustomTableCell>
+              <CustomTableCell className="text-nowrap border-y border-input">{group.emailAliases[0]}</CustomTableCell>
+              <CustomTableCell
+                className={`!w-[8px] !bg-background !hover:bg-background  flex rounded-r-lg border border-l-0 border-input px-0 `}
+              >
+                &nbsp;
+              </CustomTableCell>
+              <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>
+                &nbsp;
+              </CustomTableCell>
+            </CustomTableRow>
+            <CustomTableRow key={`${group.email}-separator-${index}`} className={`border-none rounded-b-md py-0`}>
+              <CustomTableCell className={`text-[8px] py-0 leading-none bg-background`}>&nbsp;</CustomTableCell>
+            </CustomTableRow>
+          </React.Fragment>
+        ))}
+      </CustomTableBody>
+    </CustomTable>
   )
 }
