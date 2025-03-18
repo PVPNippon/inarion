@@ -83,6 +83,21 @@ async function getFilteredIds(filterName, filterValue) {
 }
 
 /**
+ * Retrieves the ID of a user by its email address from the cache.
+ *
+ * @param {string} email - The email address of the user to retrieve the ID for.
+ * @returns {Promise<string|null>} A Promise object which resolves to:
+ *   - the user ID corresponding to `email` if it is found in the cache
+ *   - `null` if the user ID corresponding to `email` is not found in the cache.
+ * @see {@link redisCacheService.getHashFieldFromRedis|getHashFieldFromRedis}
+ */
+function getId(email) {
+  // TODO (r.hidaka): VALIDATION: `email` should be a string in an email address format
+  const key = `${config.DOMAIN_TEST}:users:id`
+  return redisCacheService.getHashFieldFromRedis(key, email)
+}
+
+/**
  * Retrieves an array of user instances from the cache by their IDs.
  *
  * This function queries the cache to obtain the user instances for each ID in the provided array.
@@ -269,6 +284,7 @@ async function getIdsFromCache(key) {
 module.exports = {
   getAllIds,
   getFilteredIds,
+  getId,
   getUsersByIds,
   getFilteredUsersByIds,
   overwriteIds,
