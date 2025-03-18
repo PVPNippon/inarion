@@ -620,13 +620,22 @@ function GroupCard({ groupSettings }) {
         <CardDescription>Review key settings applied to this group.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-2 grid-rows-2">
-          <div>Access settings</div>
-          <div> Who can join the group?</div>
-          <div> Allow external users to join?</div>
-          <div> Restrict members from leaving the group?</div>
+        <div className="grid grid-rows-2 grid-cols-2 gap-x-[74px] gap-y-8">
+          <GroupCardItem title="Access settings">Table here</GroupCardItem>
+          <GroupCardItem title="Who can join the group?">Content here</GroupCardItem>
+          <GroupCardItem title="Allow external users to join?">Content here</GroupCardItem>
+          <GroupCardItem title="Restrict members from leaving the group?">Content here</GroupCardItem>
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+function GroupCardItem({ title, children }) {
+  return (
+    <div className="flex flex-col gap-y-5">
+      <div className="font-medium bg-sidebar-accent text-base/5 py-2 px-5 rounded">{title}</div>
+      <div>{children}</div>
+    </div>
   )
 }
