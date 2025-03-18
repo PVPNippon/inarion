@@ -43,4 +43,40 @@ function CustomIconExport({
   )
 }
 
-export { CustomIconExport }
+function CustomIconUserArrow({
+  size = defaultSize,
+  viewBox = `0 0 ${size} ${size}`,
+  strokeColor = defaultStrokeColor,
+  fillColor = defaultFillColor,
+  strokeWidth = defaultStrokeWidth,
+  strokeLinecap = defaultStrokeLinecap,
+  strokeLinejoin = defaultStrokeLinejoin,
+}) {
+  return (
+    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <g clipPath="url(#clip0)">
+        <path
+          d="M2 20.9999C1.99986 19.7061 2.31352 18.4316 2.91408 17.2856C3.51464 16.1396 4.38419 15.1564 5.44815 14.4202C6.51212 13.6841 7.73876 13.2169 9.02288 13.0589C10.307 12.9009 11.6103 13.0567 12.821 13.5129M15 8C15 10.7614 12.7614 13 10 13C7.23858 13 5 10.7614 5 8C5 5.23858 7.23858 3 10 3C12.7614 3 15 5.23858 15 8Z"
+          stroke="#71717A"
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M14.1385 16.006L20.1662 16.0063M20.1662 16.0063L18.3835 21.3882M20.1662 16.0063L12.0151 21.8131"
+          stroke="#71717A"
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </g>
+      <defs>
+        <clipPath id="clip0">
+          <rect width={24} height={24} fill="white" />
+        </clipPath>
+      </defs>
+    </svg>
+  )
+}
+
+export { CustomIconExport, CustomIconUserArrow }

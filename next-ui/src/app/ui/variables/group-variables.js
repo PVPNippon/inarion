@@ -26,6 +26,12 @@ export const groupsStyles = {
   //member deletion by csv dialog window
   uploadArea: 'h-full w-[704px] border rounded-md flex flex-col justify-center items-center gap-y-2',
   uploadAreaExtended: 'h-[470px] w-[704px] border rounded-md flex flex-col justify-center items-center gap-y-2',
+
+  //groups manager page
+  //access settings
+  gridHeader: 'flex flex-col items-center align-middle',
+  gridColumnName: 'text-center text-[10px]/3 p-2 break-words max-w-[76px] h-[40px]',
+  gridRow: 'text-nowrap text-xs text-left py-3 border-none',
 }
 
 export const groupElementIds = {

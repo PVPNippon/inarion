@@ -3,7 +3,18 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { apiClient } from '@/utils/apiClient'
-import { ExternalLinkIcon, SearchIcon, Ellipsis, CircleAlert, ChevronDownIcon, Group } from 'lucide-react'
+import {
+  ExternalLinkIcon,
+  SearchIcon,
+  Ellipsis,
+  CircleAlert,
+  ChevronDownIcon,
+  UserRoundCog,
+  UserRound,
+  UsersRound,
+  Building,
+  Check,
+} from 'lucide-react'
 import { groupsStyles } from '@/app/ui/variables/group-variables'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
@@ -23,7 +34,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { CustomIconExport } from '@/app/ui/svg-icons/custom-icons'
+import { CustomIconUserArrow } from '@/app/ui/svg-icons/custom-icons'
 import {
   CustomTable,
   CustomTableHeader,
@@ -35,6 +46,16 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { customTableHandler, classListHandler } from '@/utils/virtualDOMHackers'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 function GroupsManager() {
   const [groupList, setGroupList] = useState([])
@@ -66,311 +87,312 @@ function GroupsManager() {
             hasExternalMembers: true,
             restrictFromLeaving: true,
             emailAliases: ['group1@sub.pvp-test-domain2.com', 'group1@alias.pvp-test-domain2.com'],
-            settings: [
-              {
-                access: [
-                  {
-                    owners: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: true,
-                    },
+            // settings: [
+            settings: {
+              access: [
+                {
+                  owners: {
+                    canContact: true,
+                    canViewConversations: true,
+                    canPost: true,
+                    canViewMembers: true,
+                    canManageMembers: true,
                   },
-                  {
-                    managers: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: true,
-                    },
+                },
+                {
+                  managers: {
+                    canContact: true,
+                    canViewConversations: true,
+                    canPost: true,
+                    canViewMembers: true,
+                    canManageMembers: true,
                   },
-                  {
-                    members: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: false,
-                    },
+                },
+                {
+                  members: {
+                    canContact: true,
+                    canViewConversations: true,
+                    canPost: true,
+                    canViewMembers: true,
+                    canManageMembers: false,
                   },
-                  {
-                    organization: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: false,
-                      canManageMembers: false,
-                    },
+                },
+                {
+                  organization: {
+                    canContact: true,
+                    canViewConversations: true,
+                    canPost: true,
+                    canViewMembers: false,
+                    canManageMembers: false,
                   },
-                  {
-                    external: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: false,
-                    },
+                },
+                {
+                  external: {
+                    canContact: true,
+                    canViewConversations: true,
+                    canPost: true,
+                    canViewMembers: true,
+                    canManageMembers: false,
                   },
-                ],
-              },
-              { whoCanJoin: 'anyone' },
-              { allowExternalMembers: true },
-              { restrictFromLeaving: true },
-            ],
-          },
-          {
-            name: 'group2',
-            email: 'group2@pvp-test-domain2.com',
-            members: 100,
-            hasExternalMembers: false,
-            restrictFromLeaving: false,
-            emailAliases: ['dev@pvp-test-domain2.com', 'group2@alias.pvp-test-domain2.com'],
+                },
+              ],
 
-            settings: [
-              {
-                access: [
-                  {
-                    owners: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: true,
-                    },
-                  },
-                  {
-                    managers: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: true,
-                    },
-                  },
-                  {
-                    members: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: false,
-                    },
-                  },
-                  {
-                    organization: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: false,
-                      canManageMembers: false,
-                    },
-                  },
-                  {
-                    external: {
-                      canContact: true,
-                      canViewConversations: false,
-                      canPost: false,
-                      canViewMembers: false,
-                      canManageMembers: false,
-                    },
-                  },
-                ],
-              },
-              { whoCanJoin: 'organization' },
-              { allowExternalMembers: false },
-              { restrictFromLeaving: false },
-            ],
+              whoCanJoin: 'anyone',
+              allowExternalMembers: true,
+              restrictFromLeaving: true,
+            },
+            //  ],
           },
-          {
-            name: 'group3',
-            email: 'group3@pvp-test-domain2.com',
-            members: 10,
-            hasExternalMembers: true,
-            restrictFromLeaving: false,
-            emailAliases: ['group3@alias.pvp-test-domain2.com'],
-            settings: [
-              {
-                access: [
-                  {
-                    owners: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: true,
-                    },
-                  },
-                  {
-                    managers: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: true,
-                    },
-                  },
-                  {
-                    members: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: false,
-                    },
-                  },
-                  {
-                    organization: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: false,
-                      canManageMembers: false,
-                    },
-                  },
-                  {
-                    external: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: false,
-                    },
-                  },
-                ],
-              },
-              { whoCanJoin: 'anyone' },
-              { allowExternalMembers: true },
-              { restrictFromLeaving: false },
-            ],
-          },
+          // {
+          //   name: 'group2',
+          //   email: 'group2@pvp-test-domain2.com',
+          //   members: 100,
+          //   hasExternalMembers: false,
+          //   restrictFromLeaving: false,
+          //   emailAliases: ['dev@pvp-test-domain2.com', 'group2@alias.pvp-test-domain2.com'],
 
-          {
-            name: 'dummy group g-g-g-g-g',
-            email: 'dummy-group-email-for-testing@pvp-test-domain2.com',
-            members: 1,
-            hasExternalMembers: false,
-            restrictFromLeaving: false,
-            emailAliases: ['dummy-alias@alias.pvp-test-domain2.com'],
-            settings: [
-              {
-                access: [
-                  {
-                    owners: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: true,
-                    },
-                  },
-                  {
-                    managers: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: true,
-                    },
-                  },
-                  {
-                    members: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: false,
-                    },
-                  },
-                  {
-                    organization: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: false,
-                      canManageMembers: false,
-                    },
-                  },
-                  {
-                    external: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: false,
-                    },
-                  },
-                ],
-              },
-              { whoCanJoin: 'anyone' },
-              { allowExternalMembers: false },
-              { restrictFromLeaving: false },
-            ],
-          },
-          {
-            name: 'dummy group g-g-g-g-g2',
-            email: 'dummy-group-email-for-testing2@pvp-test-domain2.com',
-            members: 888,
-            hasExternalMembers: false,
-            restrictFromLeaving: false,
-            emailAliases: ['dummy-alias2@alias.pvp-test-domain2.com'],
-            settings: [
-              {
-                access: [
-                  {
-                    owners: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: true,
-                    },
-                  },
-                  {
-                    managers: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: true,
-                    },
-                  },
-                  {
-                    members: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: false,
-                    },
-                  },
-                  {
-                    organization: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: false,
-                      canManageMembers: false,
-                    },
-                  },
-                  {
-                    external: {
-                      canContact: true,
-                      canViewConversations: true,
-                      canPost: true,
-                      canViewMembers: true,
-                      canManageMembers: false,
-                    },
-                  },
-                ],
-              },
-              { whoCanJoin: 'anyone' },
-              { allowExternalMembers: false },
-              { restrictFromLeaving: false },
-            ],
-          },
+          //   settings: [
+          //     {
+          //       access: [
+          //         {
+          //           owners: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: true,
+          //             canManageMembers: true,
+          //           },
+          //         },
+          //         {
+          //           managers: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: true,
+          //             canManageMembers: true,
+          //           },
+          //         },
+          //         {
+          //           members: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: true,
+          //             canManageMembers: false,
+          //           },
+          //         },
+          //         {
+          //           organization: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: false,
+          //             canManageMembers: false,
+          //           },
+          //         },
+          //         {
+          //           external: {
+          //             canContact: true,
+          //             canViewConversations: false,
+          //             canPost: false,
+          //             canViewMembers: false,
+          //             canManageMembers: false,
+          //           },
+          //         },
+          //       ],
+          //     },
+          //     { whoCanJoin: 'organization' },
+          //     { allowExternalMembers: false },
+          //     { restrictFromLeaving: false },
+          //   ],
+          // },
+          // {
+          //   name: 'group3',
+          //   email: 'group3@pvp-test-domain2.com',
+          //   members: 10,
+          //   hasExternalMembers: true,
+          //   restrictFromLeaving: false,
+          //   emailAliases: ['group3@alias.pvp-test-domain2.com'],
+          //   settings: [
+          //     {
+          //       access: [
+          //         {
+          //           owners: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: true,
+          //             canManageMembers: true,
+          //           },
+          //         },
+          //         {
+          //           managers: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: true,
+          //             canManageMembers: true,
+          //           },
+          //         },
+          //         {
+          //           members: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: true,
+          //             canManageMembers: false,
+          //           },
+          //         },
+          //         {
+          //           organization: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: false,
+          //             canManageMembers: false,
+          //           },
+          //         },
+          //         {
+          //           external: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: true,
+          //             canManageMembers: false,
+          //           },
+          //         },
+          //       ],
+          //     },
+          //     { whoCanJoin: 'anyone' },
+          //     { allowExternalMembers: true },
+          //     { restrictFromLeaving: false },
+          //   ],
+          // },
+
+          // {
+          //   name: 'dummy group g-g-g-g-g',
+          //   email: 'dummy-group-email-for-testing@pvp-test-domain2.com',
+          //   members: 1,
+          //   hasExternalMembers: false,
+          //   restrictFromLeaving: false,
+          //   emailAliases: ['dummy-alias@alias.pvp-test-domain2.com'],
+          //   settings: [
+          //     {
+          //       access: [
+          //         {
+          //           owners: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: true,
+          //             canManageMembers: true,
+          //           },
+          //         },
+          //         {
+          //           managers: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: true,
+          //             canManageMembers: true,
+          //           },
+          //         },
+          //         {
+          //           members: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: true,
+          //             canManageMembers: false,
+          //           },
+          //         },
+          //         {
+          //           organization: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: false,
+          //             canManageMembers: false,
+          //           },
+          //         },
+          //         {
+          //           external: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: true,
+          //             canManageMembers: false,
+          //           },
+          //         },
+          //       ],
+          //     },
+          //     { whoCanJoin: 'anyone' },
+          //     { allowExternalMembers: false },
+          //     { restrictFromLeaving: false },
+          //   ],
+          // },
+          // {
+          //   name: 'dummy group g-g-g-g-g2',
+          //   email: 'dummy-group-email-for-testing2@pvp-test-domain2.com',
+          //   members: 888,
+          //   hasExternalMembers: false,
+          //   restrictFromLeaving: false,
+          //   emailAliases: ['dummy-alias2@alias.pvp-test-domain2.com'],
+          //   settings: [
+          //     {
+          //       access: [
+          //         {
+          //           owners: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: true,
+          //             canManageMembers: true,
+          //           },
+          //         },
+          //         {
+          //           managers: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: true,
+          //             canManageMembers: true,
+          //           },
+          //         },
+          //         {
+          //           members: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: true,
+          //             canManageMembers: false,
+          //           },
+          //         },
+          //         {
+          //           organization: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: false,
+          //             canManageMembers: false,
+          //           },
+          //         },
+          //         {
+          //           external: {
+          //             canContact: true,
+          //             canViewConversations: true,
+          //             canPost: true,
+          //             canViewMembers: true,
+          //             canManageMembers: false,
+          //           },
+          //         },
+          //       ],
+          //     },
+          //     { whoCanJoin: 'anyone' },
+          //     { allowExternalMembers: false },
+          //     { restrictFromLeaving: false },
+          //   ],
+          // },
         ]
 
         console.log('groupsDummyData', groupsDummyData)
@@ -596,7 +618,7 @@ function GroupsTable({ groupList }) {
                 &nbsp;
               </CustomTableCell>
               <CustomTableCell colSpan={8} className="hover:bg-background px-0">
-                <GroupCard groupSettings={group} />
+                <GroupCard groupSettings={group.settings} />
               </CustomTableCell>
               <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>
                 &nbsp;
@@ -613,6 +635,7 @@ function GroupsTable({ groupList }) {
 }
 
 function GroupCard({ groupSettings }) {
+  console.log('Group settings:', groupSettings.access)
   return (
     <Card className="rounded-lg w-full">
       <CardHeader>
@@ -621,7 +644,9 @@ function GroupCard({ groupSettings }) {
       </CardHeader>
       <CardContent>
         <div className="grid grid-rows-2 grid-cols-2 gap-x-[74px] gap-y-8">
-          <GroupCardItem title="Access settings">Table here</GroupCardItem>
+          <GroupCardItem title="Access settings">
+            <AccessSettingsGrid accessData={groupSettings.access} />
+          </GroupCardItem>
           <GroupCardItem title="Who can join the group?">Content here</GroupCardItem>
           <GroupCardItem title="Allow external users to join?">Content here</GroupCardItem>
           <GroupCardItem title="Restrict members from leaving the group?">Content here</GroupCardItem>
@@ -633,9 +658,105 @@ function GroupCard({ groupSettings }) {
 
 function GroupCardItem({ title, children }) {
   return (
-    <div className="flex flex-col gap-y-5">
+    <div className="flex flex-col gap-y-5 ">
       <div className="font-medium bg-sidebar-accent text-base/5 py-2 px-5 rounded">{title}</div>
       <div>{children}</div>
+    </div>
+  )
+}
+
+function AccessSettingsGrid({ accessData }) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableCell>&nbsp;</TableCell> {/* empty cell for row headers */}
+          <TableCell>
+            <TableHeaderCell columnName={'Owners'}>
+              <UserRoundCog />
+            </TableHeaderCell>
+          </TableCell>
+          <TableCell>
+            <TableHeaderCell columnName={'Managers'}>
+              <UserRound />
+            </TableHeaderCell>
+          </TableCell>
+          <TableCell>
+            <TableHeaderCell columnName={'Members'}>
+              <UsersRound />
+            </TableHeaderCell>
+          </TableCell>
+          <TableCell>
+            <TableHeaderCell columnName={'Entire Organization'}>
+              <Building />
+            </TableHeaderCell>
+          </TableCell>
+          <TableCell>
+            <TableHeaderCell columnName={'External Users'}>
+              <CustomIconUserArrow />
+            </TableHeaderCell>
+          </TableCell>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableRow className={`${groupsStyles.gridRow}`}>
+          <TableCell>Who can contact group owners</TableCell>
+          {accessData.map((item) => (
+            <TableCell key={Object.keys(item)[0]}>
+              {item[Object.keys(item)[0]].canContact ? <GrayCheck /> : null}
+            </TableCell>
+          ))}
+        </TableRow>
+        <TableRow className={`${groupsStyles.gridRow}`}>
+          <TableCell>Who can view conversations</TableCell>
+          {accessData.map((item) => (
+            <TableCell key={Object.keys(item)[0]}>
+              {item[Object.keys(item)[0]].canViewConversations ? <GrayCheck /> : null}
+            </TableCell>
+          ))}
+        </TableRow>
+        <TableRow className={`${groupsStyles.gridRow}`}>
+          <TableCell>Who can post</TableCell>
+          {accessData.map((item) => (
+            <TableCell key={Object.keys(item)[0]}>
+              {item[Object.keys(item)[0]].canPost ? <GrayCheck /> : null}
+            </TableCell>
+          ))}
+        </TableRow>
+        <TableRow className={`${groupsStyles.gridRow}`}>
+          <TableCell>Who can view members</TableCell>
+          {accessData.map((item) => (
+            <TableCell key={Object.keys(item)[0]}>
+              {item[Object.keys(item)[0]].canViewMembers ? <GrayCheck /> : null}
+            </TableCell>
+          ))}
+        </TableRow>
+        <TableRow className={`${groupsStyles.gridRow}`}>
+          <TableCell>Who can manage members</TableCell>
+          {accessData.map((item) => (
+            <TableCell key={Object.keys(item)[0]}>
+              {item[Object.keys(item)[0]].canManageMembers ? <GrayCheck /> : null}
+            </TableCell>
+          ))}
+        </TableRow>
+      </TableBody>
+    </Table>
+  )
+}
+
+const TableHeaderCell = ({ children, columnName }) => (
+  <div className={groupsStyles.gridHeader}>
+    <span className="flex items-center">
+      {React.cloneElement(children, { size: 24, strokeWidth: 1.5, className: 'stroke-muted-foreground' })}
+    </span>
+    <span className={groupsStyles.gridColumnName}>{columnName}</span>
+  </div>
+)
+
+function GrayCheck() {
+  return (
+    <div className="justify-items-center">
+      <Check size={24} className="stroke-muted-foreground" strokeWidth={1} />
     </div>
   )
 }
