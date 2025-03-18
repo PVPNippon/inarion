@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/custom-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { customTableHandler, classListHandler } from '@/utils/virtualDOMHackers'
-import { Card } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
 function GroupsManager() {
   const [groupList, setGroupList] = useState([])
@@ -588,7 +588,21 @@ function GroupsTable({ groupList }) {
               </CustomTableCell>
             </CustomTableRow>
 
-            <CustomTableRow key={`${group.email}-separator-${index}`} className={`border-none rounded-b-md py-0`}>
+            <CustomTableRow key={`${group.email}-separator-${index}`} className={`border-none rounded-b-md py-0 `}>
+              <CustomTableCell className={`text-[8px] py-0 leading-none bg-background`}>&nbsp;</CustomTableCell>
+            </CustomTableRow>
+            <CustomTableRow key={`${group.email}-card-${index}`} className="hover:bg-background">
+              <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>
+                &nbsp;
+              </CustomTableCell>
+              <CustomTableCell colSpan={8} className="hover:bg-background px-0">
+                <GroupCard groupSettings={group} />
+              </CustomTableCell>
+              <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>
+                &nbsp;
+              </CustomTableCell>
+            </CustomTableRow>
+            <CustomTableRow key={'bottom-row'} className={`border-none py-0`}>
               <CustomTableCell className={`text-[8px] py-0 leading-none bg-background`}>&nbsp;</CustomTableCell>
             </CustomTableRow>
           </React.Fragment>
@@ -600,8 +614,19 @@ function GroupsTable({ groupList }) {
 
 function GroupCard({ groupSettings }) {
   return (
-    <Card>
-      <div>Card here</div>
+    <Card className="rounded-lg w-full">
+      <CardHeader>
+        <CardTitle>Group Settings</CardTitle>
+        <CardDescription>Review key settings applied to this group.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 grid-rows-2">
+          <div>Access settings</div>
+          <div> Who can join the group?</div>
+          <div> Allow external users to join?</div>
+          <div> Restrict members from leaving the group?</div>
+        </div>
+      </CardContent>
     </Card>
   )
 }
