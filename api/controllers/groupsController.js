@@ -634,19 +634,21 @@ exports.getNestedTable = async (req, res, next) => {
 
   const { userEmail } = req.query
   const { targetEmail } = req.params
-  const targetType = req.query.type
+  const targetType = res.locals.targetType
   
   try {
-    const table = await groupsService.getNestedTables({
+    const result = await groupsService.getNestedTables({
       userEmail,
       targetEmail,
       targetType,
     })
 
-    res.locals.data = table
+    res.locals.data = result.table
+    res.locals.id = result.id
+    res.locals.tables = result.tables
   } catch (error) {
     res.locals.statusCode = 500
-    res.locals.data = { message: 'Error fetching groups' }
+    res.locals.data = { message: 'Error fetching a nested table' }
     logger.error(error)
   }
   next()
