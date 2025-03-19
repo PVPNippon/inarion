@@ -532,6 +532,55 @@ function overwriteSettingsById(id, settings) {
   return cacheService.overwriteHash(key, settings, ttl)
 }
 
+/**
+ * Retrieves the nested table of a group from the cache.
+ *
+ * @param {string} id - The ID of the group whose nested table is to be retrieved.
+ * @returns {Promise<Object|null>} A Promise object which resolves to the nested table of the group if found in the cache,
+ *   or null if not found.
+ * @see {@link redisCacheService.getJsonFromRedis|getJsonFromRedis}
+ */
+function getNestedTableById(id) {
+  const key = `${process.env.DOMAIN}:groups:${id}:nestedTable`
+  return redisCacheService.getJsonFromRedis(key)
+}
+
+/**
+ * Stores the nested tables of groups in the cache in the form of JSON.
+ *
+ * The key is `<DOMAIN>:groups:<id>:nestedTable` where `<id>` is the group ID,
+ * and the value is the nested table of the group.
+ *
+ * @param {Object.<string, Array<Object>>} idsToTablesObj - Mapping of group ID to its nested table.
+ *   It is expected to be in the following format:
+ *   
+ *   ```
+ *   {
+ *     groupId1: nestedTable1,
+ *     groupId2: nestedTable2,
+ *     ...
+ *   }
+ *   ```
+ * @returns {Promise<Array<string|boolean>>} A Promise object which resolves to an array whose length is N+1, where N is the number of the properties in `idsToTablesObj`.
+ *   - The first element of the array is a string 'OK'.
+ *   - The `i+1`-th element (`1 <= i <= N`) is `true` if a TTL was set to the `i`-th key, or `false` if the TTL was not set to the `i`-th for some reason.
+ * @throws {Error} The returned Promise object resolves to an error if `idsToTablesObj` is not an object or is empty (`{}`).
+ *   // TODO (r.hidaka): Consider adding a validation for `idsToTablesObj`, or changing the behavior in this case
+ * @see {@link redisCacheService.setJsonsWithTtlMode|setJsonsWithTtlMode}
+ */
+function setNestedTablesByIds(idsToTablesObj) {
+  const keysToTablesObj = {}
+
+  for (const id in idsToTablesObj) {
+    const key = `${process.env.DOMAIN}:groups:${id}:nestedTable`
+    keysToTablesObj[key] = idsToTablesObj[id]
+  }
+
+  const ttl = Number(process.env.TTL)
+
+  return redisCacheService.setJsonsWithTtlMode(keysToTablesObj, ttl)
+}
+
 module.exports = {
   /* Group IDs */
   getId,
@@ -561,4 +610,8 @@ module.exports = {
   /* Group Settings */
   getSettingsById,
   setSettingsById,
+
+  /* Group Nested Tables */
+  getNestedTableById,  
+  setNestedTablesByIds,
 }
