@@ -81,7 +81,12 @@ router.get(
 )
 
 //route to get nested membership table for an entity (group or user)
-router.get('/target/:targetEmail/nested-table', groupsController.getNestedTable)
+router.get(
+  '/target/:targetEmail/nested-table', 
+  groupsCacheMiddleware.retrieveNestedTable,
+  groupsController.getNestedTable,
+  groupsCacheMiddleware.storeNestedTables
+)
 
 router.use(encryptResponseMiddleware) // Encrypt request for all routes
 
