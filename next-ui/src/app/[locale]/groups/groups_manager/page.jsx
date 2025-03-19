@@ -102,7 +102,7 @@ function GroupsManager() {
 
         const groupsDummyData = [
           {
-            name: 'group1',
+            name: 'Group1',
             email: 'group1@pvp-test-domain2.com',
             members: 50,
             hasExternalMembers: true,
@@ -159,6 +159,130 @@ function GroupsManager() {
               ],
 
               whoCanJoin: 'CAN_REQUEST_TO_JOIN',
+              allowExternalMembers: 'true', //google returns it as string, so changing to string for now
+              whoCanLeaveGroup: 'ALL_MEMBERS_CAN_LEAVE',
+            },
+          },
+          {
+            name: 'Group2',
+            email: 'group2@pvp-test-domain2.com',
+            members: 10,
+            hasExternalMembers: false,
+
+            emailAliases: ['group2@sub.pvp-test-domain2.com', 'group2@test-a-google-blah@pvp-test-domain2.com'],
+
+            settings: {
+              access: [
+                {
+                  owners: {
+                    canContact: true,
+                    canViewConversations: true,
+                    canPost: true,
+                    canViewMembers: true,
+                    canManageMembers: true,
+                  },
+                },
+                {
+                  managers: {
+                    canContact: true,
+                    canViewConversations: true,
+                    canPost: true,
+                    canViewMembers: true,
+                    canManageMembers: true,
+                  },
+                },
+                {
+                  members: {
+                    canContact: true,
+                    canViewConversations: true,
+                    canPost: true,
+                    canViewMembers: true,
+                    canManageMembers: false,
+                  },
+                },
+                {
+                  organization: {
+                    canContact: true,
+                    canViewConversations: false,
+                    canPost: false,
+                    canViewMembers: false,
+                    canManageMembers: false,
+                  },
+                },
+                {
+                  external: {
+                    canContact: false,
+                    canViewConversations: false,
+                    canPost: false,
+                    canViewMembers: false,
+                    canManageMembers: false,
+                  },
+                },
+              ],
+
+              whoCanJoin: 'INVITED_CAN_JOIN',
+              allowExternalMembers: 'false', //google returns it as string, so changing to string for now
+              whoCanLeaveGroup: 'NONE_CAN_LEAVE',
+            },
+          },
+          {
+            name: 'Public Group',
+            email: 'group3@pvp-test-domain2.com',
+            members: 1500,
+            hasExternalMembers: true,
+
+            emailAliases: ['product_discussions@pvp-test-domain2.com'],
+
+            settings: {
+              access: [
+                {
+                  owners: {
+                    canContact: true,
+                    canViewConversations: true,
+                    canPost: true,
+                    canViewMembers: true,
+                    canManageMembers: true,
+                  },
+                },
+                {
+                  managers: {
+                    canContact: true,
+                    canViewConversations: true,
+                    canPost: true,
+                    canViewMembers: true,
+                    canManageMembers: true,
+                  },
+                },
+                {
+                  members: {
+                    canContact: true,
+                    canViewConversations: true,
+                    canPost: true,
+                    canViewMembers: true,
+                    canManageMembers: false,
+                  },
+                },
+                {
+                  organization: {
+                    canContact: true,
+                    canViewConversations: true,
+                    canPost: true,
+                    canViewMembers: true,
+                    canManageMembers: true,
+                  },
+                },
+                {
+                  external: {
+                    canContact: true,
+                    canViewConversations: true,
+                    canPost: true,
+                    canViewMembers: false,
+                    canManageMembers: false,
+                  },
+                },
+              ],
+
+              whoCanJoin: 'ANYONE_CAN_JOIN',
               allowExternalMembers: 'true', //google returns it as string, so changing to string for now
               whoCanLeaveGroup: 'ALL_MEMBERS_CAN_LEAVE',
             },
@@ -310,6 +434,7 @@ function TopPanel({ query, hiddenClass, setHiddenClass }) {
 function GroupsTable({ groupList }) {
   const tableRef = useRef(null)
   const customTableRowRefs = useRef([])
+  const [expandedGroups, setExpandedGroups] = useState({})
 
   useEffect(() => {
     if (tableRef.current) {
@@ -326,7 +451,7 @@ function GroupsTable({ groupList }) {
       <CustomTableHeader>
         <CustomTableRow>
           <CustomTableHead className={`px-0`}></CustomTableHead>
-          <CustomTableHead className={` w-[1px] px-0`}></CustomTableHead>
+          <CustomTableHead className={`w-[1px] px-0`}></CustomTableHead>
           <CustomTableHead className="text-nowrap ">
             <Checkbox />
             <span className="ms-3">Name</span>
@@ -336,7 +461,11 @@ function GroupsTable({ groupList }) {
           <CustomTableHead className="text-nowrap">Has external members?</CustomTableHead>
           <CustomTableHead className="text-nowrap">Restrict members from leaving</CustomTableHead>
           <CustomTableHead className="text-nowrap">Alias address</CustomTableHead>
-          <CustomTableHead className=" mx-0 px-0 w-[1px] leading-none"></CustomTableHead>
+          <CustomTableHead className="text-nowrap"> &nbsp;</CustomTableHead>
+          <CustomTableHead className="mx-0 px-0 w-[1px] leading-none"></CustomTableHead>
+          <CustomTableHead className="justify-items-end pe-0 me-0">
+            <Ellipsis size={20} className="text-muted-foreground" />
+          </CustomTableHead>
           <CustomTableHead className={`px-2`}></CustomTableHead>
         </CustomTableRow>
       </CustomTableHeader>
@@ -373,6 +502,16 @@ function GroupsTable({ groupList }) {
                 {group.settings.whoCanLeaveGroup === 'ALL_MEMBERS_CAN_LEAVE' ? 'No' : 'Yes'}
               </CustomTableCell>
               <CustomTableCell className="text-nowrap border-y border-input">{group.emailAliases[0]}</CustomTableCell>
+
+              <CustomTableCell className="border-y border-input justify-items-end" colSpan={3}>
+                <ChevronDownIcon
+                  size={20}
+                  className={`cursor-pointer transition-transform duration-400 ${
+                    expandedGroups[group.email] ? 'rotate-180' : ''
+                  }`}
+                  onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.email]: !prev[group.email] }))}
+                />
+              </CustomTableCell>
               <CustomTableCell
                 className={`!w-[8px] !bg-background !hover:bg-background  flex rounded-r-lg border border-l-0 border-input px-0 `}
               >
@@ -383,20 +522,24 @@ function GroupsTable({ groupList }) {
               </CustomTableCell>
             </CustomTableRow>
 
-            <CustomTableRow key={`${group.email}-separator-${index}`} className={`border-none rounded-b-md py-0 `}>
-              <CustomTableCell className={`text-[8px] py-0 leading-none bg-background`}>&nbsp;</CustomTableCell>
-            </CustomTableRow>
-            <CustomTableRow key={`${group.email}-card-${index}`} className="hover:bg-background">
-              <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>
-                &nbsp;
-              </CustomTableCell>
-              <CustomTableCell colSpan={8} className="hover:bg-background px-0">
-                <GroupCard groupSettings={group.settings} />
-              </CustomTableCell>
-              <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>
-                &nbsp;
-              </CustomTableCell>
-            </CustomTableRow>
+            {expandedGroups[group.email] && (
+              <React.Fragment>
+                <CustomTableRow key={`${group.email}-separator-${index}`} className={`border-none rounded-b-md py-0 `}>
+                  <CustomTableCell className={`text-[8px] py-0 leading-none bg-background`}>&nbsp;</CustomTableCell>
+                </CustomTableRow>
+                <CustomTableRow key={`${group.email}-card-${index}`} className="hover:bg-background">
+                  <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>
+                    &nbsp;
+                  </CustomTableCell>
+                  <CustomTableCell colSpan={10} className="hover:bg-background px-0">
+                    <GroupCard groupSettings={group.settings} />
+                  </CustomTableCell>
+                  <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>
+                    &nbsp;
+                  </CustomTableCell>
+                </CustomTableRow>
+              </React.Fragment>
+            )}
             <CustomTableRow key={'bottom-row'} className={`border-none py-0`}>
               <CustomTableCell className={`text-[8px] py-0 leading-none bg-background`}>&nbsp;</CustomTableCell>
             </CustomTableRow>
