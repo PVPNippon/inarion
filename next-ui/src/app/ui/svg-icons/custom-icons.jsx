@@ -43,15 +43,8 @@ function CustomIconExport({
   )
 }
 
-function CustomIconUserArrow({
-  size = defaultSize,
-  viewBox = `0 0 ${size} ${size}`,
-  strokeColor = defaultStrokeColor,
-  fillColor = defaultFillColor,
-  strokeWidth = defaultStrokeWidth,
-  strokeLinecap = defaultStrokeLinecap,
-  strokeLinejoin = defaultStrokeLinejoin,
-}) {
+//removed customization arigs because I don't think this icon is used anywhere else
+function CustomIconUserArrow() {
   return (
     <svg width={24} height={24} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g clipPath="url(#clip0)">

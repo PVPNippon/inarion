@@ -106,7 +106,7 @@ function GroupsManager() {
             email: 'group1@pvp-test-domain2.com',
             members: 50,
             hasExternalMembers: true,
-            restrictFromLeaving: true,
+
             emailAliases: ['group1@sub.pvp-test-domain2.com', 'group1@alias.pvp-test-domain2.com'],
 
             settings: {
@@ -143,7 +143,7 @@ function GroupsManager() {
                     canContact: true,
                     canViewConversations: true,
                     canPost: true,
-                    canViewMembers: false,
+                    canViewMembers: true,
                     canManageMembers: false,
                   },
                 },
@@ -152,15 +152,15 @@ function GroupsManager() {
                     canContact: true,
                     canViewConversations: true,
                     canPost: true,
-                    canViewMembers: true,
+                    canViewMembers: false,
                     canManageMembers: false,
                   },
                 },
               ],
 
               whoCanJoin: 'CAN_REQUEST_TO_JOIN',
-              allowExternalMembers: true,
-              restrictFromLeaving: true,
+              allowExternalMembers: 'true', //google returns it as string, so changing to string for now
+              whoCanLeaveGroup: 'ALL_MEMBERS_CAN_LEAVE',
             },
           },
         ]
@@ -367,7 +367,10 @@ function GroupsTable({ groupList }) {
                 {group.hasExternalMembers === true ? 'Yes' : 'No'}
               </CustomTableCell>
               <CustomTableCell className="text-nowrap border-y border-input">
-                {group.restrictFromLeaving === true ? 'Yes' : 'No'}
+                {/* Careful with the line below, because the column name says the opposite: "Restrict members from leaving." */}
+                {/* So "All members can leave" means "No, don't restrict them from leaving." */}
+                {/* NB: I count "ALL_MANAGERS_CAN_LEAVE" as "Yes" because common members cannot leave. */}
+                {group.settings.whoCanLeaveGroup === 'ALL_MEMBERS_CAN_LEAVE' ? 'No' : 'Yes'}
               </CustomTableCell>
               <CustomTableCell className="text-nowrap border-y border-input">{group.emailAliases[0]}</CustomTableCell>
               <CustomTableCell
@@ -413,15 +416,19 @@ function GroupCard({ groupSettings }) {
         <CardDescription>Review key settings applied to this group.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-rows-2 grid-cols-2 gap-x-[74px] gap-y-8">
+        <div className="grid auto-rows-min grid-cols-2 gap-x-[74px] gap-y-8">
           <GroupCardItem title="Access settings">
             <AccessSettingsGrid accessData={groupSettings.access} />
           </GroupCardItem>
           <GroupCardItem title="Who can join the group?">
             <WhoCanJoinCardContents whoCanJoin={groupSettings.whoCanJoin} />
           </GroupCardItem>
-          <GroupCardItem title="Allow external users to join?">Content here</GroupCardItem>
-          <GroupCardItem title="Restrict members from leaving the group?">Content here</GroupCardItem>
+          <GroupCardItem title="Allow external users to join?">
+            <YesNoContentForGroupCard condition={groupSettings.allowExternalMembers === 'true'} />
+          </GroupCardItem>
+          <GroupCardItem title="Restrict members from leaving the group?">
+            <YesNoContentForGroupCard condition={groupSettings.whoCanLeaveGroup !== 'ALL_MEMBERS_CAN_LEAVE'} />
+          </GroupCardItem>
         </div>
       </CardContent>
     </Card>
@@ -430,7 +437,7 @@ function GroupCard({ groupSettings }) {
 
 function GroupCardItem({ title, children }) {
   return (
-    <div className="flex flex-col gap-y-5 ">
+    <div className={`flex flex-col gap-y-5`}>
       <div className="font-medium bg-sidebar-accent text-base/5 py-2 px-5 rounded">{title}</div>
       <div>{children}</div>
     </div>
@@ -528,7 +535,7 @@ const TableHeaderCell = ({ children, columnName }) => (
 function GrayCheck() {
   return (
     <div className="justify-items-center">
-      <Check size={24} className="stroke-muted-foreground" strokeWidth={1} />
+      <Check size={24} className="stroke-muted-foreground" strokeWidth={1.5} />
     </div>
   )
 }
@@ -539,6 +546,15 @@ function WhoCanJoinCardContents({ whoCanJoin }) {
     <div className="flex flex-col gap-y-3">
       <div className="text-base/6">{whoCanJoinData.title}</div>
       <div className="text-xs/4">{whoCanJoinData.description}</div>
+    </div>
+  )
+}
+
+function YesNoContentForGroupCard({ condition }) {
+  return (
+    <div className="flex flex-row gap-x-3 items-center">
+      {condition ? <Check size={16} color={groupsStyles.semanticLightModeSuccess} strokeWidth={2.5} /> : null}
+      <div className="text-base/6">{condition ? 'Yes' : 'No'}</div>
     </div>
   )
 }
