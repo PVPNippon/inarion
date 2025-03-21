@@ -57,7 +57,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 //constants
 //Object with strings for the "Who can join" field of the groups's card. Used to get strings with title and description by the setting name.
 const whoCanJoinStrings = {
@@ -732,6 +732,7 @@ function YesNoContentForGroupCard({ condition }) {
 function Filters({ filterState, dispatchFilterState }) {
   return (
     <div className="flex flex-row gap-x-3 ">
+      <NumberOfMembersFilter />
       <SimpleFilter
         filter="restrictFromLeaving"
         filterState={filterState}
@@ -771,5 +772,23 @@ function SimpleFilter({ filter, filterState, dispatchFilterState }) {
         </SelectGroup>
       </SelectContent>
     </Select>
+  )
+}
+
+function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="select" className="w-auto">
+          Number of members
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="max-w-[200px]">
+        <div className="flex flex-row gap-x-2"></div>
+        <input type="number" minvalue="0" className="max-w-[56px]"></input>
+        <span> - </span>
+        <input type="number" minvalue="0" className="max-w-[56px]"></input>
+      </PopoverContent>
+    </Popover>
   )
 }
