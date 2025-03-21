@@ -28,6 +28,11 @@ export const groupsStyles = {
   uploadAreaExtended: 'h-[470px] w-[704px] border rounded-md flex flex-col justify-center items-center gap-y-2',
 
   //groups manager page
+  //groups table
+  tableHead: 'text-nowrap',
+  edgeCell: 'text-nowrap border border-input flex', //flex is needed for rounded corners, remove it and corners are gone......
+  middleCell: 'text-nowrap border border-y border-input border-x-0',
+  dummyCell: 'text-[8px] py-0 leading-none hover:bg-background',
   //access settings
   gridHeader: 'flex flex-col items-center align-middle',
   gridColumnName: 'text-center text-[10px]/3 p-2 break-words max-w-[76px] h-[40px]',

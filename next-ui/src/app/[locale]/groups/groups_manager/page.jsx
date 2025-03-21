@@ -452,58 +452,54 @@ function GroupsTable({ groupList }) {
         <CustomTableRow>
           <CustomTableHead className={`px-0`}></CustomTableHead>
           <CustomTableHead className={`w-[1px] px-0`}></CustomTableHead>
-          <CustomTableHead className="text-nowrap ">
+          <CustomTableHead className={groupsStyles.tableHead}>
             <Checkbox />
             <span className="ms-3">Name</span>
           </CustomTableHead>
-          <CustomTableHead className="text-nowrap">Email address</CustomTableHead>
-          <CustomTableHead className="text-nowrap">Members</CustomTableHead>
-          <CustomTableHead className="text-nowrap">Has external members?</CustomTableHead>
-          <CustomTableHead className="text-nowrap">Restrict members from leaving</CustomTableHead>
-          <CustomTableHead className="text-nowrap">Alias address</CustomTableHead>
-          <CustomTableHead className="text-nowrap"> &nbsp;</CustomTableHead>
-          <CustomTableHead className="mx-0 px-0 w-[1px] leading-none"></CustomTableHead>
+          <CustomTableHead className={groupsStyles.tableHead}>Email address</CustomTableHead>
+          <CustomTableHead className={groupsStyles.tableHead}>Members</CustomTableHead>
+          <CustomTableHead className={groupsStyles.tableHead}>Has external members?</CustomTableHead>
+          <CustomTableHead className={groupsStyles.tableHead}>Restrict members from leaving</CustomTableHead>
+          <CustomTableHead className={groupsStyles.tableHead}>Alias address</CustomTableHead>
           <CustomTableHead className="justify-items-end pe-0 me-0">
             <Ellipsis size={20} className="text-muted-foreground" />
           </CustomTableHead>
+          <CustomTableHead className="mx-0 px-0 w-[1px] leading-none "></CustomTableHead>
           <CustomTableHead className={`px-2`}></CustomTableHead>
         </CustomTableRow>
       </CustomTableHeader>
       <CustomTableBody>
-        <CustomTableRow key={'empty-row'} className={`border-none py-0`}>
-          <CustomTableCell className={`text-[8px] pt-0 leading-none bg-background`}>&nbsp;</CustomTableCell>
-        </CustomTableRow>
         {groupList.map((group, index) => (
           <React.Fragment key={`${group.email}-fragment-${index}`}>
+            <CustomTableRow key={'top-row'} className={`border-none py-0`}>
+              <CustomTableCell className={groupsStyles.dummyCell}>&nbsp;</CustomTableCell>
+            </CustomTableRow>
             <CustomTableRow
               key={`${group.email}-row-${index}`} // Use a unique key for each row based on group.email}
               className="hover:bg-background"
               ref={(ref) => (customTableRowRefs.current[index] = ref)}
             >
-              <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>
+              <CustomTableCell className={`!w-[4px] hover:bg-background px-0 leading-none`}>&nbsp;</CustomTableCell>
+              <CustomTableCell className={`${groupsStyles.edgeCell} w-[4px] border-r-0 rounded-l-lg ps-0 `}>
                 &nbsp;
               </CustomTableCell>
-              <CustomTableCell className={`w-[4px] text-nowrap border border-r-0 border-input rounded-l-lg ps-0 flex`}>
-                &nbsp;
-              </CustomTableCell>
-              <CustomTableCell className="text-nowrap border border-y border-input border-x-0">
+              <CustomTableCell className={groupsStyles.middleCell}>
                 <Checkbox />
                 <span className="ms-3"> {group.name}</span>
               </CustomTableCell>
-              <CustomTableCell className="text-nowrap border-y border-input">{group.email}</CustomTableCell>
-              <CustomTableCell className="text-nowrap border-y border-input ">{group.members}</CustomTableCell>
-              <CustomTableCell className="text-nowrap border-y border-input">
+              <CustomTableCell className={groupsStyles.middleCell}>{group.email}</CustomTableCell>
+              <CustomTableCell className={groupsStyles.middleCell}>{group.members}</CustomTableCell>
+              <CustomTableCell className={groupsStyles.middleCell}>
                 {group.hasExternalMembers === true ? 'Yes' : 'No'}
               </CustomTableCell>
-              <CustomTableCell className="text-nowrap border-y border-input">
+              <CustomTableCell className={groupsStyles.middleCell}>
                 {/* Careful with the line below, because the column name says the opposite: "Restrict members from leaving." */}
                 {/* So "All members can leave" means "No, don't restrict them from leaving." */}
                 {/* NB: I count "ALL_MANAGERS_CAN_LEAVE" as "Yes" because common members cannot leave. */}
                 {group.settings.whoCanLeaveGroup === 'ALL_MEMBERS_CAN_LEAVE' ? 'No' : 'Yes'}
               </CustomTableCell>
-              <CustomTableCell className="text-nowrap border-y border-input">{group.emailAliases[0]}</CustomTableCell>
-
-              <CustomTableCell className="border-y border-input justify-items-end" colSpan={3}>
+              <CustomTableCell className={groupsStyles.middleCell}>{group.emailAliases[0]}</CustomTableCell>
+              <CustomTableCell className={` ${groupsStyles.middleCell} justify-items-end`}>
                 <ChevronDownIcon
                   size={20}
                   className={`cursor-pointer transition-transform duration-400 ${
@@ -512,46 +508,34 @@ function GroupsTable({ groupList }) {
                   onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.email]: !prev[group.email] }))}
                 />
               </CustomTableCell>
-              <CustomTableCell
-                className={`!w-[8px] !bg-background !hover:bg-background  flex rounded-r-lg border border-l-0 border-input px-0 `}
-              >
+              <CustomTableCell className={`${groupsStyles.edgeCell} !w-[8px] rounded-r-lg border-l-0 px-0`}>
                 &nbsp;
               </CustomTableCell>
-              <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>
-                &nbsp;
-              </CustomTableCell>
+              <CustomTableCell className={`px-0 leading-none`}>&nbsp;</CustomTableCell>
             </CustomTableRow>
 
             {expandedGroups[group.email] && (
               <React.Fragment>
-                <CustomTableRow key={`${group.email}-separator-${index}`} className={`border-none rounded-b-md py-0 `}>
-                  <CustomTableCell className={`text-[8px] py-0 leading-none bg-background`}>&nbsp;</CustomTableCell>
-                </CustomTableRow>
-                <CustomTableRow key={`${group.email}-card-${index}`} className="hover:bg-background">
-                  <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>
-                    &nbsp;
-                  </CustomTableCell>
-                  <CustomTableCell colSpan={10} className="hover:bg-background px-0">
+                <CustomTableRow key={`${group.email}-card-${index}`} className="hover:bg-background pb-0">
+                  <CustomTableCell className={`!w-[4px] px-0 py-0 leading-none`}>&nbsp;</CustomTableCell>
+                  <CustomTableCell colSpan={9} className="px-0 pb-0">
                     <GroupCard groupSettings={group.settings} />
                   </CustomTableCell>
-                  <CustomTableCell className={`!w-[4px] !bg-background !hover:bg-background px-0 leading-none`}>
-                    &nbsp;
-                  </CustomTableCell>
+                  <CustomTableCell className={`hover:bg-background px-0 leading-none`}>&nbsp;</CustomTableCell>
                 </CustomTableRow>
               </React.Fragment>
             )}
-            <CustomTableRow key={'bottom-row'} className={`border-none py-0`}>
-              <CustomTableCell className={`text-[8px] py-0 leading-none bg-background`}>&nbsp;</CustomTableCell>
-            </CustomTableRow>
           </React.Fragment>
         ))}
+        <CustomTableRow key={'bottom-row'} className={`border-none py-0`}>
+          <CustomTableCell className={groupsStyles.dummyCell}>&nbsp;</CustomTableCell>
+        </CustomTableRow>
       </CustomTableBody>
     </CustomTable>
   )
 }
 
 function GroupCard({ groupSettings }) {
-  console.log('Group settings:', groupSettings.access)
   return (
     <Card className="rounded-lg w-full">
       <CardHeader>
