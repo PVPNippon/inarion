@@ -308,7 +308,7 @@ function getNestedTableById(id) {
  */
 function setNestedTableById(id, table) {
   const key = `${config.DOMAIN_TEST}:users:${id}:nestedTable`
-  const ttl = Number(process.env.TTL)
+  const ttl = Number(config.TTL)
   return redisCacheService.setJsonWithTtlMode(key, table, ttl)
 }
 

@@ -1,4 +1,5 @@
 const redisCacheService = require('../services/redisCacheService')
+const config = require('../config/config')
 
 /**
  * Retrieves the ID of a group by its email address from the cache.
@@ -12,7 +13,7 @@ const redisCacheService = require('../services/redisCacheService')
 function getId(email) {
   // TODO (r.hidaka): VALIDATION: `email` should be a string in an email address format
 
-  const key = `${process.env.DOMAIN}:groups:id`
+  const key = `${config.DOMAIN_TEST}:groups:id`
   return redisCacheService.getHashFieldFromRedis(key, email)
 }
 
@@ -34,7 +35,7 @@ function getId(email) {
 function getIds(emails) {
   // TODO (r.hidaka): VALIDATION: `emails` should be an array of strings in an email address format
 
-  const key = `${process.env.DOMAIN}:groups:id`
+  const key = `${config.DOMAIN_TEST}:groups:id`
   return redisCacheService.getHashValues(key, emails)
 }
 
@@ -55,7 +56,7 @@ function getIds(emails) {
  * @see {@link redisCacheService.getHashFromRedis|getHashFromRedis} (formerly getHash)
  */
 async function getAllIds(requiresAllGroupsListedBefore = false) {
-  const key = `${process.env.DOMAIN}:groups:id`
+  const key = `${config.DOMAIN_TEST}:groups:id`
   const emailsToIdsObj = await redisCacheService.getHashFromRedis(key)
 
   // Return null if the cache is empty
@@ -116,8 +117,8 @@ async function getAllIds(requiresAllGroupsListedBefore = false) {
  * @see {@link redisCacheService.setHashWithTtlMode|setHashWithTtlMode} (formerly setHash)
  */
 function setIds(emailsToIdsObj) {
-  const key = `${process.env.DOMAIN}:groups:id`
-  const ttl = Number(process.env.TTL)
+  const key = `${config.DOMAIN_TEST}:groups:id`
+  const ttl = Number(config.TTL)
   return redisCacheService.setHashWithTtlMode(key, emailsToIdsObj, ttl, 'NX')
 }
 
@@ -145,8 +146,8 @@ function setIds(emailsToIdsObj) {
  * @see {@link redisCacheService.overwriteHash|overwriteHash}
  */
 function overwriteIds(emailsToIdsObj) {
-  const key = `${process.env.DOMAIN}:groups:id`
-  const ttl = Number(process.env.TTL)
+  const key = `${config.DOMAIN_TEST}:groups:id`
+  const ttl = Number(config.TTL)
   return redisCacheService.overwriteHash(key, emailsToIdsObj, ttl)
 }
 
@@ -159,7 +160,7 @@ function overwriteIds(emailsToIdsObj) {
  */
 function getGroupById(groupId) {
   // TODO (r.hidaka): VALIDATION: `groupId` should be a non-empty string.
-  const key = `${process.env.DOMAIN}:groups:${groupId}:info`
+  const key = `${config.DOMAIN_TEST}:groups:${groupId}:info`
   return redisCacheService.getJsonFromRedis(key)
 }
 
@@ -180,7 +181,7 @@ function getGroupById(groupId) {
  */
 function getGroupsByIds(groupIds) {
   // TODO (r.hidaka): VALIDATION: groupIds should be an array of non-empty strings.
-  const keys = groupIds.map((groupId) => `${process.env.DOMAIN}:groups:${groupId}:info`)
+  const keys = groupIds.map((groupId) => `${config.DOMAIN_TEST}:groups:${groupId}:info`)
   return redisCacheService.getJsons(keys)
 }
 
@@ -198,8 +199,8 @@ function getGroupsByIds(groupIds) {
  */
 function setGroup(group) {
   const id = group.id
-  const key = `${process.env.DOMAIN}:groups:${id}:info`
-  const ttl = Number(process.env.TTL)
+  const key = `${config.DOMAIN_TEST}:groups:${id}:info`
+  const ttl = Number(config.TTL)
   return redisCacheService.setJsonInRedis(key, group, null, ttl)
 }
 
@@ -222,11 +223,11 @@ function setGroups(groups) {
 
   groups.forEach((group) => {
     const id = group.id
-    const key = `${process.env.DOMAIN}:groups:${id}:info`
+    const key = `${config.DOMAIN_TEST}:groups:${id}:info`
     idsToGroupsObj[key] = group
   })
 
-  const ttl = Number(process.env.TTL)
+  const ttl = Number(config.TTL)
 
   return redisCacheService.setJsonsWithTtlMode(idsToGroupsObj, ttl)
 }
@@ -240,7 +241,7 @@ function setGroups(groups) {
  * @see {@link redisCacheService.getHashFromRedis|getHashFromRedis} (formerly getHash)
  */
 async function getMembersById(id) {
-  const key = `${process.env.DOMAIN}:groups:${id}:members`
+  const key = `${config.DOMAIN_TEST}:groups:${id}:members`
 
   const rawMembersObj = await redisCacheService.getHashFromRedis(key)
 
@@ -288,7 +289,7 @@ async function getMembersById(id) {
 //Note:since this function is not in use, it wasn't rewritten to use redisCacheService.
 //If you want to use this function, you need to rewrite it to use redisCacheService.
 function setMembersById(id, members) {
-  const key = `${process.env.DOMAIN}:groups:${id}:members`
+  const key = `${config.DOMAIN_TEST}:groups:${id}:members`
 
   // Without the `MEMBERS_COUNT` field, the member information of a group with 0 members cannot be stored in the cache
   // as an empty object cannot be stored in the cache in the form of a hash
@@ -298,7 +299,7 @@ function setMembersById(id, members) {
   }
   members.forEach((member) => (idsToMembersObj[member.id] = JSON.stringify(member)))
 
-  const ttl = Number(process.env.TTL)
+  const ttl = Number(config.TTL)
 
   return cacheService.setHash(key, idsToMembersObj, ttl, 'NX')
 }
@@ -331,7 +332,7 @@ function setMembersById(id, members) {
  * @see {@link redisCacheService.overwriteHash|overwriteHash}
  */
 function overwriteMembersById(id, members) {
-  const key = `${process.env.DOMAIN}:groups:${id}:members`
+  const key = `${config.DOMAIN_TEST}:groups:${id}:members`
 
   // Without the `MEMBERS_COUNT` field, the member information of a group with 0 members cannot be stored in the cache
   // as an empty object cannot be stored in the cache in the form of a hash
@@ -341,7 +342,7 @@ function overwriteMembersById(id, members) {
   }
   members.forEach((member) => (idsToMembersObj[member.id] = JSON.stringify(member)))
 
-  const ttl = Number(process.env.TTL)
+  const ttl = Number(config.TTL)
 
   return redisCacheService.overwriteHash(key, idsToMembersObj, ttl)
 }
@@ -355,7 +356,7 @@ function overwriteMembersById(id, members) {
  * @see {@link redisCacheService.getHashFromRedis|getHashFromRedis} (formerly getHash)
  */
 async function getDescendantsById(id) {
-  const key = `${process.env.DOMAIN}:groups:${id}:descendants`
+  const key = `${config.DOMAIN_TEST}:groups:${id}:descendants`
 
   const rawDescendantsObj = await redisCacheService.getHashFromRedis(key)
 
@@ -403,14 +404,14 @@ async function getDescendantsById(id) {
 //Note:since this function is not in use, it wasn't rewritten to use redisCacheService.
 //If you want to use this function, you need to rewrite it to use redisCacheService.
 function setDescendantsById(id, descendants) {
-  const key = `${process.env.DOMAIN}:groups:${id}:descendants`
+  const key = `${config.DOMAIN_TEST}:groups:${id}:descendants`
 
   const idsToDescendantsObj = {
     DESCENDANTS_COUNT: `${descendants.length}`,
   }
   descendants.forEach((descendant) => (idsToDescendantsObj[descendant.id] = JSON.stringify(descendant)))
 
-  const ttl = Number(process.env.TTL)
+  const ttl = Number(config.TTL)
 
   return cacheService.setHash(key, idsToDescendantsObj, ttl, 'NX')
 }
@@ -444,14 +445,14 @@ function setDescendantsById(id, descendants) {
  * @see {@link redisCacheService.overwriteHash|overwriteHash}
  */
 function overwriteDescendantsById(id, descendants) {
-  const key = `${process.env.DOMAIN}:groups:${id}:descendants`
+  const key = `${config.DOMAIN_TEST}:groups:${id}:descendants`
 
   const idsToDescendantsObj = {
     DESCENDANTS_COUNT: `${descendants.length}`,
   }
   descendants.forEach((descendant) => (idsToDescendantsObj[descendant.id] = JSON.stringify(descendant)))
 
-  const ttl = Number(process.env.TTL)
+  const ttl = Number(config.TTL)
 
   return redisCacheService.overwriteHash(key, idsToDescendantsObj, ttl)
 }
@@ -474,7 +475,7 @@ function overwriteParentsById(id, parents) {}
  * @see {@link redisCacheService.getHashFromRedis|getHashFromRedis} (formerly getHash)
  */
 function getSettingsById(id) {
-  const key = `${process.env.DOMAIN}:groups:${id}:settings`
+  const key = `${config.DOMAIN_TEST}:groups:${id}:settings`
   return redisCacheService.getHashFromRedis(key)
 }
 
@@ -499,8 +500,8 @@ function getSettingsById(id) {
  * @see {@link redisCacheService.setHashWithTtlMode|setHashWithTtlMode} (formerly setHash)
  */
 function setSettingsById(id, settings) {
-  const key = `${process.env.DOMAIN}:groups:${id}:settings`
-  const ttl = Number(process.env.TTL)
+  const key = `${config.DOMAIN_TEST}:groups:${id}:settings`
+  const ttl = Number(config.TTL)
   return redisCacheService.setHashWithTtlMode(key, settings, ttl)
 }
 
@@ -527,8 +528,8 @@ function setSettingsById(id, settings) {
 //Note:since this function is not in use, it wasn't rewritten to use redisCacheService.
 //If you want to use this function, you need to rewrite it to use redisCacheService.
 function overwriteSettingsById(id, settings) {
-  const key = `${process.env.DOMAIN}:groups:${id}:settings`
-  const ttl = Number(process.env.TTL)
+  const key = `${config.DOMAIN_TEST}:groups:${id}:settings`
+  const ttl = Number(config.TTL)
   return cacheService.overwriteHash(key, settings, ttl)
 }
 
@@ -541,7 +542,7 @@ function overwriteSettingsById(id, settings) {
  * @see {@link redisCacheService.getJsonFromRedis|getJsonFromRedis}
  */
 function getNestedTableById(id) {
-  const key = `${process.env.DOMAIN}:groups:${id}:nestedTable`
+  const key = `${config.DOMAIN_TEST}:groups:${id}:nestedTable`
   return redisCacheService.getJsonFromRedis(key)
 }
 
@@ -572,11 +573,11 @@ function setNestedTablesByIds(idsToTablesObj) {
   const keysToTablesObj = {}
 
   for (const id in idsToTablesObj) {
-    const key = `${process.env.DOMAIN}:groups:${id}:nestedTable`
+    const key = `${config.DOMAIN_TEST}:groups:${id}:nestedTable`
     keysToTablesObj[key] = idsToTablesObj[id]
   }
 
-  const ttl = Number(process.env.TTL)
+  const ttl = Number(config.TTL)
 
   return redisCacheService.setJsonsWithTtlMode(keysToTablesObj, ttl)
 }
