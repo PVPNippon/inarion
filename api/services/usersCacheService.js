@@ -83,6 +83,21 @@ async function getFilteredIds(filterName, filterValue) {
 }
 
 /**
+ * Retrieves the ID of a user by its email address from the cache.
+ *
+ * @param {string} email - The email address of the user to retrieve the ID for.
+ * @returns {Promise<string|null>} A Promise object which resolves to:
+ *   - the user ID corresponding to `email` if it is found in the cache
+ *   - `null` if the user ID corresponding to `email` is not found in the cache.
+ * @see {@link redisCacheService.getHashFieldFromRedis|getHashFieldFromRedis}
+ */
+function getId(email) {
+  // TODO (r.hidaka): VALIDATION: `email` should be a string in an email address format
+  const key = `${config.DOMAIN_TEST}:users:id`
+  return redisCacheService.getHashFieldFromRedis(key, email)
+}
+
+/**
  * Retrieves an array of user instances from the cache by their IDs.
  *
  * This function queries the cache to obtain the user instances for each ID in the provided array.
@@ -266,9 +281,41 @@ async function getIdsFromCache(key) {
   return ids
 }
 
+/**
+ * Retrieves the nested table of a user from the cache.
+ *
+ * @param {string} id - The ID of the user whose nested table is to be retrieved.
+ * @returns {Promise<Object|null>} A Promise object which resolves to the nested table of the user if found in the cache,
+ *   or null if not found.
+ * @see {@link redisCacheService.getJsonFromRedis|getJsonFromRedis}
+ */
+function getNestedTableById(id) {
+  const key = `${config.DOMAIN_TEST}:users:${id}:nestedTable`
+  return redisCacheService.getJsonFromRedis(key)
+}
+
+/**
+ * Stores the nested table of a user in the cache in the form of JSON.
+ *
+ * The key is `<DOMAIN>:users:<id>:nestedTable` where `<id>` is the user ID, and the value is the nested table of the user.
+ *
+ * @param {string} id - The ID of the user whose nested table is to be stored.
+ * @param {Object} table - The nested table of the user.
+ * @returns {Promise<Array<number|boolean>>} A Promise object which resolves to an array whose length is 2.
+ *   - The first element of the array is a string 'OK'.
+ *   - The second element is `true` if a TTL was set to the key, or `false` if the TTL was not set to the key for some reason.
+ * @see {@link redisCacheService.setJsonWithTtlMode|setJsonWithTtlMode}
+ */
+function setNestedTableById(id, table) {
+  const key = `${config.DOMAIN_TEST}:users:${id}:nestedTable`
+  const ttl = Number(config.TTL)
+  return redisCacheService.setJsonWithTtlMode(key, table, ttl)
+}
+
 module.exports = {
   getAllIds,
   getFilteredIds,
+  getId,
   getUsersByIds,
   getFilteredUsersByIds,
   overwriteIds,
@@ -277,4 +324,6 @@ module.exports = {
   saveFilteredUsersCache,
   getIntersectionIdOfSets,
   getIdsFromCache,
+  getNestedTableById,
+  setNestedTableById,
 }

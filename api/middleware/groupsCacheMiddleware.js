@@ -1,4 +1,5 @@
 const groupsCacheService = require('../services/groupsCacheService.js')
+const usersCacheService = require('../services/usersCacheService.js')
 const groupsUtilityFunctions = require('../utility/groupsUtilityFunctions.js')
 const groupsService = require('../services/groupsService.js')
 
@@ -94,9 +95,9 @@ async function storeAllGroups(req, res, next) {
  * @param {Function} next - The next middleware function in the stack.
  */
 async function retrieveGroup(req, res, next) {
-  try {
-    const { groupEmail } = req.params
+  const { groupEmail } = req.params
 
+  try {
     const groupId = await groupsCacheService.getId(groupEmail)
     
     // No group ID corresponding to the group email is in the cache
@@ -185,9 +186,9 @@ async function storeGroup(req, res, next) {
  * @param {Function} next - The next middleware function in the stack.
  */
 async function retrieveMembers(req, res, next) {
-  try {
-    const { groupEmail } = req.params
+  const { groupEmail } = req.params
 
+  try {
     const groupId = await groupsCacheService.getId(groupEmail)
     
     if (groupId === null) {
@@ -312,9 +313,9 @@ async function storeMembers(req, res, next) {
  * @param {Function} next - The next middleware function in the stack.
  */
 async function retrieveDescendants(req, res, next) {
-  try {
-    const { groupEmail } = req.params
+  const { groupEmail } = req.params
 
+  try {
     const groupId = await groupsCacheService.getId(groupEmail)
     
     if (groupId === null) {
@@ -439,9 +440,9 @@ async function storeDescendants(req, res, next) {
  * @param {Function} next - The next middleware function in the stack.
  */
 async function retrieveSettings(req, res, next) {
-  try {
-    const { groupEmail } = req.params
+  const { groupEmail } = req.params
 
+  try {
     const groupId = await groupsCacheService.getId(groupEmail)
     
     if (groupId === null) {
@@ -558,6 +559,105 @@ async function storeSettings(req, res, next) {
   }
 }
 
+/**
+ * Middleware to retrieve a nested table from the cache.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function in the stack.
+ */
+async function retrieveNestedTable(req, res, next) {
+  if (!req.query.type) {
+    res.locals.statusCode = 400
+    res.locals.data = { message: 'Type is required' }
+    res.locals.cached = true
+    return next()
+  }
+
+  const targetType = req.query.type.toLowerCase()
+
+  if (targetType !== 'group' && targetType !== 'user') {
+    res.locals.statusCode = 400
+    res.locals.data = { message: 'Type must be either group or user' }
+    res.locals.cached = true
+    return next()
+  }
+
+  res.locals.targetType = targetType
+
+  const { targetEmail } = req.params
+
+  try {
+    const targetId = await ((targetType === 'group') ? groupsCacheService.getId(targetEmail) : usersCacheService.getId(targetEmail))
+    
+    if (targetId === null) {
+      return next()
+    }
+
+    if (targetId === 'NEGATIVE_CACHE') {
+      res.locals.statusCode = 404
+      res.locals.data = {
+        message: `${targetEmail} does not exist or you do not have necessary permissions to see ${targetEmail}`
+      }
+      res.locals.cached = true
+      return next()
+    }
+
+    const nestedTable = await ((targetType === 'group') ? groupsCacheService.getNestedTableById(targetId) : usersCacheService.getNestedTableById(targetId))
+
+    if (nestedTable === null) {
+      return next()
+    }
+
+    res.locals.data = nestedTable
+    res.locals.cached = true
+  } catch (error) {
+    console.log(`Error retrieving a nested table of ${targetEmail} from the cache:`, error)
+  }
+  next()
+}
+
+/**
+ * Middleware to store the nested tables of a group or user in the cache.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function in the stack.
+ */
+async function storeNestedTables(req, res, next) {
+  next()
+
+  if (res.locals.cached) {
+    return
+  }
+
+  if (res.locals.statusCode === 500) {
+    return
+  }
+
+  const targetType = res.locals.targetType
+  const tables = res.locals.tables
+
+  try {
+    let result
+
+    if (targetType === 'group') {
+      result = await groupsCacheService.setNestedTablesByIds(tables)
+    } else {  // targetType === 'user'
+      const id = res.locals.id
+      const table = res.locals.data
+      
+      result = await Promise.allSettled([
+        groupsCacheService.setNestedTablesByIds(tables),
+        usersCacheService.setNestedTableById(id, table)
+      ])
+    }
+    console.log('Stored the tables in the cache:', result)
+  } catch (error) {
+    console.log('Error storing the tables in the cache:', error)
+  }
+}
+
 module.exports = {
   retrieveAllGroups,
   storeAllGroups,
@@ -573,4 +673,7 @@ module.exports = {
 
   retrieveSettings,
   storeSettings,
+
+  retrieveNestedTable,
+  storeNestedTables,
 }
