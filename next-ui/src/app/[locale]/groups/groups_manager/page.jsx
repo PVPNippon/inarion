@@ -1,5 +1,5 @@
 'use client'
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useReducer } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { apiClient } from '@/utils/apiClient'
@@ -56,6 +56,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 //constants
 //Object with strings for the "Who can join" field of the groups's card. Used to get strings with title and description by the setting name.
@@ -77,6 +78,12 @@ const whoCanJoinStrings = {
     description: 'Users in the organization need to ask first to join the group.',
   },
 }
+const filterTitles = {
+  restrictFromLeaving: 'Restrict members from leaving?',
+  numberOfMembers: 'Number of members',
+  allowExternalMembers: 'Allow external members?',
+  hasExternalMembers: 'Has external members?',
+}
 
 function GroupsManager() {
   const [groupList, setGroupList] = useState([])
@@ -86,6 +93,28 @@ function GroupsManager() {
   const [query, setQuery] = useState('')
   const [hiddenClass, setHiddenClass] = useState('')
   const email = 'testadmin@pvp-test-domain2.com'
+
+  const filterReducer = (state, action) => {
+    switch (action.type) {
+      case 'numberOfMembers':
+        return { ...state, numberOfMembers: action.value }
+      case 'restrictFromLeaving':
+        return { ...state, restrictFromLeaving: action.value }
+      case 'allowExternalMembers':
+        return { ...state, allowExternalMembers: action.value }
+      case 'hasExternalMembers':
+        return { ...state, hasExternalMembers: action.value }
+      default:
+        return state
+    }
+  }
+
+  const [filterState, dispatchFilterState] = useReducer(filterReducer, {
+    numberOfMembers: '',
+    restrictFromLeaving: '',
+    allowExternalMembers: '',
+    hasExternalMembers: '',
+  })
 
   useEffect(() => {
     const controller = new AbortController()
@@ -99,6 +128,7 @@ function GroupsManager() {
         setError('')
         setGroupList([])
         setEmptyResult(false)
+        setHiddenClass('hidden')
 
         const groupsDummyData = [
           {
@@ -310,9 +340,18 @@ function GroupsManager() {
     <div style={{ height: emptyResult && `calc(100vh - 288px)` }} className="mx-8 mb-6">
       {/* apply custom height only when emptyResult is displayed(maybe it should also be set when there is an error screen in the future) */}
       <p className="mb-3.5 text-2xl font-medium leading-7">Groups Manager</p>
-      <p className="text-lg text-muted-foreground mb-3 leading-5">List groups</p>
+      <p className="text-lg text-muted-foreground mb-3 leading-5">
+        {emptyResult || groupList.length > 0 ? 'Search results' : 'List groups'}
+      </p>
 
-      <InputForm query={query} setQuery={setQuery} hiddenClass={hiddenClass} groupList={groupList} />
+      <InputForm
+        query={query}
+        setQuery={setQuery}
+        hiddenClass={hiddenClass}
+        groupList={groupList}
+        filterState={filterState}
+        dispatchFilterState={dispatchFilterState}
+      />
       {isLoading && <Loader />}
       {!isLoading && !error && query && (
         <TopPanel query={query} hiddenClass={hiddenClass} setHiddenClass={setHiddenClass} groupList={groupList} />
@@ -326,7 +365,7 @@ function GroupsManager() {
 
 export default GroupsManager
 
-function InputForm({ query, setQuery, hiddenClass, groupList }) {
+function InputForm({ query, setQuery, hiddenClass, groupList, filterState, dispatchFilterState }) {
   // Define the schema with Zod
   const FormSchema = z.object({
     query: z.string(),
@@ -346,25 +385,29 @@ function InputForm({ query, setQuery, hiddenClass, groupList }) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className={hiddenClass}>
-        <FormField
-          control={form.control}
-          name="query"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <Input
-                  className={`text-muted-foreground ${groupsStyles.searchBarWidth} `}
-                  type="string"
-                  name="query"
-                  placeholder="Enter a group name or group email address"
-                  hasIcon={true}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="flex flex-col gap-y-4">
+          <FormField
+            control={form.control}
+            name="query"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Input
+                    className={`text-muted-foreground ${groupsStyles.searchBarWidth} `}
+                    type="string"
+                    name="query"
+                    placeholder="Enter a group name or group email address"
+                    hasIcon={true}
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <Filters filterState={filterState} dispatchFilterState={dispatchFilterState} />
+        </div>
+
         <div className="flex gap-x-4 my-6">
           <Button className={`${groupsStyles.buttonPadding}`} type="submit">
             Go
@@ -683,5 +726,50 @@ function YesNoContentForGroupCard({ condition }) {
       {condition ? <Check size={16} color={groupsStyles.semanticLightModeSuccess} strokeWidth={2.5} /> : null}
       <div className="text-base/6">{condition ? 'Yes' : 'No'}</div>
     </div>
+  )
+}
+
+function Filters({ filterState, dispatchFilterState }) {
+  return (
+    <div className="flex flex-row gap-x-3 ">
+      <SimpleFilter
+        filter="restrictFromLeaving"
+        filterState={filterState}
+        dispatchFilterState={dispatchFilterState}
+      ></SimpleFilter>
+      <SimpleFilter
+        filter="allowExternalMembers"
+        filterState={filterState}
+        dispatchFilterState={dispatchFilterState}
+      ></SimpleFilter>
+      <SimpleFilter
+        filter="hasExternalMembers"
+        filterState={filterState}
+        dispatchFilterState={dispatchFilterState}
+      ></SimpleFilter>
+    </div>
+  )
+}
+
+function SimpleFilter({ filter, filterState, dispatchFilterState }) {
+  return (
+    <Select
+      value={filterState[filter]}
+      onValueChange={(value) => {
+        if (value === '') return
+        dispatchFilterState({ type: filter, value: value })
+        console.log(filterState)
+      }}
+    >
+      <SelectTrigger className="w-auto">
+        <SelectValue placeholder={filterTitles[filter]} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          <SelectItem value="yes">Yes</SelectItem>
+          <SelectItem value="no">No</SelectItem>
+        </SelectGroup>
+      </SelectContent>
+    </Select>
   )
 }
