@@ -1,4 +1,6 @@
 const usersService = require('../services/usersService')
+const groupsService = require('../services/groupsService')
+const domainsService = require('../services/domainsService')
 const logger = require('../logger/logger')(__filename, 'Users Controller')
 const usersUtilityFunctions = require('../utility/usersUtilityFunctions')
 
@@ -273,7 +275,6 @@ exports.listRoleAssignments = async (req, res, next) => {
  * @returns {Promise<void>} - Passes control to the next middleware function.
  * @throws {Error} - Sends a 500 status code if there is an error fetching organizational units.
  */
-
 exports.listOrgUnits = async (req, res, next) => {
   const { userEmail } = req.query
 
@@ -287,6 +288,53 @@ exports.listOrgUnits = async (req, res, next) => {
   } catch (error) {
     logger.error(error)
     res.status(500).json({ message: 'Error fetching orgunits.' })
+  }
+  next()
+}
+
+/**
+ * Retrieves multiple sets of data related to users, organizational units, domains, groups, and role names.
+ *
+ * This function extracts the `userEmail` from the request query and uses it to call various services
+ * concurrently to fetch lists of users, organizational units, domains, groups, and role names.
+ * It utilizes Promise.allSettled to ensure all requests are completed, and it collects the results
+ * into `res.locals.data` for further processing or storage.
+ *
+ * @param {Object} req - The request object containing `userEmail` in the query parameter.
+ * @param {Object} res - The response object used to store the retrieved data.
+ * @param {Function} next - The next middleware function in the stack.
+ * @returns {Promise<void>} Passes control to the next middleware function.
+ * @throws {Error} Sends a 500 status code if there is an error fetching any of the data.
+ */
+
+exports.getPreparations = async (req, res, next) => {
+  const { userEmail } = req.query
+
+  try {
+    // Using Promise.allSettled because we don't need to wait for each API in turn and the failure of one doesn't mean we need to abort the others.
+    const results = await Promise.allSettled([
+      usersService.listUsers({ userEmail }),
+      usersService.listOrgUnits({ userEmail }),
+      domainsService.listDomains({ userEmail }),
+      groupsService.listGroups({ userEmail }),
+      usersService.listRoleNames({ userEmail }),
+    ])
+
+    // Separate each piece of data to store separately in Redis later
+    const [usersResult, orgunitsResult, domainsResult, groupsResult, roleNamesResult] = results
+
+    // Pass the each piece of data separately
+    res.locals.data = {
+      users: usersResult.status === 'fulfilled' ? usersResult.value : [],
+      orgunits: orgunitsResult.status === 'fulfilled' ? orgunitsResult.value : [],
+      domains: domainsResult.status === 'fulfilled' ? domainsResult.value : [],
+      groups: groupsResult.status === 'fulfilled' ? groupsResult.value : [],
+      roleNames: roleNamesResult.status === 'fulfilled' ? roleNamesResult.value : [],
+    }
+    // console.log('users data', res.locals.data.users)
+  } catch (error) {
+    logger.error(error)
+    res.status(500).json({ message: 'Error fetching preparations.' })
   }
   next()
 }

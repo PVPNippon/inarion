@@ -15,7 +15,6 @@ const logger = require('../logger/logger')(__filename, 'Users Service')
  * @returns {Promise<Object[]>} - A promise that resolves to an array of user objects, each containing user details.
  * @throws {Error} - Throws an error if there is an issue with the API call.
  */
-
 async function listUsers({ userEmail, client, query }) {
   // TODO(m.okamoto): Allow filtering by OU or domain or group in the future
   logger.debug('Reached listUsers endpoint.')
@@ -227,7 +226,6 @@ async function turnOffTwoSVForUsersWithRateLimit({ userEmail, client, twoSVUserE
  * Status 403 indicates the user is outside the organization.
  * Status 404 indicates the user cannot be found as a valid email or group.
  */
-
 async function deleteUser({ userEmail, client, deleteUserEmail }) {
   // logger.debug('Reached deleteUser endpoint.')
   // Retrieve an existing impersonated auth client for Directory API or create a new one
@@ -273,7 +271,6 @@ async function deleteUser({ userEmail, client, deleteUserEmail }) {
  *                              respective operation's outcome.
  * @throws {Error} - Throws an error if there is an issue with the API call.
  */
-
 async function deleteUsers({ userEmail, client, deleteUserEmails }) {
   // TODO(m.okamoto): I will think about the function to raise an alert later if the user to be deleted is SA or Admin.
   logger.debug('Reached deleteUsers endpoint.')

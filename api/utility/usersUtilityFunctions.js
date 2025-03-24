@@ -126,6 +126,8 @@ async function filterUsersByRoleName(users, roleName, userEmail) {
   })
 }
 
+// TODO(m.okamoto): After fetching all users information, store each user's information in cache in the specific format
+
 module.exports = {
   getUserEmailsToIdsObj,
   sortUsersByEmail,
