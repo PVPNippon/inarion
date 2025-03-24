@@ -58,6 +58,8 @@ import {
 } from '@/components/ui/table'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { CustomSelectTrigger } from '@/components/ui/custom-filter-select'
+
 //constants
 //Object with strings for the "Who can join" field of the groups's card. Used to get strings with title and description by the setting name.
 const whoCanJoinStrings = {
@@ -753,17 +755,35 @@ function Filters({ filterState, dispatchFilterState }) {
 }
 
 function SimpleFilter({ filter, filterState, dispatchFilterState }) {
+  const [hiddenClass, setHiddenClass] = useState('hidden')
+
+  console.log(filterState)
   return (
     <Select
       value={filterState[filter]}
       onValueChange={(value) => {
-        if (value === '') return
+        if (value !== '') {
+          setHiddenClass('')
+        }
         dispatchFilterState({ type: filter, value: value })
       }}
     >
-      <SelectTrigger className="w-auto">
-        <SelectValue placeholder={filterTitles[filter]} />
-      </SelectTrigger>
+      <CustomSelectTrigger
+        className="w-auto"
+        hiddenClass={hiddenClass}
+        handleClose={() => {
+          dispatchFilterState({ type: filter, value: '' })
+          setHiddenClass('hidden')
+        }}
+      >
+        <SelectValue placeholder={filterTitles[filter]}>
+          {filterState[filter] === 'yes'
+            ? `${filterTitles[filter]}: Yes`
+            : filterState[filter] === 'no'
+            ? `${filterTitles[filter]}: No`
+            : filterTitles[filter]}
+        </SelectValue>
+      </CustomSelectTrigger>
       <SelectContent>
         <SelectGroup>
           <SelectItem value="yes">Yes</SelectItem>
