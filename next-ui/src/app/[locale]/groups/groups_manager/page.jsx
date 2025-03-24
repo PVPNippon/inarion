@@ -110,7 +110,7 @@ function GroupsManager() {
   }
 
   const [filterState, dispatchFilterState] = useReducer(filterReducer, {
-    numberOfMembers: '',
+    numberOfMembers: ['', ''],
     restrictFromLeaving: '',
     allowExternalMembers: '',
     hasExternalMembers: '',
@@ -732,7 +732,7 @@ function YesNoContentForGroupCard({ condition }) {
 function Filters({ filterState, dispatchFilterState }) {
   return (
     <div className="flex flex-row gap-x-3 ">
-      <NumberOfMembersFilter />
+      <NumberOfMembersFilter filterState={filterState} dispatchFilterState={dispatchFilterState} />
       <SimpleFilter
         filter="restrictFromLeaving"
         filterState={filterState}
@@ -759,7 +759,6 @@ function SimpleFilter({ filter, filterState, dispatchFilterState }) {
       onValueChange={(value) => {
         if (value === '') return
         dispatchFilterState({ type: filter, value: value })
-        console.log(filterState)
       }}
     >
       <SelectTrigger className="w-auto">
@@ -776,6 +775,19 @@ function SimpleFilter({ filter, filterState, dispatchFilterState }) {
 }
 
 function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
+  const filter = 'numberOfMembers'
+  const [minValue, setMinValue] = useState(filterState[filter][0])
+  const [maxValue, setMaxValue] = useState(filterState[filter][1])
+  const handleMinValueChange = (value) => {
+    setMinValue(value)
+    dispatchFilterState({ type: filter, value: [value.toString(), filterState[filter][1]] })
+  }
+
+  const handleMaxValueChange = (value) => {
+    setMaxValue(value)
+    dispatchFilterState({ type: filter, value: [filterState[filter][0], value.toString()] })
+  }
+  console.log(filterState)
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -783,11 +795,32 @@ function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
           Number of members
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="max-w-[200px]">
-        <div className="flex flex-row gap-x-2"></div>
-        <input type="number" minvalue="0" className="max-w-[56px]"></input>
-        <span> - </span>
-        <input type="number" minvalue="0" className="max-w-[56px]"></input>
+      <PopoverContent className="max-w-[188px]">
+        <div className="flex gap-x-2 items-center justify-evenly">
+          <Input
+            type="number"
+            min="0"
+            max="9999"
+            step="1"
+            className="w-[60px] text-right"
+            placeholder="0"
+            value={minValue}
+            onChange={(e) => {
+              handleMinValueChange(e.target.value)
+            }}
+          ></Input>
+          <div> - </div>
+          <Input
+            type="number"
+            min="0"
+            max="9999"
+            step="1"
+            className="w-[60px] text-right"
+            placeholder="9999"
+            value={maxValue}
+            onChange={(e) => handleMaxValueChange(e.target.value)}
+          ></Input>
+        </div>
       </PopoverContent>
     </Popover>
   )
