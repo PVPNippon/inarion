@@ -86,18 +86,27 @@ const filterTitles = {
   allowExternalMembers: 'Allow external members?',
   hasExternalMembers: 'Has external members?',
 }
+const initialState = {
+  query: '',
+  numberOfMembers: ['', ''],
+  restrictFromLeaving: '',
+  allowExternalMembers: '',
+  hasExternalMembers: '',
+}
 
 function GroupsManager() {
   const [groupList, setGroupList] = useState([])
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [emptyResult, setEmptyResult] = useState(false)
-  const [query, setQuery] = useState('')
+  // const [query, setQuery] = useState('')
   const [hiddenClass, setHiddenClass] = useState('')
   const email = 'testadmin@pvp-test-domain2.com'
 
   const filterReducer = (state, action) => {
     switch (action.type) {
+      case 'query':
+        return { ...state, query: action.value }
       case 'numberOfMembers':
         return { ...state, numberOfMembers: action.value }
       case 'restrictFromLeaving':
@@ -111,18 +120,13 @@ function GroupsManager() {
     }
   }
 
-  const [filterState, dispatchFilterState] = useReducer(filterReducer, {
-    numberOfMembers: ['', ''],
-    restrictFromLeaving: '',
-    allowExternalMembers: '',
-    hasExternalMembers: '',
-  })
+  const [filterState, dispatchFilterState] = useReducer(filterReducer, initialState)
 
   useEffect(() => {
     const controller = new AbortController()
 
     function fetchGroupsTable() {
-      if (query === '') return
+      if (filterState.query === '') return // TODO: need to discuss with team, will we allow empty queries if at least one filter selected?
 
       try {
         //reset states
@@ -337,7 +341,7 @@ function GroupsManager() {
     return function () {
       controller.abort()
     }
-  }, [query])
+  }, [filterState.query])
   return (
     <div style={{ height: emptyResult && `calc(100vh - 288px)` }} className="mx-8 mb-6">
       {/* apply custom height only when emptyResult is displayed(maybe it should also be set when there is an error screen in the future) */}
@@ -347,16 +351,19 @@ function GroupsManager() {
       </p>
 
       <InputForm
-        query={query}
-        setQuery={setQuery}
         hiddenClass={hiddenClass}
         groupList={groupList}
         filterState={filterState}
         dispatchFilterState={dispatchFilterState}
       />
       {isLoading && <Loader />}
-      {!isLoading && !error && query && (
-        <TopPanel query={query} hiddenClass={hiddenClass} setHiddenClass={setHiddenClass} groupList={groupList} />
+      {!isLoading && !error && filterState.query && (
+        <TopPanel
+          hiddenClass={hiddenClass}
+          setHiddenClass={setHiddenClass}
+          groupList={groupList}
+          filterState={filterState}
+        />
       )}
       {!isLoading && !error && groupList.length > 0 && <GroupsTable groupList={groupList} />}
       {error && <ErrorMessage message={error.message} />}
@@ -367,7 +374,7 @@ function GroupsManager() {
 
 export default GroupsManager
 
-function InputForm({ query, setQuery, hiddenClass, groupList, filterState, dispatchFilterState }) {
+function InputForm({ hiddenClass, groupList, filterState, dispatchFilterState }) {
   // Define the schema with Zod
   const FormSchema = z.object({
     query: z.string(),
@@ -382,7 +389,10 @@ function InputForm({ query, setQuery, hiddenClass, groupList, filterState, dispa
   })
 
   function onSubmit(data) {
-    setQuery(data.query)
+    dispatchFilterState({
+      type: 'query',
+      value: data.query,
+    })
   }
   return (
     <Form {...form}>
@@ -452,13 +462,31 @@ function EmptyResult() {
   )
 }
 
-function TopPanel({ query, hiddenClass, setHiddenClass }) {
+function TopPanel({ hiddenClass, setHiddenClass, filterState }) {
+  console.log('filterState', filterState)
   return (
-    <div className={`flex items-center justify-between ${hiddenClass === 'hidden' ? '' : 'hidden'}`}>
+    <div className={`flex items-center justify-between my-3 ${hiddenClass === 'hidden' ? '' : 'hidden'}`}>
       <div className={`py-3 px-4`}>
-        <span className={`text-sm my-3 py-1 px-3 ${groupsStyles.roundBorder} ${groupsStyles.thinShadow}`}>
-          Showing search result of <span className="font-semibold">{`'${query}'`}</span>
-        </span>
+        {filterState.query && (
+          <span className={`text-sm my-3 py-1 px-3 ${groupsStyles.roundBorder} ${groupsStyles.thinShadow}`}>
+            Showing search result of <span className="font-semibold">{`'${filterState.query}'`}</span>
+          </span>
+        )}
+
+        {filterState !== initialState && (
+          <div>
+            {Object.entries(filterState).map(([filter, value]) => {
+              if (value !== '') {
+                return (
+                  <span key={filter}>
+                    {filterTitles[filter]}: {value}
+                  </span>
+                )
+              }
+              return null
+            })}
+          </div>
+        )}
       </div>
       <div className="flex flex-col lg:flex-row gap-x-4">
         <Button
