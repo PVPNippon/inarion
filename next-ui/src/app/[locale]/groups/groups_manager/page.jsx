@@ -14,6 +14,7 @@ import {
   UsersRound,
   Building,
   Check,
+  X,
 } from 'lucide-react'
 import { groupsStyles } from '@/app/ui/variables/group-variables'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -838,6 +839,7 @@ function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
   const filter = 'numberOfMembers'
   const [minValue, setMinValue] = useState(filterState[filter][0])
   const [maxValue, setMaxValue] = useState(filterState[filter][1])
+  const [open, setOpen] = useState(false)
 
   function setTitle() {
     dispatchFilterState({ type: filter, value: [minValue, maxValue] })
@@ -851,9 +853,9 @@ function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
     setMaxValue(value.toString())
   }
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="select" className="w-auto font-normal py-1.5 rounded-lg h-9">
+        <button className="flex w-content px-3 font-normal py-1.5 rounded-lg h-9 border border-input bg-transparent text-sm gap-2 items-center justify-between whitespace-nowrap shadow-menu1 shadow-menu2 ring-offset-background placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
           <span>{`Number of members ${
             filterState[filter][0] !== '' || filterState[filter][1] !== '' ? ':' : ''
           }`}</span>
@@ -864,8 +866,21 @@ function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
                 {` ${filterState[filter][1] === '' ? 'all' : filterState[filter][1]}`}
               </span>
             </>
+          )}{' '}
+          <ChevronDownIcon className="h-4 w-4 opacity-50 ml-auto" />
+          {(filterState[filter][0] !== '' || filterState[filter][1] !== '') && (
+            <X
+              size={16}
+              className="opacity-50"
+              onClick={() => {
+                setOpen(false)
+                setMinValue('')
+                setMaxValue('')
+                dispatchFilterState({ type: filter, value: ['', ''] })
+              }}
+            />
           )}
-        </Button>
+        </button>
       </PopoverTrigger>
       <PopoverContent className="max-w-[188px]" onInteractOutside={setTitle}>
         <div className="flex gap-x-2 items-center justify-evenly">
