@@ -784,11 +784,14 @@ function Filters({ filterState, dispatchFilterState }) {
 
 function SimpleFilter({ filter, filterState, dispatchFilterState }) {
   const [hiddenClass, setHiddenClass] = useState('hidden')
+  const [open, setOpen] = useState(false)
 
   console.log(filterState)
   return (
     <Select
+      open={open}
       value={filterState[filter]}
+      onOpenChange={setOpen}
       onValueChange={(value) => {
         if (value !== '') {
           setHiddenClass('')
@@ -799,7 +802,9 @@ function SimpleFilter({ filter, filterState, dispatchFilterState }) {
       <CustomSelectTrigger
         className="w-auto"
         hiddenClass={hiddenClass}
+        onOpenChange={setOpen}
         handleClose={() => {
+          setOpen(false)
           dispatchFilterState({ type: filter, value: '' })
           setHiddenClass('hidden')
         }}
