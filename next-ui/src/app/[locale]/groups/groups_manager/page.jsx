@@ -86,6 +86,12 @@ const filterTitles = {
   allowExternalMembers: 'Allow external members?',
   hasExternalMembers: 'Has external members?',
 }
+
+const simpleFilterOptions = {
+  yes: 'Yes',
+  no: 'No',
+}
+
 const initialState = {
   query: '',
   numberOfMembers: ['', ''],
@@ -99,7 +105,6 @@ function GroupsManager() {
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [emptyResult, setEmptyResult] = useState(false)
-  // const [query, setQuery] = useState('')
   const [hiddenClass, setHiddenClass] = useState('')
   const email = 'testadmin@pvp-test-domain2.com'
 
@@ -325,7 +330,6 @@ function GroupsManager() {
           },
         ]
 
-        console.log('groupsDummyData', groupsDummyData)
         setGroupList(groupsDummyData)
       } catch (error) {
         setError(error)
@@ -463,24 +467,33 @@ function EmptyResult() {
 }
 
 function TopPanel({ hiddenClass, setHiddenClass, filterState }) {
-  console.log('filterState', filterState)
   return (
     <div className={`flex items-center justify-between my-3 ${hiddenClass === 'hidden' ? '' : 'hidden'}`}>
-      <div className={`py-3 px-4`}>
-        {filterState.query && (
-          <span className={`text-sm my-3 py-1 px-3 ${groupsStyles.roundBorder} ${groupsStyles.thinShadow}`}>
-            Showing search result of <span className="font-semibold">{`'${filterState.query}'`}</span>
-          </span>
-        )}
-
+      <div className={`px-4`}>
         {filterState !== initialState && (
-          <div>
+          <div className="flex flex-wrap gap-2">
+            {filterState.query && (
+              <div className={`text-sm  py-1 px-3 ${groupsStyles.roundBorder} ${groupsStyles.thinShadow} w-content`}>
+                Showing search result of <span className="font-semibold">{`'${filterState.query}'`}</span>
+              </div>
+            )}
+            {filterState.numberOfMembers &&
+              (filterState.numberOfMembers[0] !== '' || filterState.numberOfMembers[1] !== '') && (
+                <div className={`text-sm  py-1 px-3 ${groupsStyles.roundBorder} ${groupsStyles.thinShadow} w-content`}>
+                  {`${filterTitles['numberOfMembers']}: ${
+                    filterState.numberOfMembers[0] === '' ? '0' : filterState.numberOfMembers[0]
+                  } - ${filterState.numberOfMembers[1] === '' ? '9999' : filterState.numberOfMembers[1]}`}
+                </div>
+              )}
             {Object.entries(filterState).map(([filter, value]) => {
-              if (value !== '') {
+              if (filter !== 'query' && filter !== 'numberOfMembers' && value !== '') {
                 return (
-                  <span key={filter}>
+                  <div
+                    key={filter}
+                    className={`text-sm py-1 px-3 ${groupsStyles.roundBorder} ${groupsStyles.thinShadow} w-content`}
+                  >
                     {filterTitles[filter]}: {value}
-                  </span>
+                  </div>
                 )
               }
               return null
@@ -785,8 +798,6 @@ function Filters({ filterState, dispatchFilterState }) {
 function SimpleFilter({ filter, filterState, dispatchFilterState }) {
   const [hiddenClass, setHiddenClass] = useState('hidden')
   const [open, setOpen] = useState(false)
-
-  console.log(filterState)
   return (
     <Select
       open={open}
@@ -810,17 +821,13 @@ function SimpleFilter({ filter, filterState, dispatchFilterState }) {
         }}
       >
         <SelectValue placeholder={filterTitles[filter]}>
-          {filterState[filter] === 'yes'
-            ? `${filterTitles[filter]}: Yes`
-            : filterState[filter] === 'no'
-            ? `${filterTitles[filter]}: No`
-            : filterTitles[filter]}
+          {filterState[filter] !== '' ? `${filterTitles[filter]}: ${filterState[filter]}` : filterTitles[filter]}
         </SelectValue>
       </CustomSelectTrigger>
       <SelectContent>
         <SelectGroup>
-          <SelectItem value="yes">Yes</SelectItem>
-          <SelectItem value="no">No</SelectItem>
+          <SelectItem value={simpleFilterOptions.yes}>{simpleFilterOptions.yes}</SelectItem>
+          <SelectItem value={simpleFilterOptions.no}>{simpleFilterOptions.no}</SelectItem>
         </SelectGroup>
       </SelectContent>
     </Select>
@@ -840,7 +847,6 @@ function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
     setMaxValue(value)
     dispatchFilterState({ type: filter, value: [filterState[filter][0], value.toString()] })
   }
-  console.log(filterState)
   return (
     <Popover>
       <PopoverTrigger asChild>
