@@ -69,7 +69,7 @@ function ListAllMembers() {
 
         email = 'testadmin@pvp-test-domain2.com'
         const response = await axios.get(
-          `http://localhost:4000/api/groups/group/${inputValue}/descendants?userEmail=${email}`,
+          `http://localhost:4000/api/groups/group/${inputValue}/members?userEmail=${email}&includeDerivedMembership=true`,
 
           {
             headers: {
