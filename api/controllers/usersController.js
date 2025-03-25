@@ -45,6 +45,8 @@ exports.listAllUsers = async (req, res, next) => {
     // TODO:(m.okamoto): If you want to add a filter, process the response of listAllUsers and pass it here.
     res.locals.dataToBeCached = users // Pass the list of all organization's users
 
+    // TODO(m.okamoto): 別のファイルへ切り分けた方が良い
+    // TODO(m.okamoto): 2回目に初めてフィルターかけた場合もlistAllUsers をbypass する
     if (
       !req.query.orgUnitPath &&
       !req.query.isEnrolledIn2Sv &&

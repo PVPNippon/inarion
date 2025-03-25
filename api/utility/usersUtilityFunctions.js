@@ -48,6 +48,7 @@ function filterUsersByDomain(users, domain) {
   return users.filter((user) => user.primaryEmail.split('@')[1] === domain)
 }
 
+// TODO(m.okamoto): 別のファイルへ切り分けた方が良い
 async function filterUsersByGroup(users, groupEmail, userEmail) {
   // line 53 to 61 is needed only if error handling is needed
   const group = await groupsService.getGroupByEmail({
