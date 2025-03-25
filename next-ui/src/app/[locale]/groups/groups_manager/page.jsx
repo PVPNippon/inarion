@@ -482,7 +482,7 @@ function TopPanel({ hiddenClass, setHiddenClass, filterState }) {
                 <div className={`text-sm  py-1 px-3 ${groupsStyles.roundBorder} ${groupsStyles.thinShadow} w-content`}>
                   {`${filterTitles['numberOfMembers']}: ${
                     filterState.numberOfMembers[0] === '' ? '0' : filterState.numberOfMembers[0]
-                  } - ${filterState.numberOfMembers[1] === '' ? '9999' : filterState.numberOfMembers[1]}`}
+                  } - ${filterState.numberOfMembers[1] === '' ? 'all' : filterState.numberOfMembers[1]}`}
                 </div>
               )}
             {Object.entries(filterState).map(([filter, value]) => {
@@ -838,31 +838,43 @@ function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
   const filter = 'numberOfMembers'
   const [minValue, setMinValue] = useState(filterState[filter][0])
   const [maxValue, setMaxValue] = useState(filterState[filter][1])
+
+  function setTitle() {
+    dispatchFilterState({ type: filter, value: [minValue, maxValue] })
+    // if (minValue === '' && maxValue === '') return
+  }
   const handleMinValueChange = (value) => {
-    setMinValue(value)
-    dispatchFilterState({ type: filter, value: [value.toString(), filterState[filter][1]] })
+    setMinValue(value.toString())
   }
 
   const handleMaxValueChange = (value) => {
-    setMaxValue(value)
-    dispatchFilterState({ type: filter, value: [filterState[filter][0], value.toString()] })
+    setMaxValue(value.toString())
   }
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="select" className="w-auto">
-          Number of members
+        <Button variant="select" className="w-auto font-normal py-1.5 rounded-lg h-9">
+          <span>{`Number of members ${
+            filterState[filter][0] !== '' || filterState[filter][1] !== '' ? ':' : ''
+          }`}</span>
+          {(filterState[filter][0] !== '' || filterState[filter][1] !== '') && (
+            <>
+              <span>
+                {`${filterState[filter][0] === '' ? '0' : filterState[filter][0]}`} -
+                {` ${filterState[filter][1] === '' ? 'all' : filterState[filter][1]}`}
+              </span>
+            </>
+          )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="max-w-[188px]">
+      <PopoverContent className="max-w-[188px]" onInteractOutside={setTitle}>
         <div className="flex gap-x-2 items-center justify-evenly">
           <Input
             type="number"
             min="0"
-            max="9999"
             step="1"
-            className="w-[60px] text-right"
-            placeholder="0"
+            className="w-[60px] text-center"
+            placeholder="Min"
             value={minValue}
             onChange={(e) => {
               handleMinValueChange(e.target.value)
@@ -872,10 +884,9 @@ function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
           <Input
             type="number"
             min="0"
-            max="9999"
             step="1"
-            className="w-[60px] text-right"
-            placeholder="9999"
+            className="w-[60px] text-center"
+            placeholder="Max"
             value={maxValue}
             onChange={(e) => handleMaxValueChange(e.target.value)}
           ></Input>
