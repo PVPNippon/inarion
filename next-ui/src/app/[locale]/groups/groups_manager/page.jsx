@@ -58,6 +58,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CustomSelectTrigger } from '@/components/ui/custom-filter-select'
 import { PopoverClose } from '@radix-ui/react-popover'
 import { Switch } from '@/components/ui/switch'
+import {
+  CustomListAccordion,
+  CustomListAccordionItem,
+  CustomListAccordionTrigger,
+  CustomListAccordionContent,
+} from '@/components/ui/custom-list-accordion'
 
 //constants
 //Object with strings for the "Who can join" field of the groups's card. Used to get strings with title and description by the setting name.
@@ -565,6 +571,7 @@ function GroupsTable({ groupList }) {
               <CustomTableCell className={`${groupsStyles.edgeCell} w-[4px] border-r-0 rounded-l-lg ps-0 `}>
                 &nbsp;
               </CustomTableCell>
+
               <CustomTableCell className={groupsStyles.middleCell}>
                 <Checkbox />
                 <span className="ms-3"> {group.name}</span>
@@ -580,7 +587,9 @@ function GroupsTable({ groupList }) {
                 {/* NB: I count "ALL_MANAGERS_CAN_LEAVE" as "Yes" because common members cannot leave. */}
                 {group.settings.whoCanLeaveGroup === 'ALL_MEMBERS_CAN_LEAVE' ? 'No' : 'Yes'}
               </CustomTableCell>
-              <CustomTableCell className={groupsStyles.middleCell}>{group.emailAliases[0]}</CustomTableCell>
+              <CustomTableCell className={groupsStyles.middleCell}>
+                {group?.emailAliases.length > 0 && <AliasList aliasArray={group.emailAliases} groupId={group.email} />}
+              </CustomTableCell>
               <CustomTableCell className={` ${groupsStyles.middleCell} justify-items-end`}>
                 <ChevronDownIcon
                   size={20}
@@ -593,6 +602,7 @@ function GroupsTable({ groupList }) {
               <CustomTableCell className={`${groupsStyles.edgeCell} !w-[8px] rounded-r-lg border-l-0 px-0`}>
                 &nbsp;
               </CustomTableCell>
+
               <CustomTableCell className={`px-0 leading-none`}>&nbsp;</CustomTableCell>
             </CustomTableRow>
 
@@ -911,5 +921,33 @@ function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
         </div>
       </PopoverContent>
     </Popover>
+  )
+}
+
+function AliasList({ aliasArray, groupId }) {
+  const [isExpanded, setIsExpanded] = useState('')
+  if (aliasArray.length === 1) {
+    return <span>{aliasArray[0]}</span>
+  }
+  return (
+    <CustomListAccordion type="single " collapsible value={isExpanded} onValueChange={setIsExpanded}>
+      <CustomListAccordionItem value={groupId} className="text-sm">
+        <CustomListAccordionContent>
+          {aliasArray.map((alias) => (
+            <div key={alias}>{alias}</div>
+          ))}
+        </CustomListAccordionContent>
+        <CustomListAccordionTrigger>
+          {isExpanded === groupId ? (
+            <span className={`${groupsStyles.secondaryTextChart5}`}>Show less</span>
+          ) : (
+            <span>
+              <span style={{ pointerEvents: 'none' }}>{aliasArray[0]}</span>
+              <span className={`${groupsStyles.secondaryTextChart5}`}>{` + ${aliasArray.length - 1} more`}</span>
+            </span>
+          )}
+        </CustomListAccordionTrigger>
+      </CustomListAccordionItem>
+    </CustomListAccordion>
   )
 }
