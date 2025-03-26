@@ -60,6 +60,7 @@ import {
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CustomSelectTrigger } from '@/components/ui/custom-filter-select'
+import { PopoverClose } from '@radix-ui/react-popover'
 
 //constants
 //Object with strings for the "Who can join" field of the groups's card. Used to get strings with title and description by the setting name.
@@ -474,13 +475,13 @@ function TopPanel({ hiddenClass, setHiddenClass, filterState }) {
         {filterState !== initialState && (
           <div className="flex flex-wrap gap-2">
             {filterState.query && (
-              <div className={`text-sm  py-1 px-3 ${groupsStyles.roundBorder} ${groupsStyles.thinShadow} w-content`}>
+              <div className={groupsStyles.filterButtonOrChip}>
                 Showing search result of <span className="font-semibold">{`'${filterState.query}'`}</span>
               </div>
             )}
             {filterState.numberOfMembers &&
               (filterState.numberOfMembers[0] !== '' || filterState.numberOfMembers[1] !== '') && (
-                <div className={`text-sm  py-1 px-3 ${groupsStyles.roundBorder} ${groupsStyles.thinShadow} w-content`}>
+                <div className={groupsStyles.filterButtonOrChip}>
                   {`${filterTitles['numberOfMembers']}: ${
                     filterState.numberOfMembers[0] === '' ? '0' : filterState.numberOfMembers[0]
                   } - ${filterState.numberOfMembers[1] === '' ? 'all' : filterState.numberOfMembers[1]}`}
@@ -489,10 +490,7 @@ function TopPanel({ hiddenClass, setHiddenClass, filterState }) {
             {Object.entries(filterState).map(([filter, value]) => {
               if (filter !== 'query' && filter !== 'numberOfMembers' && value !== '') {
                 return (
-                  <div
-                    key={filter}
-                    className={`text-sm py-1 px-3 ${groupsStyles.roundBorder} ${groupsStyles.thinShadow} w-content`}
-                  >
+                  <div key={filter} className={groupsStyles.filterButtonOrChip}>
                     {filterTitles[filter]}: {value}
                   </div>
                 )
@@ -843,7 +841,6 @@ function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
 
   function setTitle() {
     dispatchFilterState({ type: filter, value: [minValue, maxValue] })
-    // if (minValue === '' && maxValue === '') return
   }
   const handleMinValueChange = (value) => {
     setMinValue(value.toString())
@@ -855,7 +852,7 @@ function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button className="flex w-content px-3 font-normal py-1.5 rounded-lg h-9 border border-input bg-transparent text-sm gap-2 items-center justify-between whitespace-nowrap shadow-menu1 shadow-menu2 ring-offset-background placeholder:text-muted-foreground focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1">
+        <button className={groupsStyles.filterButtonOrChip}>
           <span>{`Number of members ${
             filterState[filter][0] !== '' || filterState[filter][1] !== '' ? ':' : ''
           }`}</span>
@@ -877,6 +874,10 @@ function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
                 setMinValue('')
                 setMaxValue('')
                 dispatchFilterState({ type: filter, value: ['', ''] })
+                setTimeout(() => {
+                  const closeButton = document.getElementById('popover-close-button')
+                  if (closeButton) closeButton.click()
+                }, 100)
               }}
             />
           )}
@@ -884,6 +885,11 @@ function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
       </PopoverTrigger>
       <PopoverContent className="max-w-[188px]" onInteractOutside={setTitle}>
         <div className="flex gap-x-2 items-center justify-evenly">
+          <PopoverClose asChild>
+            <button id="popover-close-button" className="hidden">
+              X
+            </button>
+          </PopoverClose>
           <Input
             type="number"
             min="0"

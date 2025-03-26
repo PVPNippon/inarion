@@ -37,6 +37,9 @@ export const groupsStyles = {
   gridHeader: 'flex flex-col items-center align-middle',
   gridColumnName: 'text-center text-[10px]/3 p-2 break-words max-w-[76px] h-[40px]',
   gridRow: 'text-nowrap text-xs text-left py-3 border-none',
+  //filters and filter chips
+  filterButtonOrChip:
+    'flex h-9 gap-2 items-center justify-between whitespace-nowrap rounded-lg border border-input bg-transparent px-3 py-1.5 text-sm shadow-menu1 shadow-menu2 ring-offset-background placeholder:text-muted-foreground focus:outline-none  disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 relative',
 }
 
 export const groupElementIds = {
