@@ -279,9 +279,10 @@ async function storeMembers(req, res, next) {
 
   if (cachedGroupId) {
     try {
-      const result = await includeDerivedMembership
+      const result = await (includeDerivedMembership
         ? groupsCacheService.overwriteDescendantsById(cachedGroupId, members)
         : groupsCacheService.overwriteMembersById(cachedGroupId, members)
+      )
       
       console.log(`Stored ${includeDerivedMembership ? 'direct and indirect' : 'direct'} members in the cache:`, result)
     } catch (error) {
@@ -292,7 +293,6 @@ async function storeMembers(req, res, next) {
 
   // If the group ID is not in the cache, get the group instance by the API
   // and store the group ID, instance, and members in the cache
-
   let group
 
   try {
