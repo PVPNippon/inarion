@@ -15,6 +15,7 @@ import {
   Building,
   Check,
   X,
+  XCircle,
 } from 'lucide-react'
 import { groupsStyles } from '@/app/ui/variables/group-variables'
 import CsvDownloadButton from 'react-json-to-csv'
@@ -143,6 +144,18 @@ function GroupsManager() {
       setGroupList([])
       setEmptyResult(false)
       setHiddenClass('hidden')
+
+      //imitate empty result
+      if (filterState.query === 'empty') {
+        setEmptyResult(true)
+        return
+      }
+
+      //imitate error
+      if (filterState.query === 'error') {
+        setError('error')
+        return
+      }
 
       const groupsDummyData = [
         {
@@ -343,7 +356,7 @@ function GroupsManager() {
     }
   }
   return (
-    <div style={{ height: emptyResult && `calc(100vh - 288px)` }} className="mx-8 mb-6">
+    <div style={{ height: (emptyResult || error) && `calc(100vh - 288px)` }} className="mx-8 mb-6">
       {/* apply custom height only when emptyResult is displayed(maybe it should also be set when there is an error screen in the future) */}
       <div className="flex flex-col gap-y-3.5">
         <div className="text-2xl font-medium leading-7">Groups Manager</div>
@@ -361,20 +374,34 @@ function GroupsManager() {
           fetchGroupsTable={fetchGroupsTable}
         />
 
-        {!isLoading && !error && hiddenClass === 'hidden' && (
+        {!isLoading && hiddenClass === 'hidden' && (
           <FilterChipPanel
             hiddenClass={hiddenClass}
             setHiddenClass={setHiddenClass}
             groupList={groupList}
             filterState={filterState}
+            setEmptyResult={setEmptyResult}
+            setError={setError}
           />
         )}
       </div>
 
       {isLoading && <Loader />}
       {!isLoading && !error && groupList.length > 0 && <GroupsTable groupList={groupList} />}
-      {error && <ErrorMessage message={error.message} />}
-      {emptyResult && <EmptyResult />}
+      {!isLoading && emptyResult && (
+        <EmptyResultOrError
+          type="search"
+          title="There are no matching results."
+          description="Try another search, or find items by changing your filters."
+        />
+      )}
+      {!isLoading && error && (
+        <EmptyResultOrError
+          type="error"
+          title="There was an error."
+          description="Please wait a while and then try again."
+        />
+      )}
     </div>
   )
 }
@@ -451,29 +478,18 @@ function Loader() {
   return <p>Loading...</p>
 }
 
-/**
- * A component that displays an error message.
- *
- * @param {{ message: string }} props The props object.
- * @prop {string} message The error message to display.
- *
- * @returns {JSX.Element} The JSX element containing the error message.
- */
-function ErrorMessage({ message }) {
-  return <p>{message}</p>
-}
-
-function EmptyResult() {
+function EmptyResultOrError({ type, title, description }) {
   return (
     <div className={`${groupsStyles.roundBorder} w-full h-full mt-3 pb-7 flex flex-col items-center justify-center`}>
-      <SearchIcon size={116} className="text-muted-foreground" />
-      <p className="text-2xl font-medium leading-10">There are no matching results</p>
-      <p className="text-xs leading-6">Try another search, or find items by changing your filters.</p>
+      {type === 'search' && <SearchIcon size={116} className="text-muted-foreground" />}
+      {type === 'error' && <XCircle size={116} strokeWidth={1.2} className="text-destructive" />}
+      <p className="text-2xl font-medium leading-10">{title}</p>
+      <p className="text-xs leading-6">{description}</p>
     </div>
   )
 }
 
-function FilterChipPanel({ hiddenClass, setHiddenClass, filterState }) {
+function FilterChipPanel({ hiddenClass, setHiddenClass, filterState, setEmptyResult, setError }) {
   return (
     <div className={`flex items-center justify-between py-3 px-4 ${hiddenClass === 'hidden' ? '' : 'hidden'}`}>
       {filterState !== initialState && (
@@ -507,6 +523,8 @@ function FilterChipPanel({ hiddenClass, setHiddenClass, filterState }) {
         <Button
           className={`${groupsStyles.buttonPadding}`}
           onClick={() => {
+            setEmptyResult(false)
+            setError('')
             if (hiddenClass === 'hidden') {
               setHiddenClass('')
             }
