@@ -195,13 +195,13 @@ function getGroupsByIds(groupIds) {
  * @returns {Promise<Array<string|boolean>} A Promise object which resolves to an array whose length is 2.
  *   - The first element of the array is a string 'OK'.
  *   - The second element is `true` (the meaning of this value is that the TTL was set to the key).
- * @see {@link redisCacheService.setJsonInRedis|setJsonInRedis} (formerly setJson)
+ * @see {@link redisCacheService.setJsonWithTtlMode|setJsonWithTtlMode} (formerly setJson)
  */
 function setGroup(group) {
   const id = group.id
   const key = `${config.DOMAIN_TEST}:groups:${id}:info`
   const ttl = Number(config.TTL)
-  return redisCacheService.setJsonInRedis(key, group, null, ttl)
+  return redisCacheService.setJsonWithTtlMode(key, group, ttl)
 }
 
 /**
@@ -216,7 +216,7 @@ function setGroup(group) {
  *   - The `i+2`-th element (`0 <= i < N`) is `true` (the meaning of this value is that the TTL was set to the key of `groups[i]`).
  * @throws {Error} The returned Promise object resolves to an error if `groups` is empty ([]).
  *   // TODO (r.hidaka): Consider changing the behavior in this case
- * @see {@link redisCacheService.setJsons|setJsons}
+ * @see {@link redisCacheService.setJsonsWithTtlMode|setJsonsWithTtlMode}
  */
 function setGroups(groups) {
   const idsToGroupsObj = {}

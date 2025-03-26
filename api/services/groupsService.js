@@ -84,21 +84,22 @@ async function getGroupByEmail({ userEmail, groupEmail, client }) {
  * a boolean indicating whether to include indirect members, and optionally an existing impersonated auth client for Directory API.
  * It uses these values to authorize make a request to the Google Admin Directory API
  * to retrieve the list of members of the group.
- *
- * @param {Object} options - An object containing the following properties:
- *   - {string} userEmail - The email address of the user to impersonate.
- *   - {string} groupEmail - The email address of the group to retrieve.
- *   - {boolean} includeDerivedMembership - Whether to include indirect members in the list.
- *   - {Object} [client] - An existing impersonated auth client for Directory API.
- * @returns {Promise<Object[]>} - A promise that resolves to the list of members of the group or an error message.
- * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ * 
+ * @param {Object} params - The object containing the `userEmail`, `groupEmail`, `includeDerivedMembership` and optional `client` in the request body.
+ * @param {string} params.userEmail - The email address of the user performing the action.
+ * @param {string} params.groupEmail - The email address of the group to retrieve the members of.
+ * @param {boolean} params.includeDerivedMembership - Whether to include indirect members in the list. Note that indirect external members are not retrieved.
+ * @param {Object} [params.client] - The pre-authorized client to use for the API call.
+ * @returns {Promise<Object[]>} A promise that resolves to the list of members of the group.
+ *                              Note that direct external members ('type' is either 'USER' or 'GROUP')
+ *                              and 'All Users In The Organization' ('type' is 'CUSTOMER') do not have the 'status' property.
+ * @throws {Error} Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 async function listGroupMembers({ userEmail, groupEmail, includeDerivedMembership, client }) {
   //Retrieve an existing impersonated auth client for Directory API or create a new one
-  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+  const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
 
-  // Create the request object
-  const requestObj = {
+  const requestParams = {
     groupKey: groupEmail,
     maxResults: 200, //max allowed value
     includeDerivedMembership,
@@ -108,17 +109,30 @@ async function listGroupMembers({ userEmail, groupEmail, includeDerivedMembershi
   let membersResponse // Response from the API
 
   do {
-    // Fetch members
-    membersResponse = await directory.members.list(requestObj)
+    membersResponse = await directoryClient.members.list(requestParams)
 
     // If there are no members in the group, return an empty array
-    if (typeof membersResponse.data.members === 'undefined') break
+    if (typeof membersResponse.data.members === 'undefined') {
+      break
+    }
 
-    // Append the fetched groups to the members array
     members.push(...membersResponse.data.members)
-  } while ((requestObj.pageToken = membersResponse.data.nextPageToken)) // Continue fetching users while there are more pages
+  } while ((requestParams.pageToken = membersResponse.data.nextPageToken))
 
-  return members // Return all fetched members
+  // Format member instances
+  members.forEach(member => {
+    delete member.kind
+    delete member.etag
+
+    // If `type` of a member is 'CUSTOMER', it is 'All Users In The Organization' and it does not have the `status` property
+    // If `type` of a member is not 'CUSTOMER' (it is either 'USER' or 'GROUP'), it has the `status` property only if it is an internal user or group
+
+    // This method of determining whether or not a member is external by the absence of the `status` property is kind of ad hoc
+    // For a more accurate determination, all user IDs and group IDs in the organization should be used
+    member.isExternal = member.type !== 'CUSTOMER' && !member.status
+  })
+
+  return members
 }
 
 /**

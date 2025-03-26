@@ -83,7 +83,7 @@ exports.getGroup = async (req, res, next) => {
  * @returns {Promise<void>} Responds with the list of direct members or an error message.
  * @throws {Error} Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-exports.listDirectMembers = async (req, res, next) => {
+exports.listMembers = async (req, res, next) => {
   if (res.locals.cached) {
     return next()
   }
@@ -96,49 +96,10 @@ exports.listDirectMembers = async (req, res, next) => {
     const members = await groupsService.listGroupMembers({
       userEmail,
       groupEmail,
-      includeDerivedMembership: false, //set derived membership to false
+      includeDerivedMembership: res.locals.includeDerivedMembership,
     })
 
     res.locals.data = members
-  } catch (error) {
-    if (error.status === 404 || error.status === 403) {
-      res.locals.statusCode = 404
-      res.locals.data = { message: 'Group does not exist or you do not have necessary permissions to see this group' }
-    } else {
-      res.locals.statusCode = 500
-      res.locals.data = { message: 'Error fetching members' }
-    }
-    logger.error(error)
-  }
-  next()
-}
-
-/**
- * Retrieves the list of all members of a group, both direct and indirect.
- *
- * @param {Object} req - The request object containing `userEmail` in the query parameter and `groupEmail` in the path parameter.
- * @param {Object} res - The response object used to return the list of all members or an error message.
- * @param {Function} next - The next middleware function in the stack.
- * @returns {Promise<void>} Responds with the list of all members or an error message.
- * @throws {Error} Throws an error if the service account key is not found or if there is an issue with the API call.
- */
-exports.listAllMembers = async (req, res, next) => {
-  if (res.locals.cached) {
-    return next()
-  }
-
-  const { userEmail } = req.query
-  const { groupEmail } = req.params
-
-  try {
-    // Fetch an array of all direct and indirect members
-    const descendants = await groupsService.listGroupMembers({
-      userEmail,
-      groupEmail,
-      includeDerivedMembership: true, //set derived membership to true
-    })
-
-    res.locals.data = descendants
   } catch (error) {
     if (error.status === 404 || error.status === 403) {
       res.locals.statusCode = 404
