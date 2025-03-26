@@ -61,6 +61,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CustomSelectTrigger } from '@/components/ui/custom-filter-select'
 import { PopoverClose } from '@radix-ui/react-popover'
+import { Switch } from '@/components/ui/switch'
 
 //constants
 //Object with strings for the "Who can join" field of the groups's card. Used to get strings with title and description by the setting name.
@@ -108,6 +109,7 @@ function GroupsManager() {
   const [isLoading, setIsLoading] = useState(false)
   const [emptyResult, setEmptyResult] = useState(false)
   const [hiddenClass, setHiddenClass] = useState('')
+  const [includeAliases, setIncludeAliases] = useState(false)
   const email = 'testadmin@pvp-test-domain2.com'
 
   const filterReducer = (state, action) => {
@@ -358,7 +360,8 @@ function GroupsManager() {
 
       <InputForm
         hiddenClass={hiddenClass}
-        groupList={groupList}
+        includeAliases={includeAliases}
+        setIncludeAliases={setIncludeAliases}
         filterState={filterState}
         dispatchFilterState={dispatchFilterState}
       />
@@ -380,7 +383,7 @@ function GroupsManager() {
 
 export default GroupsManager
 
-function InputForm({ hiddenClass, groupList, filterState, dispatchFilterState }) {
+function InputForm({ hiddenClass, includeAliases, setIncludeAliases, filterState, dispatchFilterState }) {
   // Define the schema with Zod
   const FormSchema = z.object({
     query: z.string(),
@@ -403,26 +406,37 @@ function InputForm({ hiddenClass, groupList, filterState, dispatchFilterState })
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className={hiddenClass}>
-        <div className="flex flex-col gap-y-4">
-          <FormField
-            control={form.control}
-            name="query"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <Input
-                    className={`text-muted-foreground ${groupsStyles.searchBarWidth} `}
-                    type="string"
-                    name="query"
-                    placeholder="Enter a group name or group email address"
-                    hasIcon={true}
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <div className="flex flex-col gap-y-4 w-full">
+          <div className="flex flex-row w-full gap-x-10">
+            <FormField
+              control={form.control}
+              name="query"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <Input
+                      className={`text-muted-foreground ${groupsStyles.searchBarWidthVariantB} `}
+                      type="string"
+                      name="query"
+                      placeholder="Enter a group name or group email address"
+                      hasIcon={true}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex items-center gap-3 w-full lg:w-auto">
+              <Label htmlFor="group-alias-switch">Include group aliases</Label>
+              <Switch
+                id="group-alias-switch"
+                checked={includeAliases}
+                onCheckedChange={() => setIncludeAliases(!includeAliases)}
+              />
+            </div>
+          </div>
+
           <Filters filterState={filterState} dispatchFilterState={dispatchFilterState} />
         </div>
 
@@ -864,11 +878,11 @@ function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
               </span>
             </>
           )}{' '}
-          <ChevronDownIcon className="h-4 w-4 opacity-50 ml-auto" />
+          <ChevronDownIcon className="h-4 w-4 opacity-50 ml-auto " />
           {(filterState[filter][0] !== '' || filterState[filter][1] !== '') && (
             <X
               size={16}
-              className="opacity-50"
+              className="opacity-50 "
               onClick={() => {
                 setOpen(false)
                 setMinValue('')
