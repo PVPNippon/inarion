@@ -5,16 +5,25 @@
  * @returns {JSX.Element} A JSX element with a heading and a paragraph that says
  * this is a placeholder for the people page.
  */
+import { useState } from 'react'
+import Title from '@/app/ui/components/user-title'
+import Search from '@/app/ui/components/user-search'
+import Result from '@/app/ui/components/user-result'
 import { LoggedInUserProvider } from '@/app/ui/contexts/LoggedInUserContext'
 import { ProjectDataProvider } from '@/app/ui/contexts/ProjectDataContext'
-import ListDomainUsers from '@/app/ui/components/ListDomainUsers'
+
 export default function People() {
+  const [showResult, setShowResult] = useState(false)
+
   return (
     <LoggedInUserProvider>
       <ProjectDataProvider>
-        <h2>People</h2>
-        <p>This is a placeholder for the people page.</p>
-        <ListDomainUsers></ListDomainUsers>
+        <Title />
+        {showResult ? (
+          <Result setShowResult={setShowResult} />
+        ) : (
+          <Search showResult={showResult} setShowResult={setShowResult} />
+        )}
       </ProjectDataProvider>
     </LoggedInUserProvider>
   )

@@ -9,6 +9,12 @@ const { encryptResponseMiddleware, decryptRequestMiddleware } = require('../cont
 // decryptRequestMiddleware should be transparent to all requests which do not have the body
 router.use(decryptRequestMiddleware)
 
+// TODO(m.okamoto): 前準備用のエンドポイント追加
+// ユーザーリスト取得
+// フィルター取得
+// 全フィルターのユーザーセットを作る (全フィルターの値の数分ループ)
+router.get('/preparations', usersController.getPreparations)
+
 // route to list all users in customer organization
 router.get(
   '/',

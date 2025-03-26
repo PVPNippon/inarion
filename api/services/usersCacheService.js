@@ -258,7 +258,10 @@ async function getIntersectionIdOfSets(keys) {
   const formattedKeys = keys.map((key) => key.replace(/ +/g, '-'))
 
   // B) Enclose the keys with double quotes. (should be) no need to add anything to saveFilteredUsersCache but couldn't see it is working.
-  // const formattedKeys = keys.map((key) => `"${key}"`)
+  // バックスラッシュを使ってみる
+  // const formattedKeys = keys.map((key) => `\"${key}\"`)
+
+  // C) Encode the keys with base64.
 
   // console.log('keys:', formattedKeys)
   const intersection = await redisCacheService.intersectionOfSets(formattedKeys)
