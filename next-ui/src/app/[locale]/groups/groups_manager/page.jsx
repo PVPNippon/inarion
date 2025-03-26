@@ -17,10 +17,6 @@ import {
   X,
 } from 'lucide-react'
 import { groupsStyles } from '@/app/ui/variables/group-variables'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import CsvDownloadButton from 'react-json-to-csv'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import {
@@ -131,225 +127,215 @@ function GroupsManager() {
 
   const [filterState, dispatchFilterState] = useReducer(filterReducer, initialState)
 
-  useEffect(() => {
-    const controller = new AbortController()
+  function fetchGroupsTable() {
+    if (JSON.stringify(filterState) === JSON.stringify(initialState)) return
 
-    function fetchGroupsTable() {
-      if (filterState.query === '') return // TODO: need to discuss with team, will we allow empty queries if at least one filter selected?
+    try {
+      //reset states
+      setIsLoading(true)
+      setError('')
+      setGroupList([])
+      setEmptyResult(false)
+      setHiddenClass('hidden')
 
-      try {
-        //reset states
-        setIsLoading(true)
-        setError('')
-        setGroupList([])
-        setEmptyResult(false)
-        setHiddenClass('hidden')
+      const groupsDummyData = [
+        {
+          name: 'Group1',
+          email: 'group1@pvp-test-domain2.com',
+          members: 50,
+          hasExternalMembers: true,
 
-        const groupsDummyData = [
-          {
-            name: 'Group1',
-            email: 'group1@pvp-test-domain2.com',
-            members: 50,
-            hasExternalMembers: true,
+          emailAliases: ['group1@sub.pvp-test-domain2.com', 'group1@alias.pvp-test-domain2.com'],
 
-            emailAliases: ['group1@sub.pvp-test-domain2.com', 'group1@alias.pvp-test-domain2.com'],
-
-            settings: {
-              access: [
-                {
-                  owners: {
-                    canContact: true,
-                    canViewConversations: true,
-                    canPost: true,
-                    canViewMembers: true,
-                    canManageMembers: true,
-                  },
+          settings: {
+            access: [
+              {
+                owners: {
+                  canContact: true,
+                  canViewConversations: true,
+                  canPost: true,
+                  canViewMembers: true,
+                  canManageMembers: true,
                 },
-                {
-                  managers: {
-                    canContact: true,
-                    canViewConversations: true,
-                    canPost: true,
-                    canViewMembers: true,
-                    canManageMembers: true,
-                  },
+              },
+              {
+                managers: {
+                  canContact: true,
+                  canViewConversations: true,
+                  canPost: true,
+                  canViewMembers: true,
+                  canManageMembers: true,
                 },
-                {
-                  members: {
-                    canContact: true,
-                    canViewConversations: true,
-                    canPost: true,
-                    canViewMembers: true,
-                    canManageMembers: false,
-                  },
+              },
+              {
+                members: {
+                  canContact: true,
+                  canViewConversations: true,
+                  canPost: true,
+                  canViewMembers: true,
+                  canManageMembers: false,
                 },
-                {
-                  organization: {
-                    canContact: true,
-                    canViewConversations: true,
-                    canPost: true,
-                    canViewMembers: true,
-                    canManageMembers: false,
-                  },
+              },
+              {
+                organization: {
+                  canContact: true,
+                  canViewConversations: true,
+                  canPost: true,
+                  canViewMembers: true,
+                  canManageMembers: false,
                 },
-                {
-                  external: {
-                    canContact: true,
-                    canViewConversations: true,
-                    canPost: true,
-                    canViewMembers: false,
-                    canManageMembers: false,
-                  },
+              },
+              {
+                external: {
+                  canContact: true,
+                  canViewConversations: true,
+                  canPost: true,
+                  canViewMembers: false,
+                  canManageMembers: false,
                 },
-              ],
+              },
+            ],
 
-              whoCanJoin: 'CAN_REQUEST_TO_JOIN',
-              allowExternalMembers: 'true', //google returns it as string, so changing to string for now
-              whoCanLeaveGroup: 'ALL_MEMBERS_CAN_LEAVE',
-            },
+            whoCanJoin: 'CAN_REQUEST_TO_JOIN',
+            allowExternalMembers: 'true', //google returns it as string, so changing to string for now
+            whoCanLeaveGroup: 'ALL_MEMBERS_CAN_LEAVE',
           },
-          {
-            name: 'Group2',
-            email: 'group2@pvp-test-domain2.com',
-            members: 10,
-            hasExternalMembers: false,
+        },
+        {
+          name: 'Group2',
+          email: 'group2@pvp-test-domain2.com',
+          members: 10,
+          hasExternalMembers: false,
 
-            emailAliases: ['group2@sub.pvp-test-domain2.com', 'group2@test-a-google-blah@pvp-test-domain2.com'],
+          emailAliases: ['group2@sub.pvp-test-domain2.com', 'group2@test-a-google-blah@pvp-test-domain2.com'],
 
-            settings: {
-              access: [
-                {
-                  owners: {
-                    canContact: true,
-                    canViewConversations: true,
-                    canPost: true,
-                    canViewMembers: true,
-                    canManageMembers: true,
-                  },
+          settings: {
+            access: [
+              {
+                owners: {
+                  canContact: true,
+                  canViewConversations: true,
+                  canPost: true,
+                  canViewMembers: true,
+                  canManageMembers: true,
                 },
-                {
-                  managers: {
-                    canContact: true,
-                    canViewConversations: true,
-                    canPost: true,
-                    canViewMembers: true,
-                    canManageMembers: true,
-                  },
+              },
+              {
+                managers: {
+                  canContact: true,
+                  canViewConversations: true,
+                  canPost: true,
+                  canViewMembers: true,
+                  canManageMembers: true,
                 },
-                {
-                  members: {
-                    canContact: true,
-                    canViewConversations: true,
-                    canPost: true,
-                    canViewMembers: true,
-                    canManageMembers: false,
-                  },
+              },
+              {
+                members: {
+                  canContact: true,
+                  canViewConversations: true,
+                  canPost: true,
+                  canViewMembers: true,
+                  canManageMembers: false,
                 },
-                {
-                  organization: {
-                    canContact: true,
-                    canViewConversations: false,
-                    canPost: false,
-                    canViewMembers: false,
-                    canManageMembers: false,
-                  },
+              },
+              {
+                organization: {
+                  canContact: true,
+                  canViewConversations: false,
+                  canPost: false,
+                  canViewMembers: false,
+                  canManageMembers: false,
                 },
-                {
-                  external: {
-                    canContact: false,
-                    canViewConversations: false,
-                    canPost: false,
-                    canViewMembers: false,
-                    canManageMembers: false,
-                  },
+              },
+              {
+                external: {
+                  canContact: false,
+                  canViewConversations: false,
+                  canPost: false,
+                  canViewMembers: false,
+                  canManageMembers: false,
                 },
-              ],
+              },
+            ],
 
-              whoCanJoin: 'INVITED_CAN_JOIN',
-              allowExternalMembers: 'false', //google returns it as string, so changing to string for now
-              whoCanLeaveGroup: 'NONE_CAN_LEAVE',
-            },
+            whoCanJoin: 'INVITED_CAN_JOIN',
+            allowExternalMembers: 'false', //google returns it as string, so changing to string for now
+            whoCanLeaveGroup: 'NONE_CAN_LEAVE',
           },
-          {
-            name: 'Public Group',
-            email: 'group3@pvp-test-domain2.com',
-            members: 1500,
-            hasExternalMembers: true,
+        },
+        {
+          name: 'Public Group',
+          email: 'group3@pvp-test-domain2.com',
+          members: 1500,
+          hasExternalMembers: true,
 
-            emailAliases: ['product_discussions@pvp-test-domain2.com'],
+          emailAliases: ['product_discussions@pvp-test-domain2.com'],
 
-            settings: {
-              access: [
-                {
-                  owners: {
-                    canContact: true,
-                    canViewConversations: true,
-                    canPost: true,
-                    canViewMembers: true,
-                    canManageMembers: true,
-                  },
+          settings: {
+            access: [
+              {
+                owners: {
+                  canContact: true,
+                  canViewConversations: true,
+                  canPost: true,
+                  canViewMembers: true,
+                  canManageMembers: true,
                 },
-                {
-                  managers: {
-                    canContact: true,
-                    canViewConversations: true,
-                    canPost: true,
-                    canViewMembers: true,
-                    canManageMembers: true,
-                  },
+              },
+              {
+                managers: {
+                  canContact: true,
+                  canViewConversations: true,
+                  canPost: true,
+                  canViewMembers: true,
+                  canManageMembers: true,
                 },
-                {
-                  members: {
-                    canContact: true,
-                    canViewConversations: true,
-                    canPost: true,
-                    canViewMembers: true,
-                    canManageMembers: false,
-                  },
+              },
+              {
+                members: {
+                  canContact: true,
+                  canViewConversations: true,
+                  canPost: true,
+                  canViewMembers: true,
+                  canManageMembers: false,
                 },
-                {
-                  organization: {
-                    canContact: true,
-                    canViewConversations: true,
-                    canPost: true,
-                    canViewMembers: true,
-                    canManageMembers: true,
-                  },
+              },
+              {
+                organization: {
+                  canContact: true,
+                  canViewConversations: true,
+                  canPost: true,
+                  canViewMembers: true,
+                  canManageMembers: true,
                 },
-                {
-                  external: {
-                    canContact: true,
-                    canViewConversations: true,
-                    canPost: true,
-                    canViewMembers: false,
-                    canManageMembers: false,
-                  },
+              },
+              {
+                external: {
+                  canContact: true,
+                  canViewConversations: true,
+                  canPost: true,
+                  canViewMembers: false,
+                  canManageMembers: false,
                 },
-              ],
+              },
+            ],
 
-              whoCanJoin: 'ANYONE_CAN_JOIN',
-              allowExternalMembers: 'true', //google returns it as string, so changing to string for now
-              whoCanLeaveGroup: 'ALL_MEMBERS_CAN_LEAVE',
-            },
+            whoCanJoin: 'ANYONE_CAN_JOIN',
+            allowExternalMembers: 'true', //google returns it as string, so changing to string for now
+            whoCanLeaveGroup: 'ALL_MEMBERS_CAN_LEAVE',
           },
-        ]
+        },
+      ]
 
-        setGroupList(groupsDummyData)
-      } catch (error) {
-        setError(error)
-      } finally {
-        setTimeout(() => {
-          setIsLoading(false)
-        }, 3000)
-      }
+      setGroupList(groupsDummyData)
+    } catch (error) {
+      setError(error)
+    } finally {
+      setTimeout(() => {
+        setIsLoading(false)
+      }, 1000)
     }
-    fetchGroupsTable()
-
-    // Abort the API call when the component unmounts
-    return function () {
-      controller.abort()
-    }
-  }, [filterState.query])
+  }
   return (
     <div style={{ height: emptyResult && `calc(100vh - 288px)` }} className="mx-8 mb-6">
       {/* apply custom height only when emptyResult is displayed(maybe it should also be set when there is an error screen in the future) */}
@@ -364,9 +350,10 @@ function GroupsManager() {
         setIncludeAliases={setIncludeAliases}
         filterState={filterState}
         dispatchFilterState={dispatchFilterState}
+        fetchGroupsTable={fetchGroupsTable}
       />
       {isLoading && <Loader />}
-      {!isLoading && !error && filterState.query && (
+      {!isLoading && !error && hiddenClass === 'hidden' && (
         <TopPanel
           hiddenClass={hiddenClass}
           setHiddenClass={setHiddenClass}
@@ -383,70 +370,63 @@ function GroupsManager() {
 
 export default GroupsManager
 
-function InputForm({ hiddenClass, includeAliases, setIncludeAliases, filterState, dispatchFilterState }) {
-  // Define the schema with Zod
-  const FormSchema = z.object({
-    query: z.string(),
-  })
-
-  // Initialize the form using react-hook-form and Zod resolver for validation
-  const form = useForm({
-    resolver: zodResolver(FormSchema),
-    defaultValues: {
-      query: '',
-    },
-  })
-
-  function onSubmit(data) {
-    dispatchFilterState({
-      type: 'query',
-      value: data.query,
-    })
-  }
+function InputForm({
+  hiddenClass,
+  includeAliases,
+  setIncludeAliases,
+  filterState,
+  dispatchFilterState,
+  fetchGroupsTable,
+}) {
+  const [disabled, setDisabled] = useState(true)
+  useEffect(() => {
+    if (JSON.stringify(filterState) === JSON.stringify(initialState)) {
+      setDisabled(true)
+    } else {
+      setDisabled(false)
+    }
+  }, [filterState])
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className={hiddenClass}>
-        <div className="flex flex-col gap-y-4 w-full">
-          <div className="flex flex-row w-full gap-x-10">
-            <FormField
-              control={form.control}
-              name="query"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input
-                      className={`text-muted-foreground ${groupsStyles.searchBarWidthVariantB} `}
-                      type="string"
-                      name="query"
-                      placeholder="Enter a group name or group email address"
-                      hasIcon={true}
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+    <div className={`flex flex-col gap-y-7  ${hiddenClass}`}>
+      <div className={`flex flex-col gap-y-5`}>
+        <div className="flex flex-row justify-between gap-x-10 w-[875px]">
+          <Input
+            className={`text-muted-foreground ${groupsStyles.searchBarWidthVariantB} ${groupsStyles.roundBorder} py-3 h-[40px]`}
+            type="string"
+            name="query"
+            placeholder={
+              includeAliases
+                ? 'Enter a group name, group email address or alias address'
+                : 'Enter a group name or group email address'
+            }
+            hasIcon={true}
+            value={filterState.query}
+            onChange={(e) => dispatchFilterState({ type: 'query', value: e.target.value })}
+          />
+
+          <div className="flex gap-3 w-full items-center justify-end">
+            <Label htmlFor="group-alias-switch">Include group aliases</Label>
+            <Switch
+              id="group-alias-switch"
+              checked={includeAliases}
+              onCheckedChange={() => setIncludeAliases(!includeAliases)}
             />
-            <div className="flex items-center gap-3 w-full lg:w-auto">
-              <Label htmlFor="group-alias-switch">Include group aliases</Label>
-              <Switch
-                id="group-alias-switch"
-                checked={includeAliases}
-                onCheckedChange={() => setIncludeAliases(!includeAliases)}
-              />
-            </div>
           </div>
-
-          <Filters filterState={filterState} dispatchFilterState={dispatchFilterState} />
         </div>
 
-        <div className="flex gap-x-4 my-6">
-          <Button className={`${groupsStyles.buttonPadding}`} type="submit">
-            Go
-          </Button>
-        </div>
-      </form>
-    </Form>
+        <Filters filterState={filterState} dispatchFilterState={dispatchFilterState} />
+      </div>
+      <div>
+        <Button
+          className={`${groupsStyles.buttonPadding}`}
+          type="button"
+          disabled={disabled}
+          onClick={fetchGroupsTable}
+        >
+          Go
+        </Button>
+      </div>
+    </div>
   )
 }
 
@@ -570,7 +550,7 @@ function GroupsTable({ groupList }) {
       <CustomTableBody>
         {groupList.map((group, index) => (
           <React.Fragment key={`${group.email}-fragment-${index}`}>
-            <CustomTableRow key={'top-row'} className={`border-none py-0`}>
+            <CustomTableRow key={`${group.email}-top-row-${index}`} className={`border-none py-0`}>
               <CustomTableCell className={groupsStyles.dummyCell}>&nbsp;</CustomTableCell>
             </CustomTableRow>
             <CustomTableRow
@@ -675,7 +655,7 @@ function AccessSettingsGrid({ accessData }) {
     <Table>
       <TableHeader>
         <TableRow className="hover:bg-background">
-          <TableCell>&nbsp;</TableCell> {/* empty cell for row headers */}
+          <TableCell>&nbsp;</TableCell>
           <TableCell>
             <TableHeaderCell columnName={'Owners'}>
               <UserRoundCog />
