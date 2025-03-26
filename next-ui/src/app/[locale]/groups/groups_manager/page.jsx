@@ -339,28 +339,33 @@ function GroupsManager() {
   return (
     <div style={{ height: emptyResult && `calc(100vh - 288px)` }} className="mx-8 mb-6">
       {/* apply custom height only when emptyResult is displayed(maybe it should also be set when there is an error screen in the future) */}
-      <p className="mb-3.5 text-2xl font-medium leading-7">Groups Manager</p>
-      <p className="text-lg text-muted-foreground mb-3 leading-5">
-        {emptyResult || groupList.length > 0 ? 'Search results' : 'List groups'}
-      </p>
-
-      <InputForm
-        hiddenClass={hiddenClass}
-        includeAliases={includeAliases}
-        setIncludeAliases={setIncludeAliases}
-        filterState={filterState}
-        dispatchFilterState={dispatchFilterState}
-        fetchGroupsTable={fetchGroupsTable}
-      />
-      {isLoading && <Loader />}
-      {!isLoading && !error && hiddenClass === 'hidden' && (
-        <TopPanel
+      <div className="flex flex-col gap-y-3.5">
+        <div className="text-2xl font-medium leading-7">Groups Manager</div>
+        <div className="text-lg text-muted-foreground leading-5">
+          {emptyResult || groupList.length > 0 ? 'Search results' : 'List groups'}
+        </div>
+      </div>
+      <div className="my-3">
+        <SearchAndFilterPanel
           hiddenClass={hiddenClass}
-          setHiddenClass={setHiddenClass}
-          groupList={groupList}
+          includeAliases={includeAliases}
+          setIncludeAliases={setIncludeAliases}
           filterState={filterState}
+          dispatchFilterState={dispatchFilterState}
+          fetchGroupsTable={fetchGroupsTable}
         />
-      )}
+
+        {!isLoading && !error && hiddenClass === 'hidden' && (
+          <FilterChipPanel
+            hiddenClass={hiddenClass}
+            setHiddenClass={setHiddenClass}
+            groupList={groupList}
+            filterState={filterState}
+          />
+        )}
+      </div>
+
+      {isLoading && <Loader />}
       {!isLoading && !error && groupList.length > 0 && <GroupsTable groupList={groupList} />}
       {error && <ErrorMessage message={error.message} />}
       {emptyResult && <EmptyResult />}
@@ -370,7 +375,7 @@ function GroupsManager() {
 
 export default GroupsManager
 
-function InputForm({
+function SearchAndFilterPanel({
   hiddenClass,
   includeAliases,
   setIncludeAliases,
@@ -387,7 +392,7 @@ function InputForm({
     }
   }, [filterState])
   return (
-    <div className={`flex flex-col gap-y-7  ${hiddenClass}`}>
+    <div className={`flex flex-col my-6 gap-y-7 ${hiddenClass}`}>
       <div className={`flex flex-col gap-y-5`}>
         <div className="flex flex-row justify-between gap-x-10 w-[875px]">
           <Input
@@ -462,38 +467,36 @@ function EmptyResult() {
   )
 }
 
-function TopPanel({ hiddenClass, setHiddenClass, filterState }) {
+function FilterChipPanel({ hiddenClass, setHiddenClass, filterState }) {
   return (
-    <div className={`flex items-center justify-between my-3 ${hiddenClass === 'hidden' ? '' : 'hidden'}`}>
-      <div className={`px-4`}>
-        {filterState !== initialState && (
-          <div className="flex flex-wrap gap-2">
-            {filterState.query && (
+    <div className={`flex items-center justify-between py-3 px-4 ${hiddenClass === 'hidden' ? '' : 'hidden'}`}>
+      {filterState !== initialState && (
+        <div className="flex flex-wrap gap-2">
+          {filterState.query && (
+            <div className={groupsStyles.filterButtonOrChip}>
+              Showing search result of <span className="font-semibold">{`'${filterState.query}'`}</span>
+            </div>
+          )}
+          {filterState.numberOfMembers &&
+            (filterState.numberOfMembers[0] !== '' || filterState.numberOfMembers[1] !== '') && (
               <div className={groupsStyles.filterButtonOrChip}>
-                Showing search result of <span className="font-semibold">{`'${filterState.query}'`}</span>
+                {`${filterTitles['numberOfMembers']}: ${
+                  filterState.numberOfMembers[0] === '' ? '0' : filterState.numberOfMembers[0]
+                } - ${filterState.numberOfMembers[1] === '' ? 'all' : filterState.numberOfMembers[1]}`}
               </div>
             )}
-            {filterState.numberOfMembers &&
-              (filterState.numberOfMembers[0] !== '' || filterState.numberOfMembers[1] !== '') && (
-                <div className={groupsStyles.filterButtonOrChip}>
-                  {`${filterTitles['numberOfMembers']}: ${
-                    filterState.numberOfMembers[0] === '' ? '0' : filterState.numberOfMembers[0]
-                  } - ${filterState.numberOfMembers[1] === '' ? 'all' : filterState.numberOfMembers[1]}`}
+          {Object.entries(filterState).map(([filter, value]) => {
+            if (filter !== 'query' && filter !== 'numberOfMembers' && value !== '') {
+              return (
+                <div key={filter} className={groupsStyles.filterButtonOrChip}>
+                  {filterTitles[filter]}: {value}
                 </div>
-              )}
-            {Object.entries(filterState).map(([filter, value]) => {
-              if (filter !== 'query' && filter !== 'numberOfMembers' && value !== '') {
-                return (
-                  <div key={filter} className={groupsStyles.filterButtonOrChip}>
-                    {filterTitles[filter]}: {value}
-                  </div>
-                )
-              }
-              return null
-            })}
-          </div>
-        )}
-      </div>
+              )
+            }
+            return null
+          })}
+        </div>
+      )}
       <div className="flex flex-col lg:flex-row gap-x-4">
         <Button
           className={`${groupsStyles.buttonPadding}`}
