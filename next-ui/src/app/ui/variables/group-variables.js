@@ -30,9 +30,9 @@ export const groupsStyles = {
   //groups manager page
   //groups table
   tableHead: 'text-nowrap',
-  edgeCell: 'text-nowrap border border-input', //flex is needed for rounded corners, remove it and corners are gone......
+  edgeCell: 'text-nowrap border border-input',
   middleCell: 'text-nowrap border border-y border-input border-x-0',
-  dummyCell: 'text-[8px] py-0 leading-none hover:bg-background',
+  dummyCell: 'text-[2px] py-0 leading-none hover:bg-background',
   //access settings
   gridHeader: 'flex flex-col items-center align-middle',
   gridColumnName: 'text-center text-[10px]/3 p-2 break-words max-w-[76px] h-[40px]',

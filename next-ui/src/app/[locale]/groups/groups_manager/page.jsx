@@ -545,6 +545,11 @@ function GroupsTable({ groupList }) {
   useEffect(() => {
     if (tableRef.current) {
       customTableHandler({ tableRef, classesToRemove: 'h-[200px]' })
+      classListHandler({
+        componentRef: tableRef,
+
+        classesToAdd: 'border-separate border-spacing-y-1',
+      })
 
       customTableRowRefs.current.forEach((ref) => {
         ref.classList.remove('border-none')
@@ -628,7 +633,7 @@ function GroupsTable({ groupList }) {
               <React.Fragment>
                 <CustomTableRow key={`${group.email}-card-${index}`} className="hover:bg-background pb-0">
                   <CustomTableCell className={`!w-[4px] px-0 py-0 leading-none`}>&nbsp;</CustomTableCell>
-                  <CustomTableCell colSpan={9} className="px-0 pb-0">
+                  <CustomTableCell colSpan={9} className="px-0 pt-1 pb-0">
                     <GroupCard groupSettings={group.settings} />
                   </CustomTableCell>
                   <CustomTableCell className={`hover:bg-background px-0 leading-none`}>&nbsp;</CustomTableCell>
@@ -637,9 +642,9 @@ function GroupsTable({ groupList }) {
             )}
           </React.Fragment>
         ))}
-        <CustomTableRow key={'bottom-row'} className={`border-none py-0`}>
+        {/* <CustomTableRow key={'bottom-row'} className={`border-none py-0 `}>
           <CustomTableCell className={groupsStyles.dummyCell}>&nbsp;</CustomTableCell>
-        </CustomTableRow>
+        </CustomTableRow> */}
       </CustomTableBody>
     </CustomTable>
   )

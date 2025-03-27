@@ -26,13 +26,12 @@ const CustomSelectTrigger = React.forwardRef(
         <SelectPrimitive.Icon asChild>
           <ChevronDownIcon className="h-4 w-4 opacity-50" />
         </SelectPrimitive.Icon>
-        <span
+        <X
+          size={16}
           className={`opacity-50 ${hiddenClass}`}
           onClick={handleCloseClick}
           style={{ pointerEvents: isDisabled ? 'auto' : 'none' }}
-        >
-          <X size={16} className={hiddenClass} />
-        </span>
+        />
       </SelectPrimitive.Trigger>
     )
   }
