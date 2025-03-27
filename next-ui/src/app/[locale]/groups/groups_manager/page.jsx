@@ -17,7 +17,7 @@ import {
   X,
   XCircle,
 } from 'lucide-react'
-import { groupsStyles } from '@/app/ui/variables/group-variables'
+import { groupsStyles, groupElementIds, groupStrings } from '@/app/ui/variables/group-variables'
 import CsvDownloadButton from 'react-json-to-csv'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import {
@@ -32,7 +32,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { CustomIconUserArrow } from '@/app/ui/svg-icons/custom-icons'
+import { CustomIconExport, CustomIconUserArrow } from '@/app/ui/svg-icons/custom-icons'
 import {
   CustomTable,
   CustomTableHeader,
@@ -105,6 +105,243 @@ const initialState = {
   allowExternalMembers: '',
   hasExternalMembers: '',
 }
+const columnHeaders = [
+  'Name',
+  'Email address',
+  'Members',
+  'Has external members?',
+  'Restrict members from leaving',
+  'Alias address',
+  'Who can contact group owners',
+  'Who can view conversations',
+  'Who can post',
+  'Who can view members',
+  'Who can manage members',
+  'Who can join the group?',
+  'Allow external users to join?',
+]
+const groupsDummyData = [
+  {
+    name: 'Group1',
+    email: 'group1@pvp-test-domain2.com',
+    members: 50,
+    hasExternalMembers: true,
+
+    emailAliases: ['group1@sub.pvp-test-domain2.com', 'group1@alias.pvp-test-domain2.com'],
+
+    settings: {
+      access: [
+        {
+          owners: {
+            canContact: true,
+            canViewConversations: true,
+            canPost: true,
+            canViewMembers: true,
+            canManageMembers: true,
+          },
+        },
+        {
+          managers: {
+            canContact: true,
+            canViewConversations: true,
+            canPost: true,
+            canViewMembers: true,
+            canManageMembers: true,
+          },
+        },
+        {
+          members: {
+            canContact: true,
+            canViewConversations: true,
+            canPost: true,
+            canViewMembers: true,
+            canManageMembers: false,
+          },
+        },
+        {
+          organization: {
+            canContact: true,
+            canViewConversations: true,
+            canPost: true,
+            canViewMembers: true,
+            canManageMembers: false,
+          },
+        },
+        {
+          external: {
+            canContact: true,
+            canViewConversations: true,
+            canPost: true,
+            canViewMembers: false,
+            canManageMembers: false,
+          },
+        },
+      ],
+
+      whoCanJoin: 'CAN_REQUEST_TO_JOIN',
+      allowExternalMembers: 'true', //google returns it as string, so changing to string for now
+      whoCanLeaveGroup: 'ALL_MEMBERS_CAN_LEAVE',
+    },
+  },
+  {
+    name: 'Group2',
+    email: 'group2@pvp-test-domain2.com',
+    members: 10,
+    hasExternalMembers: false,
+
+    emailAliases: ['group2@sub.pvp-test-domain2.com', 'group2@test-a-google-blah@pvp-test-domain2.com'],
+
+    settings: {
+      access: [
+        {
+          owners: {
+            canContact: true,
+            canViewConversations: true,
+            canPost: true,
+            canViewMembers: true,
+            canManageMembers: true,
+          },
+        },
+        {
+          managers: {
+            canContact: true,
+            canViewConversations: true,
+            canPost: true,
+            canViewMembers: true,
+            canManageMembers: true,
+          },
+        },
+        {
+          members: {
+            canContact: true,
+            canViewConversations: true,
+            canPost: true,
+            canViewMembers: true,
+            canManageMembers: false,
+          },
+        },
+        {
+          organization: {
+            canContact: true,
+            canViewConversations: false,
+            canPost: false,
+            canViewMembers: false,
+            canManageMembers: false,
+          },
+        },
+        {
+          external: {
+            canContact: false,
+            canViewConversations: false,
+            canPost: false,
+            canViewMembers: false,
+            canManageMembers: false,
+          },
+        },
+      ],
+
+      whoCanJoin: 'INVITED_CAN_JOIN',
+      allowExternalMembers: 'false', //google returns it as string, so changing to string for now
+      whoCanLeaveGroup: 'NONE_CAN_LEAVE',
+    },
+  },
+  {
+    name: 'Public Group',
+    email: 'group3@pvp-test-domain2.com',
+    members: 1500,
+    hasExternalMembers: true,
+
+    emailAliases: ['product_discussions@pvp-test-domain2.com'],
+
+    settings: {
+      access: [
+        {
+          owners: {
+            canContact: true,
+            canViewConversations: true,
+            canPost: true,
+            canViewMembers: true,
+            canManageMembers: true,
+          },
+        },
+        {
+          managers: {
+            canContact: true,
+            canViewConversations: true,
+            canPost: true,
+            canViewMembers: true,
+            canManageMembers: true,
+          },
+        },
+        {
+          members: {
+            canContact: true,
+            canViewConversations: true,
+            canPost: true,
+            canViewMembers: true,
+            canManageMembers: false,
+          },
+        },
+        {
+          organization: {
+            canContact: true,
+            canViewConversations: true,
+            canPost: true,
+            canViewMembers: true,
+            canManageMembers: true,
+          },
+        },
+        {
+          external: {
+            canContact: true,
+            canViewConversations: true,
+            canPost: true,
+            canViewMembers: false,
+            canManageMembers: false,
+          },
+        },
+      ],
+
+      whoCanJoin: 'ANYONE_CAN_JOIN',
+      allowExternalMembers: 'true', //google returns it as string, so changing to string for now
+      whoCanLeaveGroup: 'ALL_MEMBERS_CAN_LEAVE',
+    },
+  },
+]
+
+const csvDummyData = [
+  {
+    name: 'Group1',
+    email: 'group1@pvp-test-domain2.com',
+    members: 500,
+    hasExternalMembers: false,
+    whoCanLeaveGroup: 'ALL_MEMBERS_CAN_LEAVE',
+    emailAliases: ['group1@sub.pvp-test-domain2.com', 'group1@test-a-google-blah@pvp-test-domain2.com'],
+    whoCanContactOwner: 'ANYONE_CAN_CONTACT',
+    whoCanViewGroup: 'ALL_IN_DOMAIN_CAN_VIEW',
+    whoCanPostMessage: 'ALL_IN_DOMAIN_CAN_POST',
+    whoCanViewMembership: 'ALL_IN_DOMAIN_CAN_VIEW',
+    whoCanAdd: 'ALL_MANAGERS_CAN_ADD',
+    whoCanJoin: 'CAN_REQUEST_TO_JOIN',
+    allowExternalMembers: 'true', //google returns it as string, so changing to string for now
+  },
+  {
+    name: 'Group2',
+    email: 'group2@pvp-test-domain2.com',
+    members: 10,
+    hasExternalMembers: false,
+    whoCanLeaveGroup: 'NONE_CAN_LEAVE',
+    emailAliases: ['group2@sub.pvp-test-domain2.com', 'group2@test-a-google-blah@pvp-test-domain2.com'],
+    whoCanContactOwner: 'ANYONE_CAN_CONTACT',
+    whoCanViewGroup: 'ALL_IN_DOMAIN_CAN_VIEW',
+    whoCanPostMessage: 'ALL_IN_DOMAIN_CAN_POST',
+    whoCanViewMembership: 'ALL_IN_DOMAIN_CAN_VIEW',
+    whoCanAdd: 'ALL_MANAGERS_CAN_ADD',
+    whoCanContactOwner: 'ANYONE_CAN_CONTACT',
+    whoCanJoin: 'INVITED_CAN_JOIN',
+    allowExternalMembers: 'false', //google returns it as string, so changing to string for now
+  },
+]
 
 function GroupsManager() {
   const [groupList, setGroupList] = useState([])
@@ -156,195 +393,6 @@ function GroupsManager() {
         setError('error')
         return
       }
-
-      const groupsDummyData = [
-        {
-          name: 'Group1',
-          email: 'group1@pvp-test-domain2.com',
-          members: 50,
-          hasExternalMembers: true,
-
-          emailAliases: ['group1@sub.pvp-test-domain2.com', 'group1@alias.pvp-test-domain2.com'],
-
-          settings: {
-            access: [
-              {
-                owners: {
-                  canContact: true,
-                  canViewConversations: true,
-                  canPost: true,
-                  canViewMembers: true,
-                  canManageMembers: true,
-                },
-              },
-              {
-                managers: {
-                  canContact: true,
-                  canViewConversations: true,
-                  canPost: true,
-                  canViewMembers: true,
-                  canManageMembers: true,
-                },
-              },
-              {
-                members: {
-                  canContact: true,
-                  canViewConversations: true,
-                  canPost: true,
-                  canViewMembers: true,
-                  canManageMembers: false,
-                },
-              },
-              {
-                organization: {
-                  canContact: true,
-                  canViewConversations: true,
-                  canPost: true,
-                  canViewMembers: true,
-                  canManageMembers: false,
-                },
-              },
-              {
-                external: {
-                  canContact: true,
-                  canViewConversations: true,
-                  canPost: true,
-                  canViewMembers: false,
-                  canManageMembers: false,
-                },
-              },
-            ],
-
-            whoCanJoin: 'CAN_REQUEST_TO_JOIN',
-            allowExternalMembers: 'true', //google returns it as string, so changing to string for now
-            whoCanLeaveGroup: 'ALL_MEMBERS_CAN_LEAVE',
-          },
-        },
-        {
-          name: 'Group2',
-          email: 'group2@pvp-test-domain2.com',
-          members: 10,
-          hasExternalMembers: false,
-
-          emailAliases: ['group2@sub.pvp-test-domain2.com', 'group2@test-a-google-blah@pvp-test-domain2.com'],
-
-          settings: {
-            access: [
-              {
-                owners: {
-                  canContact: true,
-                  canViewConversations: true,
-                  canPost: true,
-                  canViewMembers: true,
-                  canManageMembers: true,
-                },
-              },
-              {
-                managers: {
-                  canContact: true,
-                  canViewConversations: true,
-                  canPost: true,
-                  canViewMembers: true,
-                  canManageMembers: true,
-                },
-              },
-              {
-                members: {
-                  canContact: true,
-                  canViewConversations: true,
-                  canPost: true,
-                  canViewMembers: true,
-                  canManageMembers: false,
-                },
-              },
-              {
-                organization: {
-                  canContact: true,
-                  canViewConversations: false,
-                  canPost: false,
-                  canViewMembers: false,
-                  canManageMembers: false,
-                },
-              },
-              {
-                external: {
-                  canContact: false,
-                  canViewConversations: false,
-                  canPost: false,
-                  canViewMembers: false,
-                  canManageMembers: false,
-                },
-              },
-            ],
-
-            whoCanJoin: 'INVITED_CAN_JOIN',
-            allowExternalMembers: 'false', //google returns it as string, so changing to string for now
-            whoCanLeaveGroup: 'NONE_CAN_LEAVE',
-          },
-        },
-        {
-          name: 'Public Group',
-          email: 'group3@pvp-test-domain2.com',
-          members: 1500,
-          hasExternalMembers: true,
-
-          emailAliases: ['product_discussions@pvp-test-domain2.com'],
-
-          settings: {
-            access: [
-              {
-                owners: {
-                  canContact: true,
-                  canViewConversations: true,
-                  canPost: true,
-                  canViewMembers: true,
-                  canManageMembers: true,
-                },
-              },
-              {
-                managers: {
-                  canContact: true,
-                  canViewConversations: true,
-                  canPost: true,
-                  canViewMembers: true,
-                  canManageMembers: true,
-                },
-              },
-              {
-                members: {
-                  canContact: true,
-                  canViewConversations: true,
-                  canPost: true,
-                  canViewMembers: true,
-                  canManageMembers: false,
-                },
-              },
-              {
-                organization: {
-                  canContact: true,
-                  canViewConversations: true,
-                  canPost: true,
-                  canViewMembers: true,
-                  canManageMembers: true,
-                },
-              },
-              {
-                external: {
-                  canContact: true,
-                  canViewConversations: true,
-                  canPost: true,
-                  canViewMembers: false,
-                  canManageMembers: false,
-                },
-              },
-            ],
-
-            whoCanJoin: 'ANYONE_CAN_JOIN',
-            allowExternalMembers: 'true', //google returns it as string, so changing to string for now
-            whoCanLeaveGroup: 'ALL_MEMBERS_CAN_LEAVE',
-          },
-        },
-      ]
 
       setGroupList(groupsDummyData)
     } catch (error) {
@@ -573,7 +621,7 @@ function GroupsTable({ groupList }) {
           <CustomTableHead className={groupsStyles.tableHead}>Restrict members from leaving</CustomTableHead>
           <CustomTableHead className={groupsStyles.tableHead}>Alias address</CustomTableHead>
           <CustomTableHead className="justify-items-end pe-0 me-0">
-            <Ellipsis size={20} className="text-muted-foreground" />
+            <ExportDialog />
           </CustomTableHead>
           <CustomTableHead className="mx-0 px-0 w-[1px] leading-none "></CustomTableHead>
           <CustomTableHead className={`px-2`}></CustomTableHead>
@@ -642,9 +690,6 @@ function GroupsTable({ groupList }) {
             )}
           </React.Fragment>
         ))}
-        {/* <CustomTableRow key={'bottom-row'} className={`border-none py-0 `}>
-          <CustomTableCell className={groupsStyles.dummyCell}>&nbsp;</CustomTableCell>
-        </CustomTableRow> */}
       </CustomTableBody>
     </CustomTable>
   )
@@ -972,5 +1017,99 @@ function AliasList({ aliasArray, groupId }) {
         </CustomListAccordionTrigger>
       </CustomListAccordionItem>
     </CustomListAccordion>
+  )
+}
+
+function ExportDialog() {
+  const [fileName, setFileName] = useState('Search results')
+  return (
+    <Dialog>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Ellipsis
+            className={`cursor-pointer hover:stroke-primary active:stroke-primary focus:stroke-primary 
+            }`}
+            size={20}
+          />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" alignOffset={-194} avoidCollisions="true" hideWhenDetached="true">
+          <DialogTrigger asChild>
+            <DropdownMenuItem className="focus:bg-background hover:bg-background cursor-pointer">
+              <div className={`flex items-center my-1 mx-0 py-2 px-1 bg-accent rounded-md`}>
+                <div className="flex items-center py-1 px-2 gap-3 text-s w-[188px] bg-accent">
+                  <CustomIconExport />
+                  <span>Export results</span>
+                </div>
+              </div>
+            </DropdownMenuItem>
+          </DialogTrigger>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <DialogPortal>
+        <DialogContent className="[&>button]:hidden p-8" aria-describedby={undefined}>
+          <DialogHeader>
+            <DialogTitle className="text-2xl/6 mb-6">Export Search Results</DialogTitle>
+            <div className="text-base/5 font-medium pb-4">Name your export</div>
+            <Input
+              className="text-foreground mb-7"
+              placeholder="Add a name"
+              value={fileName}
+              onChange={(e) => setFileName(e.target.value)}
+            />
+            <div className="text-base/5 font-medium pb-4">Choose a format</div>
+            <RadioGroup
+              defaultValue={groupElementIds.exportWindowOption2}
+              className="border border-input rounded-md p-4 gap-y-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="option-one" id={groupElementIds.exportWindowOption1} disabled />
+                <Label htmlFor="option-one" className="text-muted-foreground">
+                  Google Sheet (coming soon)
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="option-two" id={groupElementIds.exportWindowOption2} checked />
+                <Label htmlFor="option-two">CSV</Label>
+              </div>
+            </RadioGroup>
+            <div className="flex flex-col items-center justify-center sm:flex-row sm:justify-end sm:gap-x-4 pt-8">
+              <DialogClose asChild>
+                <Button
+                  id={groupElementIds.closeExportDialog}
+                  type="button"
+                  variant="outline"
+                  className={`${groupsStyles.buttonPaddingWide} w-[108px]`}
+                >
+                  Cancel
+                </Button>
+              </DialogClose>
+
+              <CsvDownloadButton
+                data={csvDummyData}
+                headers={columnHeaders}
+                filename={fileName}
+                className="hidden"
+                id={groupElementIds.csvDownloadButton}
+              >
+                {/* Nesting buttons is not allowed in html, so I hid the csv button and added a fn onclick to the export button. */}
+                {/* Even with nesting it was working fine, but I didn't want the warning. */}
+              </CsvDownloadButton>
+              <Button
+                className={`${groupsStyles.buttonPaddingWide}`}
+                onClick={() => {
+                  document.getElementById(groupElementIds.csvDownloadButton).click()
+                  setTimeout(() => {
+                    // Close the Dialog window component in a very ungraceful way("Cody" has no better ideas)
+                    document.getElementById(groupElementIds.closeExportDialog).click()
+                  }, 500)
+                }}
+              >
+                Export
+              </Button>
+            </div>
+          </DialogHeader>
+        </DialogContent>
+      </DialogPortal>
+    </Dialog>
   )
 }
