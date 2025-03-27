@@ -607,11 +607,11 @@ function GroupsTable({ groupList }) {
 
   return (
     <CustomTable ref={tableRef}>
+      {/* Table header */}
       <CustomTableHeader>
         <CustomTableRow>
           <CustomTableHead className={`px-0`}></CustomTableHead>
-          <CustomTableHead className={`w-[1px] px-0`}></CustomTableHead>
-          <CustomTableHead className={groupsStyles.tableHead}>
+          <CustomTableHead className={`${groupsStyles.tableHead} ps-3.5`}>
             <Checkbox />
             <span className="ms-3">Name</span>
           </CustomTableHead>
@@ -623,27 +623,34 @@ function GroupsTable({ groupList }) {
           <CustomTableHead className="justify-items-end pe-0 me-0">
             <ExportDialog />
           </CustomTableHead>
-          <CustomTableHead className="mx-0 px-0 w-[1px] leading-none "></CustomTableHead>
           <CustomTableHead className={`px-2`}></CustomTableHead>
         </CustomTableRow>
       </CustomTableHeader>
+
+      {/* Table body */}
       <CustomTableBody>
         {groupList.map((group, index) => (
+          // first row
           <React.Fragment key={`${group.email}-fragment-${index}`}>
             <CustomTableRow key={`${group.email}-top-row-${index}`} className={`border-none py-0`}>
-              <CustomTableCell className={groupsStyles.dummyCell}>&nbsp;</CustomTableCell>
+              <CustomTableCell className={groupsStyles.dummyCell} style={{ userSelect: 'none' }}>
+                &nbsp;
+              </CustomTableCell>
             </CustomTableRow>
             <CustomTableRow
               key={`${group.email}-row-${index}`} // Use a unique key for each row based on group.email}
-              className="hover:bg-background"
+              className={`hover:bg-background`}
               ref={(ref) => (customTableRowRefs.current[index] = ref)}
             >
-              <CustomTableCell className={`!w-[4px] hover:bg-background px-0 leading-none`}>&nbsp;</CustomTableCell>
-              <CustomTableCell className={`${groupsStyles.edgeCell} w-[4px] border-r-0 rounded-l-lg ps-0 `}>
+              <CustomTableCell
+                className={`!w-[4px] hover:bg-background px-0 leading-none`}
+                style={{ userSelect: 'none' }}
+              >
                 &nbsp;
               </CustomTableCell>
-
-              <CustomTableCell className={groupsStyles.middleCell}>
+              <CustomTableCell
+                className={`${groupsStyles.edgeCell} ${groupsStyles.tableRowPadding} ps-4 border-r-0 rounded-l-lg `}
+              >
                 <Checkbox />
                 <span className="ms-3"> {group.name}</span>
               </CustomTableCell>
@@ -661,7 +668,7 @@ function GroupsTable({ groupList }) {
               <CustomTableCell className={groupsStyles.middleCell}>
                 {group?.emailAliases.length > 0 && <AliasList aliasArray={group.emailAliases} groupId={group.email} />}
               </CustomTableCell>
-              <CustomTableCell className={` ${groupsStyles.middleCell} justify-items-end`}>
+              <CustomTableCell className={` ${groupsStyles.edgeCell} rounded-r-lg border-l-0  justify-items-end`}>
                 <ChevronDownIcon
                   size={20}
                   className={`cursor-pointer transition-transform duration-400 ${
@@ -670,21 +677,24 @@ function GroupsTable({ groupList }) {
                   onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.email]: !prev[group.email] }))}
                 />
               </CustomTableCell>
-              <CustomTableCell className={`${groupsStyles.edgeCell} !w-[8px] rounded-r-lg border-l-0 px-0`}>
+              <CustomTableCell className={`px-0 leading-none`} style={{ userSelect: 'none' }}>
                 &nbsp;
               </CustomTableCell>
-
-              <CustomTableCell className={`px-0 leading-none`}>&nbsp;</CustomTableCell>
             </CustomTableRow>
 
             {expandedGroups[group.email] && (
+              // second row with card
               <React.Fragment>
                 <CustomTableRow key={`${group.email}-card-${index}`} className="hover:bg-background pb-0">
-                  <CustomTableCell className={`!w-[4px] px-0 py-0 leading-none`}>&nbsp;</CustomTableCell>
-                  <CustomTableCell colSpan={9} className="px-0 pt-1 pb-0">
+                  <CustomTableCell className={`!w-[4px] px-0 py-0 leading-none`} style={{ userSelect: 'none' }}>
+                    &nbsp;
+                  </CustomTableCell>
+                  <CustomTableCell colSpan={7} className="px-0 pt-1 pb-0">
                     <GroupCard groupSettings={group.settings} />
                   </CustomTableCell>
-                  <CustomTableCell className={`hover:bg-background px-0 leading-none`}>&nbsp;</CustomTableCell>
+                  <CustomTableCell className={`hover:bg-background px-0 leading-none`} style={{ userSelect: 'none' }}>
+                    &nbsp;
+                  </CustomTableCell>
                 </CustomTableRow>
               </React.Fragment>
             )}
@@ -736,7 +746,7 @@ function AccessSettingsGrid({ accessData }) {
     <Table>
       <TableHeader>
         <TableRow className="hover:bg-background">
-          <TableCell>&nbsp;</TableCell>
+          <TableCell style={{ userSelect: 'none' }}>&nbsp;</TableCell>
           <TableCell>
             <TableHeaderCell columnName={'Owners'}>
               <UserRoundCog />
