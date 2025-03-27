@@ -25,24 +25,16 @@ router.get(
   groupsCacheMiddleware.storeGroup
 )
 
-//route to list direct members of a group
+//route to list members of a group
 router.get(
   '/group/:groupEmail/members',
   groupsCacheMiddleware.retrieveMembers,
-  groupsController.listDirectMembers,
+  groupsController.listMembers,
   groupsCacheMiddleware.storeMembers
 )
 
 //route to add members to a group
 router.post('/group/:groupEmail/members', groupsController.addMembers)
-
-//route to list all members of a group(both direct and indirect)
-router.get(
-  '/group/:groupEmail/descendants',
-  groupsCacheMiddleware.retrieveDescendants,
-  groupsController.listAllMembers,
-  groupsCacheMiddleware.storeDescendants
-)
 
 //route to get group activity logs(all group logs for all groups in cx domain)
 router.get('/activities', groupsController.getGroupActivity)
@@ -84,7 +76,12 @@ router.get(
 )
 
 //route to get nested membership table for an entity (group or user)
-router.get('/target/:targetEmail/nested-table', groupsController.getNestedTable)
+router.get(
+  '/target/:targetEmail/nested-table', 
+  groupsCacheMiddleware.retrieveNestedTable,
+  groupsController.getNestedTable,
+  groupsCacheMiddleware.storeNestedTables
+)
 
 router.use(encryptResponseMiddleware) // Encrypt request for all routes
 
