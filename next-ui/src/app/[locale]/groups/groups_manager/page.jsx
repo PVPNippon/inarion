@@ -350,6 +350,8 @@ function GroupsManager() {
   const [emptyResult, setEmptyResult] = useState(false)
   const [hiddenClass, setHiddenClass] = useState('')
   const [includeAliases, setIncludeAliases] = useState(false)
+  const [selectAll, setSelectAll] = useState(false)
+  const [selectedRows, setSelectedRows] = useState({})
   const email = 'testadmin@pvp-test-domain2.com'
 
   const filterReducer = (state, action) => {
@@ -430,12 +432,22 @@ function GroupsManager() {
             filterState={filterState}
             setEmptyResult={setEmptyResult}
             setError={setError}
+            setSelectAll={setSelectAll}
+            setSelectedRows={setSelectedRows}
           />
         )}
       </div>
 
       {isLoading && <Loader />}
-      {!isLoading && !error && groupList.length > 0 && <GroupsTable groupList={groupList} />}
+      {!isLoading && !error && groupList.length > 0 && (
+        <GroupsTable
+          groupList={groupList}
+          selectAll={selectAll}
+          setSelectAll={setSelectAll}
+          selectedRows={selectedRows}
+          setSelectedRows={setSelectedRows}
+        />
+      )}
       {!isLoading && emptyResult && (
         <EmptyResultOrError
           type="search"
@@ -537,7 +549,15 @@ function EmptyResultOrError({ type, title, description }) {
   )
 }
 
-function FilterChipPanel({ hiddenClass, setHiddenClass, filterState, setEmptyResult, setError }) {
+function FilterChipPanel({
+  hiddenClass,
+  setHiddenClass,
+  filterState,
+  setEmptyResult,
+  setError,
+  setSelectAll,
+  setSelectedRows,
+}) {
   return (
     <div className={`flex items-center justify-between py-3 px-4 ${hiddenClass === 'hidden' ? '' : 'hidden'}`}>
       {filterState !== initialState && (
@@ -573,6 +593,8 @@ function FilterChipPanel({ hiddenClass, setHiddenClass, filterState, setEmptyRes
           onClick={() => {
             setEmptyResult(false)
             setError('')
+            setSelectAll(false)
+            setSelectedRows({})
             if (hiddenClass === 'hidden') {
               setHiddenClass('')
             }
@@ -585,10 +607,34 @@ function FilterChipPanel({ hiddenClass, setHiddenClass, filterState, setEmptyRes
   )
 }
 
-function GroupsTable({ groupList }) {
+function GroupsTable({ groupList, selectAll, setSelectAll, selectedRows, setSelectedRows }) {
   const tableRef = useRef(null)
   const customTableRowRefs = useRef([])
   const [expandedGroups, setExpandedGroups] = useState({})
+
+  const handleCheckboxChange = (email, checked) => {
+    setSelectedRows((prevSelectedRows) => {
+      if (checked) {
+        return { ...prevSelectedRows, [email]: true }
+      } else {
+        const newSelectedRows = { ...prevSelectedRows }
+        delete newSelectedRows[email]
+        return newSelectedRows
+      }
+    })
+  }
+  const handleSelectAllChange = (checked) => {
+    setSelectAll(checked)
+    if (checked) {
+      const newSelectedRows = {}
+      groupList.forEach((group) => {
+        newSelectedRows[group.email] = true
+      })
+      setSelectedRows(newSelectedRows)
+    } else {
+      setSelectedRows({})
+    }
+  }
 
   useEffect(() => {
     if (tableRef.current) {
@@ -612,7 +658,12 @@ function GroupsTable({ groupList }) {
         <CustomTableRow>
           <CustomTableHead className={`px-0`}></CustomTableHead>
           <CustomTableHead className={`${groupsStyles.tableHead} ps-3.5`}>
-            <Checkbox />
+            <Checkbox
+              checked={selectAll}
+              onCheckedChange={(checked) => {
+                handleSelectAllChange(checked)
+              }}
+            />
             <span className="ms-3">Name</span>
           </CustomTableHead>
           <CustomTableHead className={groupsStyles.tableHead}>Email address</CustomTableHead>
@@ -632,18 +683,21 @@ function GroupsTable({ groupList }) {
         {groupList.map((group, index) => (
           // first row
           <React.Fragment key={`${group.email}-fragment-${index}`}>
-            <CustomTableRow key={`${group.email}-top-row-${index}`} className={`border-none py-0`}>
+            <CustomTableRow
+              key={`${group.email}-top-row-${index}`}
+              className={`border-none py-0 hover:bg-background bg-background`}
+            >
               <CustomTableCell className={groupsStyles.dummyCell} style={{ userSelect: 'none' }}>
                 &nbsp;
               </CustomTableCell>
             </CustomTableRow>
             <CustomTableRow
               key={`${group.email}-row-${index}`} // Use a unique key for each row based on group.email}
-              className={`hover:bg-background`}
+              className={`hover:bg-accent  ${selectedRows[group.email] ? 'bg-accent' : 'bg-background'}`}
               ref={(ref) => (customTableRowRefs.current[index] = ref)}
             >
               <CustomTableCell
-                className={`!w-[4px] hover:bg-background px-0 leading-none`}
+                className={`!w-[4px] hover:bg-background bg-background px-0 leading-none`}
                 style={{ userSelect: 'none' }}
               >
                 &nbsp;
@@ -651,7 +705,12 @@ function GroupsTable({ groupList }) {
               <CustomTableCell
                 className={`${groupsStyles.edgeCell} ${groupsStyles.tableRowPadding} ps-4 border-r-0 rounded-l-lg `}
               >
-                <Checkbox />
+                <Checkbox
+                  checked={selectedRows[group.email] || false}
+                  onCheckedChange={(checked) => {
+                    handleCheckboxChange(group.email, checked)
+                  }}
+                />
                 <span className="ms-3"> {group.name}</span>
               </CustomTableCell>
               <CustomTableCell className={groupsStyles.middleCell}>{group.email}</CustomTableCell>
@@ -677,7 +736,10 @@ function GroupsTable({ groupList }) {
                   onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.email]: !prev[group.email] }))}
                 />
               </CustomTableCell>
-              <CustomTableCell className={`px-0 leading-none`} style={{ userSelect: 'none' }}>
+              <CustomTableCell
+                className={`px-0 leading-none hover:bg-background bg-background`}
+                style={{ userSelect: 'none' }}
+              >
                 &nbsp;
               </CustomTableCell>
             </CustomTableRow>
