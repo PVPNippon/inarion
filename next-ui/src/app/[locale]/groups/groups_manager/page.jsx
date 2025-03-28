@@ -16,6 +16,7 @@ import {
   Check,
   X,
   XCircle,
+  List,
 } from 'lucide-react'
 import { groupsStyles, groupElementIds, groupStrings } from '@/app/ui/variables/group-variables'
 import CsvDownloadButton from 'react-json-to-csv'
@@ -65,6 +66,7 @@ import {
   CustomListAccordionTrigger,
   CustomListAccordionContent,
 } from '@/components/ui/custom-list-accordion'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 //constants
 //Object with strings for the "Who can join" field of the groups's card. Used to get strings with title and description by the setting name.
@@ -623,6 +625,17 @@ function GroupsTable({ groupList, selectAll, setSelectAll, selectedRows, setSele
       }
     })
   }
+
+  useEffect(() => {
+    if (Object.keys(selectedRows).length === groupList.length) {
+      setSelectAll(true)
+    } else if (Object.keys(selectedRows).length === 0) {
+      setSelectAll(false)
+    } else {
+      setSelectAll(Object.keys(selectedRows).length > 0)
+    }
+  }, [selectedRows, groupList])
+
   const handleSelectAllChange = (checked) => {
     setSelectAll(checked)
     if (checked) {
@@ -652,118 +665,123 @@ function GroupsTable({ groupList, selectAll, setSelectAll, selectedRows, setSele
   }, [customTableRowRefs])
 
   return (
-    <CustomTable ref={tableRef}>
-      {/* Table header */}
-      <CustomTableHeader>
-        <CustomTableRow>
-          <CustomTableHead className={`px-0`}></CustomTableHead>
-          <CustomTableHead className={`${groupsStyles.tableHead} ps-3.5`}>
-            <Checkbox
-              checked={selectAll}
-              onCheckedChange={(checked) => {
-                handleSelectAllChange(checked)
-              }}
-            />
-            <span className="ms-3">Name</span>
-          </CustomTableHead>
-          <CustomTableHead className={groupsStyles.tableHead}>Email address</CustomTableHead>
-          <CustomTableHead className={groupsStyles.tableHead}>Members</CustomTableHead>
-          <CustomTableHead className={groupsStyles.tableHead}>Has external members?</CustomTableHead>
-          <CustomTableHead className={groupsStyles.tableHead}>Restrict members from leaving</CustomTableHead>
-          <CustomTableHead className={groupsStyles.tableHead}>Alias address</CustomTableHead>
-          <CustomTableHead className="justify-items-end pe-0 me-0">
-            <ExportDialog />
-          </CustomTableHead>
-          <CustomTableHead className={`px-2`}></CustomTableHead>
-        </CustomTableRow>
-      </CustomTableHeader>
+    <>
+      <CustomTable ref={tableRef}>
+        {/* Table header */}
+        <CustomTableHeader>
+          <CustomTableRow>
+            <CustomTableHead className={`px-0`}></CustomTableHead>
+            <CustomTableHead className={`${groupsStyles.tableHead} ps-3.5`}>
+              <Checkbox
+                checked={selectAll}
+                onCheckedChange={(checked) => {
+                  handleSelectAllChange(checked)
+                }}
+              />
+              <span className="ms-3">Name</span>
+            </CustomTableHead>
+            <CustomTableHead className={groupsStyles.tableHead}>Email address</CustomTableHead>
+            <CustomTableHead className={groupsStyles.tableHead}>Members</CustomTableHead>
+            <CustomTableHead className={groupsStyles.tableHead}>Has external members?</CustomTableHead>
+            <CustomTableHead className={groupsStyles.tableHead}>Restrict members from leaving</CustomTableHead>
+            <CustomTableHead className={groupsStyles.tableHead}>Alias address</CustomTableHead>
+            <CustomTableHead className="justify-items-end pe-0 me-0">
+              <ExportDialog />
+            </CustomTableHead>
+            <CustomTableHead className={`px-2`}></CustomTableHead>
+          </CustomTableRow>
+        </CustomTableHeader>
 
-      {/* Table body */}
-      <CustomTableBody>
-        {groupList.map((group, index) => (
-          // first row
-          <React.Fragment key={`${group.email}-fragment-${index}`}>
-            <CustomTableRow
-              key={`${group.email}-top-row-${index}`}
-              className={`border-none py-0 hover:bg-background bg-background`}
-            >
-              <CustomTableCell className={groupsStyles.dummyCell} style={{ userSelect: 'none' }}>
-                &nbsp;
-              </CustomTableCell>
-            </CustomTableRow>
-            <CustomTableRow
-              key={`${group.email}-row-${index}`} // Use a unique key for each row based on group.email}
-              className={`hover:bg-accent  ${selectedRows[group.email] ? 'bg-accent' : 'bg-background'}`}
-              ref={(ref) => (customTableRowRefs.current[index] = ref)}
-            >
-              <CustomTableCell
-                className={`!w-[4px] hover:bg-background bg-background px-0 leading-none`}
-                style={{ userSelect: 'none' }}
+        {/* Table body */}
+        <CustomTableBody>
+          {groupList.map((group, index) => (
+            // first row
+            <React.Fragment key={`${group.email}-fragment-${index}`}>
+              <CustomTableRow
+                key={`${group.email}-top-row-${index}`}
+                className={`border-none py-0 hover:bg-background bg-background`}
               >
-                &nbsp;
-              </CustomTableCell>
-              <CustomTableCell
-                className={`${groupsStyles.edgeCell} ${groupsStyles.tableRowPadding} ps-4 border-r-0 rounded-l-lg `}
+                <CustomTableCell className={groupsStyles.dummyCell} style={{ userSelect: 'none' }}>
+                  &nbsp;
+                </CustomTableCell>
+              </CustomTableRow>
+              <CustomTableRow
+                key={`${group.email}-row-${index}`} // Use a unique key for each row based on group.email}
+                className={`hover:bg-accent  ${selectedRows[group.email] ? 'bg-accent' : 'bg-background'}`}
+                ref={(ref) => (customTableRowRefs.current[index] = ref)}
               >
-                <Checkbox
-                  checked={selectedRows[group.email] || false}
-                  onCheckedChange={(checked) => {
-                    handleCheckboxChange(group.email, checked)
-                  }}
-                />
-                <span className="ms-3"> {group.name}</span>
-              </CustomTableCell>
-              <CustomTableCell className={groupsStyles.middleCell}>{group.email}</CustomTableCell>
-              <CustomTableCell className={groupsStyles.middleCell}>{group.members}</CustomTableCell>
-              <CustomTableCell className={groupsStyles.middleCell}>
-                {group.hasExternalMembers === true ? 'Yes' : 'No'}
-              </CustomTableCell>
-              <CustomTableCell className={groupsStyles.middleCell}>
-                {/* Careful with the line below, because the column name says the opposite: "Restrict members from leaving." */}
-                {/* So "All members can leave" means "No, don't restrict them from leaving." */}
-                {/* NB: I count "ALL_MANAGERS_CAN_LEAVE" as "Yes" because common members cannot leave. */}
-                {group.settings.whoCanLeaveGroup === 'ALL_MEMBERS_CAN_LEAVE' ? 'No' : 'Yes'}
-              </CustomTableCell>
-              <CustomTableCell className={groupsStyles.middleCell}>
-                {group?.emailAliases.length > 0 && <AliasList aliasArray={group.emailAliases} groupId={group.email} />}
-              </CustomTableCell>
-              <CustomTableCell className={` ${groupsStyles.edgeCell} rounded-r-lg border-l-0  justify-items-end`}>
-                <ChevronDownIcon
-                  size={20}
-                  className={`cursor-pointer transition-transform duration-400 ${
-                    expandedGroups[group.email] ? 'rotate-180' : ''
-                  }`}
-                  onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.email]: !prev[group.email] }))}
-                />
-              </CustomTableCell>
-              <CustomTableCell
-                className={`px-0 leading-none hover:bg-background bg-background`}
-                style={{ userSelect: 'none' }}
-              >
-                &nbsp;
-              </CustomTableCell>
-            </CustomTableRow>
+                <CustomTableCell
+                  className={`!w-[4px] hover:bg-background bg-background px-0 leading-none`}
+                  style={{ userSelect: 'none' }}
+                >
+                  &nbsp;
+                </CustomTableCell>
+                <CustomTableCell
+                  className={`${groupsStyles.edgeCell} ${groupsStyles.tableRowPadding} ps-4 border-r-0 rounded-l-lg `}
+                >
+                  <Checkbox
+                    checked={selectedRows[group.email] || false}
+                    onCheckedChange={(checked) => {
+                      handleCheckboxChange(group.email, checked)
+                    }}
+                  />
+                  <span className="ms-3"> {group.name}</span>
+                </CustomTableCell>
+                <CustomTableCell className={groupsStyles.middleCell}>{group.email}</CustomTableCell>
+                <CustomTableCell className={groupsStyles.middleCell}>{group.members}</CustomTableCell>
+                <CustomTableCell className={groupsStyles.middleCell}>
+                  {group.hasExternalMembers === true ? 'Yes' : 'No'}
+                </CustomTableCell>
+                <CustomTableCell className={groupsStyles.middleCell}>
+                  {/* Careful with the line below, because the column name says the opposite: "Restrict members from leaving." */}
+                  {/* So "All members can leave" means "No, don't restrict them from leaving." */}
+                  {/* NB: I count "ALL_MANAGERS_CAN_LEAVE" as "Yes" because common members cannot leave. */}
+                  {group.settings.whoCanLeaveGroup === 'ALL_MEMBERS_CAN_LEAVE' ? 'No' : 'Yes'}
+                </CustomTableCell>
+                <CustomTableCell className={groupsStyles.middleCell}>
+                  {group?.emailAliases.length > 0 && (
+                    <AliasList aliasArray={group.emailAliases} groupId={group.email} />
+                  )}
+                </CustomTableCell>
+                <CustomTableCell className={` ${groupsStyles.edgeCell} rounded-r-lg border-l-0  justify-items-end`}>
+                  <ChevronDownIcon
+                    size={20}
+                    className={`cursor-pointer transition-transform duration-400 ${
+                      expandedGroups[group.email] ? 'rotate-180' : ''
+                    }`}
+                    onClick={() => setExpandedGroups((prev) => ({ ...prev, [group.email]: !prev[group.email] }))}
+                  />
+                </CustomTableCell>
+                <CustomTableCell
+                  className={`px-0 leading-none hover:bg-background bg-background`}
+                  style={{ userSelect: 'none' }}
+                >
+                  &nbsp;
+                </CustomTableCell>
+              </CustomTableRow>
 
-            {expandedGroups[group.email] && (
-              // second row with card
-              <React.Fragment>
-                <CustomTableRow key={`${group.email}-card-${index}`} className="hover:bg-background pb-0">
-                  <CustomTableCell className={`!w-[4px] px-0 py-0 leading-none`} style={{ userSelect: 'none' }}>
-                    &nbsp;
-                  </CustomTableCell>
-                  <CustomTableCell colSpan={7} className="px-0 pt-1 pb-0">
-                    <GroupCard groupSettings={group.settings} />
-                  </CustomTableCell>
-                  <CustomTableCell className={`hover:bg-background px-0 leading-none`} style={{ userSelect: 'none' }}>
-                    &nbsp;
-                  </CustomTableCell>
-                </CustomTableRow>
-              </React.Fragment>
-            )}
-          </React.Fragment>
-        ))}
-      </CustomTableBody>
-    </CustomTable>
+              {expandedGroups[group.email] && (
+                // second row with card
+                <React.Fragment>
+                  <CustomTableRow key={`${group.email}-card-${index}`} className="hover:bg-background pb-0">
+                    <CustomTableCell className={`!w-[4px] px-0 py-0 leading-none`} style={{ userSelect: 'none' }}>
+                      &nbsp;
+                    </CustomTableCell>
+                    <CustomTableCell colSpan={7} className="px-0 pt-1 pb-0">
+                      <GroupCard groupSettings={group.settings} />
+                    </CustomTableCell>
+                    <CustomTableCell className={`hover:bg-background px-0 leading-none`} style={{ userSelect: 'none' }}>
+                      &nbsp;
+                    </CustomTableCell>
+                  </CustomTableRow>
+                </React.Fragment>
+              )}
+            </React.Fragment>
+          ))}
+        </CustomTableBody>
+      </CustomTable>
+      <BulkOperationMenu selectedRows={selectedRows} setSelectedRows={setSelectedRows} />
+    </>
   )
 }
 
@@ -1183,5 +1201,43 @@ function ExportDialog() {
         </DialogContent>
       </DialogPortal>
     </Dialog>
+  )
+}
+
+function BulkOperationMenu({ selectedRows, setSelectedRows }) {
+  const selectedGroups = Object.keys(selectedRows)
+  const [hidden, setHidden] = useState(selectedGroups.length === 0)
+
+  useEffect(() => {
+    if (selectedGroups.length === 0) {
+      setHidden(true)
+    } else {
+      setHidden(false)
+    }
+  }, [selectedRows])
+
+  const handleClose = () => {
+    setSelectedRows({})
+    setHidden(true)
+  }
+
+  return (
+    <Tabs className={`${hidden ? 'hidden' : 'block'} w-[550px] justify-self-center`}>
+      <TabsList className="flex  h-[42px]">
+        <TabsTrigger value="groups" className="border-r border-input rounded-none gap-x-2 pointer-events-none">
+          <Checkbox asChild checked={selectedGroups.length > 0} /> {selectedGroups.length} Groups
+        </TabsTrigger>
+        <TabsTrigger value="export" className="border-r border-input rounded-none gap-x-2">
+          <CustomIconExport /> Bulk export group details
+        </TabsTrigger>
+        <TabsTrigger value="list" className="border-r border-input rounded-none gap-x-2">
+          <List size={20} />
+          Export group list
+        </TabsTrigger>
+        <TabsTrigger value="bulk-menu-close">
+          <X size={20} onClick={handleClose} />
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
   )
 }
