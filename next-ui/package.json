@@ -64,7 +64,7 @@
     "pino": "^9.6.0",
     "react": "19.0.0",
     "react-csv": "^2.2.2",
-    "react-day-picker": "^9.5.1",
+    "react-day-picker": "^8.10.1",
     "react-dom": "19.0.0",
     "react-graph-vis": "^1.0.7",
     "react-hook-form": "^7.54.2",
