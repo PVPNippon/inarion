@@ -221,7 +221,6 @@ async function retrieveFilteredUsers(req, res, next) {
       }
     } else {
       console.log('Key not found in Redis')
-      return next()
     }
   } catch (error) {
     console.log('Error retrieving filtered users from cache:', error)

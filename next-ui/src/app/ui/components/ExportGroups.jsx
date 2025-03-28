@@ -1,17 +1,18 @@
 'use client'
 import React, { useState, useEffect, useContext } from 'react'
-import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
+//import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import CsvDownloadButton from 'react-json-to-csv'
 import { Checkbox } from '@/components/ui/checkbox'
 import { apiClient } from '@/utils/apiClient'
+import axios from 'axios'
 
 //temporary component for dev purposes
 //it supports 4 types of csv export, and files for separate groups are downloaded separately with group email being the csv file name
 //However, the implementation is kinda roundabout, there should be an easier way to achieve that
 function ExportGroups() {
-  const { email } = useContext(LoggedInUserContext)
+  // const { email } = useContext(LoggedInUserContext)
   const [inputValue, setInputValue] = useState('')
   const [error, setError] = useState(null)
   const [data, setData] = useState([])
@@ -120,18 +121,29 @@ function ExportGroups() {
           includeAllColumns: allColumns,
         }))
 
-        const response = await apiClient(
-          '/api/groups/bulk-export', // Endpoint path relative to API_BASE_URL
-          'POST', // HTTP method
+        // const response = await apiClient(
+        //   '/api/groups/bulk-export', // Endpoint path relative to API_BASE_URL
+        //   'POST', // HTTP method
+        //   {
+        //     userEmail: email,
+        //     groups: groupsArray,
+        //   },
+        //   {}, // Additional headers, if any
+        //   true // withCredentials flag
+        // )
+
+        // const tableData = JSON.parse(response)
+
+        const response = await axios.post(
+          `http://localhost:4000/api/groups/members/export?userEmail=testadmin@pvp-test-domain2.com`,
+
           {
-            userEmail: email,
             groups: groupsArray,
-          },
-          {}, // Additional headers, if any
-          true // withCredentials flag
+          }
         )
 
-        const tableData = JSON.parse(response)
+        if (response) console.log(`response: ${JSON.stringify(response)}`)
+        const tableData = response.data
 
         //create an array of objects, each containing a row to be written in the csv
         if (tableData) {
@@ -152,6 +164,7 @@ function ExportGroups() {
           })
           setData(csvData)
           setReady(true)
+          console.log('CSVDATA', csvData)
         }
       } catch (error) {
         console.error(error)

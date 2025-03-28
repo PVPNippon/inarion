@@ -17,15 +17,16 @@ export function useDomainList() {
   useEffect(() => {
     const fetchDomainList = async () => {
       try {
-        const email = window.localStorage.getItem('email')
-        console.log('email:', email)
+        // const email = window.localStorage.getItem('email')
+        // console.log('email:', email)
 
-        const token = localStorage.getItem('jwtToken')
-        console.log('TOKEN', token)
+        // const token = localStorage.getItem('jwtToken')
+        // console.log('TOKEN', token)
+        const email = 'testadmin@pvp-test-domain2.com' //temporarily bypass jwttoken check
 
         const response = await fetch(`http://localhost:4000/api/domains/?userEmail=${email}`, {
           headers: {
-            Authorization: `Bearer ${token}`, //Note: the domains module doesn't require the token for now, but it will probably need it in the future.
+            //  Authorization: `Bearer ${token}`, //Note: the domains module doesn't require the token for now, but it will probably need it in the future.
           },
         })
 

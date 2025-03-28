@@ -1,8 +1,7 @@
 'use client'
-import React, { useState, useEffect, useContext } from 'react'
+import React, { useState, useEffect } from 'react'
 import axios from 'axios'
-import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
-import { ProjectDataContext } from '../contexts/ProjectDataContext'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -36,8 +35,7 @@ import { Input } from '@/components/ui/input'
 //Important: This component is for dev purposes and by no means it's final or thoughrougly tested
 //I keep it here in case some logic can be reused, and also for testing purposes
 function DeleteMemberFromGroups() {
-  const { email } = useContext(LoggedInUserContext)
-  const { projectData } = useContext(ProjectDataContext)
+  const email = 'testadmin@pvp-test-domain2.com'
   const [inputValue, setInputValue] = useState('')
   const [error, setError] = useState(null)
   const [data, setData] = useState([])
@@ -53,19 +51,15 @@ function DeleteMemberFromGroups() {
           return
         }
         const response = await axios.delete(
-          'http://localhost:4000/api/groups/delete-member-from-groups',
+          `http://localhost:4000/api/groups/members/member/${inputValue}/?userEmail=${email}`,
           {
-            data: {
-              userEmail: email,
-              projectId: projectData.projectData.projectId,
-              serviceAccountEmail: projectData.serviceAccountData.serviceAccountEmail,
-              serviceAccountPrivateKey: projectData.serviceAccountKeys.privateKeyData,
-              memberEmail: inputValue,
-              groupEmails: data,
+            headers: {
+              //  Authorization: `Bearer ${token}`, // Pass the token in the Authorization header
             },
-          },
-          { withCredentials: true }
+            data: { groupEmails: data },
+          }
         )
+        console.log('RESPONSE FROM BE', response)
         setDeletionResult(response.data)
         setData([])
         document.getElementById('out2').innerHTML = ''

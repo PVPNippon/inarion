@@ -15,9 +15,7 @@ const logger = require('../logger/logger')(__filename, 'Users Service')
  * @returns {Promise<Object[]>} - A promise that resolves to an array of user objects, each containing user details.
  * @throws {Error} - Throws an error if there is an issue with the API call.
  */
-
 async function listUsers({ userEmail, client, query }) {
-  // TODO(m.okamoto): Allow filtering by OU or domain or group in the future
   logger.debug('Reached listUsers endpoint.')
   //Retrieve an existing impersonated auth client for Directory API or create a new one
   const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
@@ -113,7 +111,6 @@ async function turnOffTwoSVForUser({ userEmail, client, twoSVUserEmail }) {
  * @throws {Error} - Throws an error if there is an issue with the API call.
  */
 async function turnOffTwoSVForUsers({ userEmail, client, twoSVUserEmails }) {
-  // TODO(m.okamoto): Allow filtering by OU or group in the future because the 2sv-related config that Admin can do in admin console is always per OU or group.
   logger.debug('Reached turnOffTwoSVForUsers endpoint.')
   // Retrieve an existing impersonated auth client for Directory API or create a new one
   const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
@@ -227,7 +224,6 @@ async function turnOffTwoSVForUsersWithRateLimit({ userEmail, client, twoSVUserE
  * Status 403 indicates the user is outside the organization.
  * Status 404 indicates the user cannot be found as a valid email or group.
  */
-
 async function deleteUser({ userEmail, client, deleteUserEmail }) {
   // logger.debug('Reached deleteUser endpoint.')
   // Retrieve an existing impersonated auth client for Directory API or create a new one
@@ -273,7 +269,6 @@ async function deleteUser({ userEmail, client, deleteUserEmail }) {
  *                              respective operation's outcome.
  * @throws {Error} - Throws an error if there is an issue with the API call.
  */
-
 async function deleteUsers({ userEmail, client, deleteUserEmails }) {
   // TODO(m.okamoto): I will think about the function to raise an alert later if the user to be deleted is SA or Admin.
   logger.debug('Reached deleteUsers endpoint.')
@@ -293,12 +288,12 @@ async function deleteUsers({ userEmail, client, deleteUserEmails }) {
     if (responseArray[index].status === 'fulfilled') {
       deletedUsers.push({
         email: deleteUserEmail,
-        statuscode: responseArray[index].value.status,
+        statusCode: responseArray[index].value.status,
       })
     } else {
       undeletedUsers.push({
         email: deleteUserEmail,
-        statuscode: responseArray[index].reason.status,
+        statusCode: responseArray[index].reason.status,
         errorMessage: responseArray[index].reason.message,
       })
     }
@@ -400,6 +395,7 @@ async function listRoleNames({ userEmail, client }) {
   return roleNames // Return the role names
 }
 
+// TODO(m.okamoto): pagenation ないのでリファクタリングする
 async function listRoleAssignments({ userEmail, client }) {
   logger.debug('Reached listRoleAssignments endpoint.')
   //Retrieve an existing impersonated auth client for Directory API or create a new one
@@ -428,10 +424,36 @@ async function listRoleAssignments({ userEmail, client }) {
   return roleAssignments // Return the role assignments
 }
 
+/**
+ * Retrieves all organizational units in the organization.
+ *
+ * This function takes the email address of the user to impersonate and an optional existing impersonated auth client.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to list all organizational units in the organization.
+ *
+ * @param {Object} params - The parameters needed to list the organizational units.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {Object} [params.client] - An existing impersonated auth client for Directory API.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of objects, each containing details of an organizational unit.
+ * @throws {Error} - Throws an error if there is an issue with the API call.
+ */
+async function listOrgUnits({ userEmail, client }) {
+  // Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+
+  const response = await directory.orgunits.list({
+    customerId: 'my_customer',
+    type: 'all', // fetch all OU hierarchy paths
+  })
+
+  return response.data
+}
+
 module.exports = {
   listUsers,
   turnOffTwoSVForUsersWithRateLimit,
   deleteUsersWithRateLimit,
   listRoleNames,
   listRoleAssignments,
+  listOrgUnits,
 }

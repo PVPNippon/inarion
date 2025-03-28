@@ -1,4 +1,5 @@
 const { getImpersonatedClientInstanceForAdmin } = require('./authService')
+const groupsUtilityFunctions = require('../utility/groupsUtilityFunctions.js')
 
 /**
  * Retrieves the list of all groups in the organization.
@@ -83,21 +84,22 @@ async function getGroupByEmail({ userEmail, groupEmail, client }) {
  * a boolean indicating whether to include indirect members, and optionally an existing impersonated auth client for Directory API.
  * It uses these values to authorize make a request to the Google Admin Directory API
  * to retrieve the list of members of the group.
- *
- * @param {Object} options - An object containing the following properties:
- *   - {string} userEmail - The email address of the user to impersonate.
- *   - {string} groupEmail - The email address of the group to retrieve.
- *   - {boolean} includeDerivedMembership - Whether to include indirect members in the list.
- *   - {Object} [client] - An existing impersonated auth client for Directory API.
- * @returns {Promise<Object[]>} - A promise that resolves to the list of members of the group or an error message.
- * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ * 
+ * @param {Object} params - The object containing the `userEmail`, `groupEmail`, `includeDerivedMembership` and optional `client` in the request body.
+ * @param {string} params.userEmail - The email address of the user performing the action.
+ * @param {string} params.groupEmail - The email address of the group to retrieve the members of.
+ * @param {boolean} params.includeDerivedMembership - Whether to include indirect members in the list. Note that indirect external members are not retrieved.
+ * @param {Object} [params.client] - The pre-authorized client to use for the API call.
+ * @returns {Promise<Object[]>} A promise that resolves to the list of members of the group.
+ *                              Note that direct external members ('type' is either 'USER' or 'GROUP')
+ *                              and 'All Users In The Organization' ('type' is 'CUSTOMER') do not have the 'status' property.
+ * @throws {Error} Throws an error if the service account key is not found or if there is an issue with the API call.
  */
 async function listGroupMembers({ userEmail, groupEmail, includeDerivedMembership, client }) {
   //Retrieve an existing impersonated auth client for Directory API or create a new one
-  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+  const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
 
-  // Create the request object
-  const requestObj = {
+  const requestParams = {
     groupKey: groupEmail,
     maxResults: 200, //max allowed value
     includeDerivedMembership,
@@ -107,17 +109,30 @@ async function listGroupMembers({ userEmail, groupEmail, includeDerivedMembershi
   let membersResponse // Response from the API
 
   do {
-    // Fetch members
-    membersResponse = await directory.members.list(requestObj)
+    membersResponse = await directoryClient.members.list(requestParams)
 
     // If there are no members in the group, return an empty array
-    if (typeof membersResponse.data.members === 'undefined') break
+    if (typeof membersResponse.data.members === 'undefined') {
+      break
+    }
 
-    // Append the fetched groups to the members array
     members.push(...membersResponse.data.members)
-  } while ((requestObj.pageToken = membersResponse.data.nextPageToken)) // Continue fetching users while there are more pages
+  } while ((requestParams.pageToken = membersResponse.data.nextPageToken))
 
-  return members // Return all fetched members
+  // Format member instances
+  members.forEach(member => {
+    delete member.kind
+    delete member.etag
+
+    // If `type` of a member is 'CUSTOMER', it is 'All Users In The Organization' and it does not have the `status` property
+    // If `type` of a member is not 'CUSTOMER' (it is either 'USER' or 'GROUP'), it has the `status` property only if it is an internal user or group
+
+    // This method of determining whether or not a member is external by the absence of the `status` property is kind of ad hoc
+    // For a more accurate determination, all user IDs and group IDs in the organization should be used
+    member.isExternal = member.type !== 'CUSTOMER' && !member.status
+  })
+
+  return members
 }
 
 /**
@@ -130,7 +145,7 @@ async function listGroupMembers({ userEmail, groupEmail, includeDerivedMembershi
  * @param {Object} params - The parameters needed to retrieve activity logs.
  * @param {string} params.userEmail - The email address of the user to impersonate.
  * @param {string} params.applicationName - The application name to retrieve activity logs for.
- * @param {string} params.eventName - The type of logs to retrieve.      
+ * @param {string} params.eventName - The type of logs to retrieve.
  * @param {Object} [params.client=null] - An existing impersonated auth client for Reports API.
  * @returns {Promise<Object[]>} - A promise that resolves to the list of activity logs or an error message.
  * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
@@ -158,7 +173,7 @@ async function getActivityLogs({ userEmail, applicationName, eventName, client }
     if (typeof activitiesResponse.data.items === 'undefined') {
       break
     }
-    
+
     activityLogs.push(...activitiesResponse.data.items)
   } while ((requestObj.pageToken = activitiesResponse.data.nextPageToken))
 
@@ -184,26 +199,13 @@ async function getGroupJoinLogs({ userEmail, client }) {
 
   const applicationToEvents = {
     // https://developers.google.com/admin-sdk/reports/v1/appendix/activity/admin-group-settings#ADD_GROUP_MEMBER
-    'admin': [
-      'ADD_GROUP_MEMBER',
-    ],
+    admin: ['ADD_GROUP_MEMBER'],
 
     // https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups
-    'groups': [
-      'accept_invitation',
-      'add_user',
-      'approve_join_request',
-      'join',
-      'join_via_mail',
-    ],
+    groups: ['accept_invitation', 'add_user', 'approve_join_request', 'join', 'join_via_mail'],
 
     // https://developers.google.com/admin-sdk/reports/v1/appendix/activity/groups-enterprise
-    'groups_enterprise': [
-      'accept_invitation',
-      'add_member',
-      'approve_join_request',
-      'join',
-    ],
+    groups_enterprise: ['accept_invitation', 'add_member', 'approve_join_request', 'join'],
   }
 
   const requests = []
@@ -454,6 +456,31 @@ async function listUsers({ userEmail, client }) {
   } while ((requestObj.pageToken = usersResponse.data.nextPageToken)) // Continue fetching users while there are more pages
 
   return users // Return all fetched users
+}
+
+/**
+ * Retrieves the details of a single user by its email address.
+ *
+ * This function takes the email address of the user to impersonate, the email address of the user to retrieve,
+ * and optionally an existing impersonated auth client for Directory API.
+ * It uses these values to make a request to the Google Admin Directory API
+ * to retrieve the user's details.
+ *
+ * @param {Object} params - The object containing the `userEmail`, `targetEmail` and optional `client` in the request body.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {string} params.targetEmail - The email address of the user to retrieve.
+ * @param {Object} [params.client] - An existing impersonated auth client for Directory API.
+ * @returns {Promise<Object>} - A promise that resolves to the user's details or an error message.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+async function getUserByEmail({ userEmail, targetEmail, client }) {
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+
+  const response = await directory.users.get({
+    userKey: targetEmail,
+  })
+
+  return response.data // Return the user details
 }
 
 /**
@@ -779,19 +806,19 @@ async function deleteMemberFromGroupsWithRateLimit({ userEmail, groupEmails, mem
 }
 
 /**
- * Creates a new group using the Google Admin Directory API.
+ * Creates a group using the Google Directory API.
  *
- * This function takes the `userEmail`, `groupEmail`, and an optional `client` from the argument object.
- * It uses these values to make an API call to create a new group with the specified email address.
+ * This function takes the `userEmail`, `groupEmail` and optional `client` from the argument object `params`.
+ * It uses these values to authorize a JWT client, which it then uses to make a request to the Google Admin Directory API
+ * to create a group.
  *
- * @param {Object} params - The parameters needed to create a new group.
+ * @param {Object} params - The parameters needed to create a group.
  * @param {string} params.userEmail - The email address of the user to impersonate.
  * @param {string} params.groupEmail - The email address of the group to be created.
- * @param {Object} [params.client=null] - An existing impersonated auth client for Directory API.
- * @returns {Promise<Object>} - A promise that resolves to the response from the API call.
- * @throws {Error} - Throws an error if there is an issue with the API call or if the client is incorrect.
+ * @param {Object} [params.client=null] - The impersonated auth client configured for Directory API used to authenticate the API call.
+ * @returns {Promise<Object>} - A promise that resolves to the response of the API call.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-
 async function createGroup({ userEmail, groupEmail, client }) {
   //Retrieve an existing impersonated auth client for Directory API or create a new one
   const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
@@ -800,6 +827,7 @@ async function createGroup({ userEmail, groupEmail, client }) {
   //the "directory.groups.insert" method will return an error like "Cannot read properties of undefined (reading 'insert')"
   //We catch the error in the corresponding groupsController function.
   //If you are calling this function directly, you should catch the error yourself from wherever you call it.
+
   const response = await directory.groups.insert({
     resource: {
       email: groupEmail,
@@ -807,6 +835,54 @@ async function createGroup({ userEmail, groupEmail, client }) {
   })
 
   return response
+}
+
+/**
+ * Creates multiple groups using the Google Directory API.
+ *
+ * This function takes the `userEmail`, an array of `groupEmails`, and an optional `client` from the argument object `params`.
+ * It uses these values to authorize a JWT client, which it then uses to make requests to the Google Admin Directory API
+ * to create each group sequentially.
+ *
+ * @param {Object} params - The parameters needed to create groups.
+ * @param {string} params.userEmail - The email address of the user to impersonate.
+ * @param {string[]} params.groupEmails - An array of email addresses for the groups to be created.
+ * @param {Object} [params.client=null] - The impersonated auth client configured for Directory API used to authenticate the API call.
+ * @returns {Promise<Object>} - A promise that resolves to an object containing two arrays:
+ *   - `createdGroups`: an array of objects for successfully created groups, each containing `email` and `statusCode`.
+ *   - `uncreatedGroups`: an array of objects for failed groups, each containing `email`, `statusCode`, and `errorMessage`.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+
+async function createGroups({ userEmail, groupEmails, client }) {
+  // Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+
+  const createdGroups = [] // Container for successfully created groups
+  const uncreatedGroups = [] // Container for failed groups
+
+  // Process groups sequentially with delays
+  for (let i = 0; i < groupEmails.length; i++) {
+    const groupEmail = groupEmails[i]
+
+    // It doesn't look the delay calculation was applied at all, it just sends requests sequentially, so I removed the delay logic.
+    //While it helps to prevent hitting limits, it takes time (about 10 mins to create 500 groups).
+    //When exponentional backoff utility function is available, will switch to it.
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    // Create the group
+    try {
+      const result = await createGroup({
+        groupEmail,
+        client: directoryClient,
+      })
+      createdGroups.push({ email: groupEmail, statusCode: result.status })
+    } catch (error) {
+      uncreatedGroups.push({ email: groupEmail, statusCode: error.status, errorMessage: error.errors })
+    }
+  }
+
+  return { createdGroups, uncreatedGroups }
 }
 
 /**
@@ -919,6 +995,302 @@ async function addMembers({ userEmail, groupEmail, memberEmails, client }) {
   return { addedMembers, unaddedMembers }
 }
 
+/**
+ * Retrieves the list of groups which have a specified group or user as a member in the organization.
+ *
+ * This function takes the `userEmail`, `targetEmail` and optional `client` from the request body.
+ * It uses these values to make a request to the Google Admin Directory API
+ * to list groups which have a specified group or user as a member in the organization.
+ *
+ * @param {Object} params - The object containing the `userEmail`, `targetEmail` and optional `client` in the request body.
+ * @param {string} params.userEmail - The email address of the user performing the action.
+ * @param {string} params.targetEmail - The email address of a group or a user whose parent groups to retrieve.
+ * @param {Object} [params.client] - The pre-authorized client to use for the API call.
+ * @returns {Promise<Object[]>} - A promise that resolves to an array of objects containing the groups' details.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+async function listParents({ userEmail, targetEmail, client }) {
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+  const parents = []
+  let groupsResponse // Response from the API
+
+  const requestObj = {
+    customer: 'my_customer',
+    maxResults: 200, //max allowed value
+    orderBy: 'email',
+    query: `memberKey=${targetEmail}`,
+  }
+
+  do {
+    groupsResponse = await directory.groups.list(requestObj)
+
+    if (typeof groupsResponse.data.groups === 'undefined') {
+      break
+    }
+
+    parents.push(...groupsResponse.data.groups)
+  } while ((requestObj.pageToken = groupsResponse.data.nextPageToken))
+
+  return parents
+}
+
+/**
+ * Retrieves a table of all groups that a given group or user is a member of, either directly or indirectly.
+ * The table contains columns for the group email, the type of membership (direct or indirect), and the timestamp
+ * of when the membership was created.
+ *
+ * @param {Object} params - The object containing the `userEmail`, `targetEmail`, `targetType` and optional `client` in the request body.
+ * @param {string} params.userEmail - The email address of the user performing the action.
+ * @param {string} params.targetEmail - The email address of a group or a user whose parent groups to retrieve.
+ * @param {string} [params.targetType='group'] - The type of the target. Either 'group' or 'user'.
+ * @param {Object} [params.client] - The pre-authorized client to use for the API call.
+ * @returns {Promise<Object>} - A promise that resolves to an object containing the following properties:
+ *   - `id`: the ID of the target (group or user).
+ *   - `table`: an array of objects containing the details of the target's parents.
+ *   - `tables`: an object where the keys are the IDs of the target's ancestors and the values are their nested membership tables.
+ * @throws {Error} - Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+async function getNestedTables({ userEmail, targetEmail, targetType = 'group', client }) {
+  if (targetType !== 'group' && targetType !== 'user') {
+    throw new Error('targetType must be either "group" or "user"')
+  }
+
+  let directoryClient = client
+
+  if (!directoryClient) {
+    try {
+      directoryClient = await getImpersonatedClientInstanceForAdmin(userEmail, 'directory')
+    } catch (error) {
+      throw new Error('Error getting impersonated client for Directory API')
+    }
+  }
+
+  let groups
+  
+  try {
+    groups = await listParents({ userEmail, targetEmail, client: directoryClient })
+  } catch (error) {
+    throw new Error('Error listing parents')
+  }
+
+  let originalTarget  // Target instance (group or user)
+  let originalTargetId // Target's ID
+  let originalTargetPrimaryEmail  // Target's primary email address
+  let originalTargetEmailsSet // A set of target's email addresses (primary and aliases)
+
+  // If a target is a user, we need to fetch groups which have "All Users In The Organization" separately
+  let groupsWithAllUsersInOrg = null
+
+  if (targetType === 'group') {
+    try {
+      originalTarget = await getGroupByEmail({ userEmail, groupEmail: targetEmail, client: directoryClient })
+    } catch (error) {
+      throw new Error('Error getting the target group instance')
+    }
+
+    if (groups.length === 0) {
+      return {
+        id: originalTarget.id,
+        table: [],
+        tables: { [originalTarget.id]: [] },
+      }
+    }
+
+    originalTargetId = originalTarget.id
+    originalTargetPrimaryEmail = originalTarget.email
+    originalTargetEmailsSet = new Set(groupsUtilityFunctions.extractEmailsFromGroup(originalTarget))
+  } else {  // targetType === 'user'
+    try {
+      originalTarget = await getUserByEmail({ userEmail, targetEmail, client: directoryClient })
+    } catch (error) {
+      throw new Error('Error getting the target user instance')
+    }
+  
+    try {
+      groupsWithAllUsersInOrg = await listParents({ userEmail, targetEmail: originalTarget.customerId, client: directoryClient })
+    } catch (error) {
+      throw new Error('Error listing groups with All Users In The Organization')
+    }
+
+    if (groups.length === 0 && groupsWithAllUsersInOrg.length === 0) {
+      return {
+        id: originalTarget.id,
+        table: [],
+        tables: {},
+      }
+    }
+    
+    originalTargetId = originalTarget.id
+    originalTargetPrimaryEmail = originalTarget.primaryEmail
+    originalTargetEmailsSet = new Set(groupsUtilityFunctions.extractEmailsFromUser(originalTarget))
+  }
+
+  const idsToEmailsObj = { [originalTargetId]: originalTargetPrimaryEmail }
+
+  let joinLogs
+
+  try {
+    joinLogs = await getGroupJoinLogs({ userEmail })
+  } catch (error) {
+    throw new Error('Error getting group join logs')
+  }
+
+  const directParentsMap = new Map()
+
+  for (const { email } of groups) {
+    const obj = { email }
+
+    const timestamp = groupsUtilityFunctions.getGroupJoinTimestamp(joinLogs, email, originalTargetEmailsSet)
+    if (timestamp) {
+      obj.timestamp = timestamp
+    }
+
+    directParentsMap.set(email, obj)
+  }
+
+  if (groupsWithAllUsersInOrg) {
+    const allUsersInOrgSet = new Set(['*', 'All users in domain'])
+
+    for (const groupWithAllUsersInOrg of groupsWithAllUsersInOrg) {
+      const timestamp = groupsUtilityFunctions.getGroupJoinTimestamp(joinLogs, groupWithAllUsersInOrg.email, allUsersInOrgSet)
+
+      const mapValue = directParentsMap.get(groupWithAllUsersInOrg.email)
+
+      if (mapValue) {
+        if (timestamp && (!mapValue.timestamp || Date.parse(timestamp) < Date.parse(mapValue.timestamp))) {
+          mapValue.timestamp = timestamp
+        }
+      } else {
+        const obj = { email: groupWithAllUsersInOrg.email }
+
+        if (timestamp) {
+          obj.timestamp = timestamp
+        }
+
+        directParentsMap.set(groupWithAllUsersInOrg.email, obj)
+
+        groups.push(groupWithAllUsersInOrg)
+      }
+    }
+  }
+
+  const parentsMap = new Map()
+  parentsMap.set(originalTargetPrimaryEmail, [...directParentsMap.values()])
+  
+  while (groups.length > 0) {
+    const parentsArray = await Promise.allSettled(groups.map(group => listParents({ userEmail, targetEmail: group.email, client: directoryClient })))
+    const nextGroups = []
+
+    groups.forEach(group => {
+      parentsMap.set(group.email, [])
+      idsToEmailsObj[group.id] = group.email
+    })
+
+    for (let i = 0; i < groups.length; i++) {
+      const group = groups[i]
+
+      if (parentsArray[i].status === 'rejected') {
+        throw new Error(`Error listing parents for ${group.email}`)
+      }
+
+      const groupEmailsSet = new Set(groupsUtilityFunctions.extractEmailsFromGroup(group))
+
+      const parents = parentsArray[i].value
+
+      for (const parent of parents) {
+        const obj = { email: parent.email }
+        const timestamp = groupsUtilityFunctions.getGroupJoinTimestamp(joinLogs, parent.email, groupEmailsSet)
+        if (timestamp) {
+          obj.timestamp = timestamp
+        }
+
+        parentsMap.get(group.email).push(obj)
+
+        if (!parentsMap.has(parent.email)) {
+          nextGroups.push(parent)
+        }
+      }
+    }
+
+    groups = nextGroups
+  }
+
+  const emailsTotablesObj = createTables(parentsMap)
+  const idsToTablesObj = {}
+
+  for (const id in idsToEmailsObj) {
+    idsToTablesObj[id] = emailsTotablesObj[idsToEmailsObj[id]]
+  }
+
+  if (targetType === 'user') {
+    delete idsToTablesObj[originalTargetId]
+  }
+
+  return {
+    id: originalTargetId,
+    table: emailsTotablesObj[originalTargetPrimaryEmail],
+    tables: idsToTablesObj
+  }
+}
+
+/**
+ * Creates an object with tables for each target email address in the given Map.
+ * The tables contain columns for the group email, the method of inheritance,
+ * and the timestamp when the membership was established.
+ *
+ * @param {Map<string, Object[]>} parentsMap - A map containing the direct parents of each group.
+ * @returns {Object<string, Object[]>} - An object with tables for each target email address.
+ */
+function createTables(parentsMap) {
+  const tablesMap = new Map()
+
+  for (const [targetEmail, directParents] of parentsMap) {
+    const table = directParents.map(directParent => ({ email: directParent.email, membership: 'Direct', timestamp: directParent.timestamp }))
+    let groupEmails = directParents.map(directParent => directParent.email)
+    const directParentsSet = new Set(groupEmails)
+    const ancestorsMap = new Map()
+    
+    while (groupEmails.length > 0) {
+      const nextGroupEmails = []
+
+      for (const groupEmail of groupEmails) {
+        const parents = parentsMap.get(groupEmail)
+
+        if (!parents || parents.length === 0) {
+          continue
+        }
+
+        for (const { email: parentEmail } of parents) {
+          if (directParentsSet.has(parentEmail)) {
+            continue   
+          }
+
+          const ancestor = ancestorsMap.get(parentEmail)
+
+          if (ancestor) {
+            ancestor.inherited.add(groupEmail)
+          } else {
+            ancestorsMap.set(parentEmail, { email: parentEmail, membership: 'Inherited', inherited: new Set([groupEmail]) })
+            nextGroupEmails.push(parentEmail)
+          }
+        }
+      }
+
+      groupEmails = nextGroupEmails
+    }
+
+    for (const ancestor of ancestorsMap.values()) {
+      ancestor.inherited = Array.from(ancestor.inherited)
+    }
+
+    table.push(...ancestorsMap.values())
+    tablesMap.set(targetEmail, table)
+  }
+
+  return Object.fromEntries(tablesMap)
+}
+
+
 module.exports = {
   listGroups,
   getGroupByEmail,
@@ -930,6 +1302,8 @@ module.exports = {
   deleteMembersWithRateLimit,
   deleteMemberFromGroupsWithRateLimit,
   createGroup,
+  createGroups,
   getSettings,
   addMembers,
+  getNestedTables,
 }

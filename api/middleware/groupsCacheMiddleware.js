@@ -1,4 +1,5 @@
 const groupsCacheService = require('../services/groupsCacheService.js')
+const usersCacheService = require('../services/usersCacheService.js')
 const groupsUtilityFunctions = require('../utility/groupsUtilityFunctions.js')
 const groupsService = require('../services/groupsService.js')
 
@@ -94,9 +95,9 @@ async function storeAllGroups(req, res, next) {
  * @param {Function} next - The next middleware function in the stack.
  */
 async function retrieveGroup(req, res, next) {
-  try {
-    const { groupEmail } = req.params
+  const { groupEmail } = req.params
 
+  try {
     const groupId = await groupsCacheService.getId(groupEmail)
     
     // No group ID corresponding to the group email is in the cache
@@ -185,33 +186,52 @@ async function storeGroup(req, res, next) {
  * @param {Function} next - The next middleware function in the stack.
  */
 async function retrieveMembers(req, res, next) {
+  const { groupEmail } = req.params
+
+  if (req.query.includeDerivedMembership) {
+    res.locals.includeDerivedMembership = req.query.includeDerivedMembership.toLowerCase() === 'true'
+  }
+
+  let groupId = null
+
   try {
-    const { groupEmail } = req.params
+    groupId = await groupsCacheService.getId(groupEmail)
+  } catch (error) {
+    console.log(`Error retrieving the ID of a group "${groupEmail}" from the cache:`, error)
+  }
 
-    const groupId = await groupsCacheService.getId(groupEmail)
-    
-    if (groupId === null) {
-      return next()
-    }
-
-    if (groupId === 'NEGATIVE_CACHE') {
-      res.locals.statusCode = 404
-      res.locals.data = { message: 'Group does not exist or you do not have necessary permissions to see this group' }
-      res.locals.cached = true
-      return next()
-    }
-
-    const members = await groupsCacheService.getMembersById(groupId)
-
-    if (members === null) {
-      return next()
-    }
-
-    res.locals.data = members
+  // The group ID is not in the cache or there is an error retrieving the group ID from the cache
+  if (groupId === null) {
+    return next()
+  }
+  
+  if (groupId === 'NEGATIVE_CACHE') {
+    res.locals.statusCode = 404
+    res.locals.data = { message: 'Group does not exist or you do not have necessary permissions to see this group' }
     res.locals.cached = true
+    return next()
+  }
+
+  let members = null
+
+  try {
+    if (res.locals.includeDerivedMembership) {
+      members = await groupsCacheService.getDescendantsById(groupId)
+    } else {
+      members = await groupsCacheService.getMembersById(groupId)
+    }
   } catch (error) {
     console.log(`Error retrieving members of a group "${groupEmail}" from the cache:`, error)
   }
+
+  // The group members are not in the cache or there is an error retrieving the group members from the cache
+  if (members === null) {
+    res.locals.groupId = groupId
+    return next()
+  }
+
+  res.locals.data = members
+  res.locals.cached = true
   next()
 }
 
@@ -252,31 +272,27 @@ async function storeMembers(req, res, next) {
   }
 
   const members = res.locals.data
+  const includeDerivedMembership = res.locals.includeDerivedMembership
 
   // If the group ID is in the cache, store the members with the ID in the cache
+  const cachedGroupId = res.locals.groupId
 
-  let cachedGroupId
-
-  try {
-    cachedGroupId = await groupsCacheService.getId(groupEmail)
-  } catch (error) {
-    console.log('Error retrieving the group ID from the cache:', error)
-    cachedGroupId = null
-  }
-
-  if (cachedGroupId !== null && cachedGroupId !== 'NEGATIVE_CACHE') {
+  if (cachedGroupId) {
     try {
-      const result = await groupsCacheService.overwriteMembersById(cachedGroupId, members)
-      console.log('Stored members in the cache:', result)
+      const result = await (includeDerivedMembership
+        ? groupsCacheService.overwriteDescendantsById(cachedGroupId, members)
+        : groupsCacheService.overwriteMembersById(cachedGroupId, members)
+      )
+      
+      console.log(`Stored ${includeDerivedMembership ? 'direct and indirect' : 'direct'} members in the cache:`, result)
     } catch (error) {
-      console.log('Error storing members in the cache:', error)
+      console.log(`Error storing ${includeDerivedMembership ? 'direct and indirect' : 'direct'} members in the cache:`, error)
     }
     return
   }
 
   // If the group ID is not in the cache, get the group instance by the API
   // and store the group ID, instance, and members in the cache
-
   let group
 
   try {
@@ -296,138 +312,13 @@ async function storeMembers(req, res, next) {
     const result = await Promise.allSettled([
       groupsCacheService.setIds(emailsToIdsObj),
       groupsCacheService.setGroup(group),
-      groupsCacheService.overwriteMembersById(group.id, members)
+      includeDerivedMembership
+        ? groupsCacheService.overwriteDescendantsById(group.id, members)
+        : groupsCacheService.overwriteMembersById(group.id, members)
     ])
     console.log('Stored the group\'s id, instance and members in the cache:', result)
   } catch (error) {
     console.log('Error storing the group\'s id, instance and members in the cache:', error)
-  }
-}
-
-/**
- * Middleware to retrieve the descendants (both direct and indirect members) of a group from the cache.
- *
- * @param {Object} req - The request object.
- * @param {Object} res - The response object.
- * @param {Function} next - The next middleware function in the stack.
- */
-async function retrieveDescendants(req, res, next) {
-  try {
-    const { groupEmail } = req.params
-
-    const groupId = await groupsCacheService.getId(groupEmail)
-    
-    if (groupId === null) {
-      return next()
-    }
-
-    if (groupId === 'NEGATIVE_CACHE') {
-      res.locals.statusCode = 404
-      res.locals.data = { message: 'Group does not exist or you do not have necessary permissions to see this group' }
-      res.locals.cached = true
-      return next()
-    }
-
-    const descendants = await groupsCacheService.getDescendantsById(groupId)
-
-    if (descendants === null) {
-      return next()
-    }
-
-    res.locals.data = descendants
-    res.locals.cached = true
-  } catch (error) {
-    console.log(`Error retrieving descendants of a group "${groupEmail}" from the cache:`, error)
-  }
-  next()
-}
-
-/**
- * Middleware to store the descendants (both direct and indirect members) of a group in the cache.
- * 
- * If the group's ID is not in the cache, this function calls an API to fetch the group instance and
- * stores the group's ID and instance as well as its descendants in the cache.
- *
- * @param {Object} req - The request object.
- * @param {Object} res - The response object.
- * @param {Function} next - The next middleware function in the stack.
- */
-async function storeDescendants(req, res, next) {
-  // `groupEmail` should be retrieved before calling next() because req.params is cleared after calling next()
-  // Ref: https://github.com/expressjs/express/issues/4298#issuecomment-656770286
-  const { groupEmail } = req.params
-
-  next()
-
-  if (res.locals.cached) {
-    return
-  }
-
-  if (res.locals.statusCode === 500) {
-    return
-  }
-
-  // If the group which has `groupEmail` cannot be fetched by the API (e.g. the group does not exist), store negative cache in the cache
-  if (res.locals.statusCode === 404) {
-    try {
-      const result = await groupsCacheService.setIds({ [groupEmail]: 'NEGATIVE_CACHE' })
-      console.log('Stored negative cache in the cache:', result)
-    } catch (error) {
-      console.log('Error storing negative cache in the cache:', error)
-    }
-    return
-  }
-
-  const descendants = res.locals.data
-
-  // If the group ID is in the cache, store the descendants with the ID in the cache
-
-  let cachedGroupId
-
-  try {
-    cachedGroupId = await groupsCacheService.getId(groupEmail)
-  } catch (error) {
-    console.log('Error retrieving the group ID from the cache:', error)
-    cachedGroupId = null
-  }
-
-  if (cachedGroupId !== null && cachedGroupId !== 'NEGATIVE_CACHE') {
-    try {
-      const result = await groupsCacheService.overwriteDescendantsById(cachedGroupId, descendants)
-      console.log('Stored descendants in the cache:', result)
-    } catch (error) {
-      console.log('Error storing descendants in the cache:', error)
-    }
-    return
-  }
-
-  // If the group ID is not in the cache, get the group instance by the API
-  // and store the group ID, instance, and descendants in the cache
-
-  let group
-
-  try {
-    const { userEmail } = req.query
-    group = await groupsService.getGroupByEmail({
-      userEmail,
-      groupEmail
-    })
-  } catch (error) {
-    // Abort if the group instance cannot be fetched by the API
-    console.log('Error fetching the group instance by the API:', error)
-    return
-  }
-
-  try {
-    const emailsToIdsObj = groupsUtilityFunctions.getGroupEmailsToIdsObj(group)
-    const result = await Promise.allSettled([
-      groupsCacheService.setIds(emailsToIdsObj),
-      groupsCacheService.setGroup(group),
-      groupsCacheService.overwriteDescendantsById(group.id, descendants)
-    ])
-    console.log('Stored the group\'s id, instance and descendants in the cache:', result)
-  } catch (error) {
-    console.log('Error storing the group\'s id, instance and descendants in the cache:', error)
   }
 }
 
@@ -439,9 +330,9 @@ async function storeDescendants(req, res, next) {
  * @param {Function} next - The next middleware function in the stack.
  */
 async function retrieveSettings(req, res, next) {
-  try {
-    const { groupEmail } = req.params
+  const { groupEmail } = req.params
 
+  try {
     const groupId = await groupsCacheService.getId(groupEmail)
     
     if (groupId === null) {
@@ -558,6 +449,105 @@ async function storeSettings(req, res, next) {
   }
 }
 
+/**
+ * Middleware to retrieve a nested table from the cache.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function in the stack.
+ */
+async function retrieveNestedTable(req, res, next) {
+  if (!req.query.type) {
+    res.locals.statusCode = 400
+    res.locals.data = { message: 'Type is required' }
+    res.locals.cached = true
+    return next()
+  }
+
+  const targetType = req.query.type.toLowerCase()
+
+  if (targetType !== 'group' && targetType !== 'user') {
+    res.locals.statusCode = 400
+    res.locals.data = { message: 'Type must be either group or user' }
+    res.locals.cached = true
+    return next()
+  }
+
+  res.locals.targetType = targetType
+
+  const { targetEmail } = req.params
+
+  try {
+    const targetId = await ((targetType === 'group') ? groupsCacheService.getId(targetEmail) : usersCacheService.getId(targetEmail))
+    
+    if (targetId === null) {
+      return next()
+    }
+
+    if (targetId === 'NEGATIVE_CACHE') {
+      res.locals.statusCode = 404
+      res.locals.data = {
+        message: `${targetEmail} does not exist or you do not have necessary permissions to see ${targetEmail}`
+      }
+      res.locals.cached = true
+      return next()
+    }
+
+    const nestedTable = await ((targetType === 'group') ? groupsCacheService.getNestedTableById(targetId) : usersCacheService.getNestedTableById(targetId))
+
+    if (nestedTable === null) {
+      return next()
+    }
+
+    res.locals.data = nestedTable
+    res.locals.cached = true
+  } catch (error) {
+    console.log(`Error retrieving a nested table of ${targetEmail} from the cache:`, error)
+  }
+  next()
+}
+
+/**
+ * Middleware to store the nested tables of a group or user in the cache.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function in the stack.
+ */
+async function storeNestedTables(req, res, next) {
+  next()
+
+  if (res.locals.cached) {
+    return
+  }
+
+  if (res.locals.statusCode === 500) {
+    return
+  }
+
+  const targetType = res.locals.targetType
+  const tables = res.locals.tables
+
+  try {
+    let result
+
+    if (targetType === 'group') {
+      result = await groupsCacheService.setNestedTablesByIds(tables)
+    } else {  // targetType === 'user'
+      const id = res.locals.id
+      const table = res.locals.data
+      
+      result = await Promise.allSettled([
+        groupsCacheService.setNestedTablesByIds(tables),
+        usersCacheService.setNestedTableById(id, table)
+      ])
+    }
+    console.log('Stored the tables in the cache:', result)
+  } catch (error) {
+    console.log('Error storing the tables in the cache:', error)
+  }
+}
+
 module.exports = {
   retrieveAllGroups,
   storeAllGroups,
@@ -568,9 +558,9 @@ module.exports = {
   retrieveMembers,
   storeMembers,
 
-  retrieveDescendants,
-  storeDescendants,
-
   retrieveSettings,
   storeSettings,
+
+  retrieveNestedTable,
+  storeNestedTables,
 }

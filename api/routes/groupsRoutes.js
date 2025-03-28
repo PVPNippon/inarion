@@ -6,7 +6,7 @@ const { encryptResponseMiddleware, decryptRequestMiddleware } = require('../cont
 const { validateJWTMiddleware } = require('../controllers/googleAuthController')
 
 // Global middlewares for all routes
-router.use(validateJWTMiddleware) // Validate JWT for all routes
+//router.use(validateJWTMiddleware) // Validate JWT for all routes
 router.use(decryptRequestMiddleware) // Decrypt request for all routes
 
 //route to list all groups in customer organization
@@ -25,24 +25,16 @@ router.get(
   groupsCacheMiddleware.storeGroup
 )
 
-//route to list direct members of a group
+//route to list members of a group
 router.get(
   '/group/:groupEmail/members',
   groupsCacheMiddleware.retrieveMembers,
-  groupsController.listDirectMembers,
+  groupsController.listMembers,
   groupsCacheMiddleware.storeMembers
 )
 
 //route to add members to a group
 router.post('/group/:groupEmail/members', groupsController.addMembers)
-
-//route to list all members of a group(both direct and indirect)
-router.get(
-  '/group/:groupEmail/descendants',
-  groupsCacheMiddleware.retrieveDescendants,
-  groupsController.listAllMembers,
-  groupsCacheMiddleware.storeDescendants
-)
 
 //route to get group activity logs(all group logs for all groups in cx domain)
 router.get('/activities', groupsController.getGroupActivity)
@@ -50,6 +42,7 @@ router.get('/activities', groupsController.getGroupActivity)
 //route to get group joined activity(all "add_member" and "accept_invitation" logs for all groups in cx domain)
 router.get('/joined-activities', groupsController.getGroupJoinedActivity)
 
+// DEPRECATED
 //route to get nested membership table for a member(group or user)
 router.get('/target/:targetEmail/nested-membership', groupsController.getNestedMembership)
 
@@ -69,7 +62,10 @@ router.delete('/group/:groupEmail/members', groupsController.deleteMembers)
 router.delete('/members/member/:memberEmail', groupsController.deleteMemberFromGroups)
 
 //route to create a group
-router.post('/', groupsController.createGroup)
+//router.post('/', groupsController.createGroup)
+
+//route to create groups
+router.post('/', groupsController.createGroups)
 
 //route to get a group's settings
 router.get(
@@ -77,6 +73,14 @@ router.get(
   groupsCacheMiddleware.retrieveSettings,
   groupsController.getSettings,
   groupsCacheMiddleware.storeSettings
+)
+
+//route to get nested membership table for an entity (group or user)
+router.get(
+  '/target/:targetEmail/nested-table', 
+  groupsCacheMiddleware.retrieveNestedTable,
+  groupsController.getNestedTable,
+  groupsCacheMiddleware.storeNestedTables
 )
 
 router.use(encryptResponseMiddleware) // Encrypt request for all routes

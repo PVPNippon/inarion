@@ -115,7 +115,7 @@ async function getCredentials(userEmail) {
 
     try {
       // Store the service account email and key in Redis
-      storeDataInCache({
+      await storeDataInCache({
         key: serviceAccountCredentialsKey,
         data: {
           serviceAccountEmail: serviceAccountKeyInDB.serviceAccountEmail,
@@ -201,6 +201,7 @@ async function initializeGoogleAuth(credentials) {
         'https://www.googleapis.com/auth/admin.directory.user',
         'https://www.googleapis.com/auth/admin.directory.domain',
         'https://www.googleapis.com/auth/admin.directory.rolemanagement',
+        'https://www.googleapis.com/auth/admin.directory.orgunit',
       ],
     })
     // logger.debug(`GoogleAuth client initialized successfully.`)

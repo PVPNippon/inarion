@@ -83,7 +83,7 @@ exports.getGroup = async (req, res, next) => {
  * @returns {Promise<void>} Responds with the list of direct members or an error message.
  * @throws {Error} Throws an error if the service account key is not found or if there is an issue with the API call.
  */
-exports.listDirectMembers = async (req, res, next) => {
+exports.listMembers = async (req, res, next) => {
   if (res.locals.cached) {
     return next()
   }
@@ -96,49 +96,10 @@ exports.listDirectMembers = async (req, res, next) => {
     const members = await groupsService.listGroupMembers({
       userEmail,
       groupEmail,
-      includeDerivedMembership: false, //set derived membership to false
+      includeDerivedMembership: res.locals.includeDerivedMembership,
     })
 
     res.locals.data = members
-  } catch (error) {
-    if (error.status === 404 || error.status === 403) {
-      res.locals.statusCode = 404
-      res.locals.data = { message: 'Group does not exist or you do not have necessary permissions to see this group' }
-    } else {
-      res.locals.statusCode = 500
-      res.locals.data = { message: 'Error fetching members' }
-    }
-    logger.error(error)
-  }
-  next()
-}
-
-/**
- * Retrieves the list of all members of a group, both direct and indirect.
- *
- * @param {Object} req - The request object containing `userEmail` in the query parameter and `groupEmail` in the path parameter.
- * @param {Object} res - The response object used to return the list of all members or an error message.
- * @param {Function} next - The next middleware function in the stack.
- * @returns {Promise<void>} Responds with the list of all members or an error message.
- * @throws {Error} Throws an error if the service account key is not found or if there is an issue with the API call.
- */
-exports.listAllMembers = async (req, res, next) => {
-  if (res.locals.cached) {
-    return next()
-  }
-
-  const { userEmail } = req.query
-  const { groupEmail } = req.params
-
-  try {
-    // Fetch an array of all direct and indirect members
-    const descendants = await groupsService.listGroupMembers({
-      userEmail,
-      groupEmail,
-      includeDerivedMembership: true, //set derived membership to true
-    })
-
-    res.locals.data = descendants
   } catch (error) {
     if (error.status === 404 || error.status === 403) {
       res.locals.statusCode = 404
@@ -219,6 +180,7 @@ exports.getGroupJoinedActivity = async (req, res, next) => {
   next()
 }
 
+// DEPRECATED
 /**
  * Retrieves a table of all groups that a given group or user is a member of, either directly or indirectly.
  * The table contains columns for the group email, the type of membership (direct or indirect), and the timestamp
@@ -530,6 +492,47 @@ exports.createGroup = async (req, res, next) => {
   next()
 }
 
+exports.createGroups = async (req, res, next) => {
+  const { userEmail } = req.query
+  const { groupEmails } = req.body
+
+  // Eliminate duplicate group emails if any.
+  const uniqueGroupEmails = [...new Set(groupEmails)]
+
+  try {
+    const response = await groupsService.createGroups({
+      userEmail,
+      groupEmails: uniqueGroupEmails,
+    })
+
+    if (response.uncreatedGroups.length === 0) {
+      // All requested groups were created successfully.
+      response.message = 'Created all requested groups successfully'
+      res.locals.statusCode = 200
+    } else if (response.uncreatedGroups.length > 0) {
+      // Some requested groups were created successfully, but some were not.
+      response.message = `${response.uncreatedGroups.length} groups were not created.`
+      res.locals.statusCode = 207
+    } else {
+      // No requested members were added to the group.
+      response.message = 'Failed to create requested groups.'
+
+      // If one of the status codes are in 500, the status code of the response should be 500 (Internal Server Error).
+      // Otherwise it should be 400 (Bad Request).
+      res.locals.statusCode = response.uncreatedGroups.some(({ statusCode }) => statusCode >= 500 && statusCode < 600)
+        ? 500
+        : 400
+    }
+
+    res.locals.data = response
+  } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: 'Error creating groups.' }
+    logger.error(error)
+  }
+  next()
+}
+
 /**
  * Retrieves a group's settings.
  *
@@ -610,6 +613,44 @@ exports.addMembers = async (req, res, next) => {
   } catch (error) {
     res.locals.statusCode = 500
     res.locals.data = { message: `Error adding members to ${groupEmail}` }
+    logger.error(error)
+  }
+  next()
+}
+
+/**
+ * Retrieves a table of all groups that a given group or user is a member of, either directly or indirectly.
+ * The table contains columns for the group email, the type of membership (direct or indirect), and the timestamp
+ * of when the membership was created.
+ *
+ * @param {Object} req - The request object containing `userEmail` and `type` in the query parameter, and `targetEmail` in the path parameter.
+ * @param {Object} res - The response object used to return the table of nested membership or an error message.
+ * @param {Function} next - The next middleware function in the stack.
+ * @returns {Promise<void>} Responds with the table of nested membership or an error message.
+ * @throws {Error} Throws an error if the service account key is not found or if there is an issue with the API call.
+ */
+exports.getNestedTable = async (req, res, next) => {
+  if (res.locals.cached) {
+    return next()
+  }
+
+  const { userEmail } = req.query
+  const { targetEmail } = req.params
+  const targetType = res.locals.targetType
+  
+  try {
+    const result = await groupsService.getNestedTables({
+      userEmail,
+      targetEmail,
+      targetType,
+    })
+
+    res.locals.data = result.table
+    res.locals.id = result.id
+    res.locals.tables = result.tables
+  } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: 'Error fetching a nested table' }
     logger.error(error)
   }
   next()
