@@ -1,5 +1,5 @@
 'use client'
-import '../globals.css'
+// import '../globals.css'
 import { homePageStyles } from '@/app/[locale]/home-page/home-page-styles'
 import React, { useContext, useEffect, useState } from 'react'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'

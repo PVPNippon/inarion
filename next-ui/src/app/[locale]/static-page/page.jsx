@@ -1145,7 +1145,8 @@ export default function StaticPage() {
           </Tooltip>
         </TooltipProvider>
         {/* Calendar */}
-        <Calendar mode="single" selected={date} onSelect={setDate} className="max-w-xs " />
+        {/* Commented out temporarily because the react-day-picker library is causing a conflict and the project cannot be run on Docker. */}
+        {/* <Calendar mode="single" selected={date} onSelect={setDate} className="max-w-xs " /> */}
         {/* <CustomTable /> */}
 
         {/* <ScrollArea className="relative w-full px-5 py-3 overflow-auto border rounded-lg border-[#E4E4E7] h-[200px]"> */}
