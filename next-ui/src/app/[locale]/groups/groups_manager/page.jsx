@@ -67,6 +67,7 @@ import {
   CustomListAccordionContent,
 } from '@/components/ui/custom-list-accordion'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { groupsDummyData } from '@/app/[locale]/groups/groups_manager/dummyData'
 
 //constants
 //Object with strings for the "Who can join" field of the groups's card. Used to get strings with title and description by the setting name.
@@ -122,228 +123,114 @@ const columnHeaders = [
   'Who can join the group?',
   'Allow external users to join?',
 ]
-const groupsDummyData = [
-  {
-    name: 'Group1',
-    email: 'group1@pvp-test-domain2.com',
-    members: 50,
-    hasExternalMembers: true,
-
-    emailAliases: ['group1@sub.pvp-test-domain2.com', 'group1@alias.pvp-test-domain2.com'],
-
-    settings: {
-      access: [
-        {
-          owners: {
-            canContact: true,
-            canViewConversations: true,
-            canPost: true,
-            canViewMembers: true,
-            canManageMembers: true,
-          },
-        },
-        {
-          managers: {
-            canContact: true,
-            canViewConversations: true,
-            canPost: true,
-            canViewMembers: true,
-            canManageMembers: true,
-          },
-        },
-        {
-          members: {
-            canContact: true,
-            canViewConversations: true,
-            canPost: true,
-            canViewMembers: true,
-            canManageMembers: false,
-          },
-        },
-        {
-          organization: {
-            canContact: true,
-            canViewConversations: true,
-            canPost: true,
-            canViewMembers: true,
-            canManageMembers: false,
-          },
-        },
-        {
-          external: {
-            canContact: true,
-            canViewConversations: true,
-            canPost: true,
-            canViewMembers: false,
-            canManageMembers: false,
-          },
-        },
-      ],
-
-      whoCanJoin: 'CAN_REQUEST_TO_JOIN',
-      allowExternalMembers: 'true', //google returns it as string, so changing to string for now
-      whoCanLeaveGroup: 'ALL_MEMBERS_CAN_LEAVE',
-    },
-  },
-  {
-    name: 'Group2',
-    email: 'group2@pvp-test-domain2.com',
-    members: 10,
-    hasExternalMembers: false,
-
-    emailAliases: ['group2@sub.pvp-test-domain2.com', 'group2@test-a-google-blah@pvp-test-domain2.com'],
-
-    settings: {
-      access: [
-        {
-          owners: {
-            canContact: true,
-            canViewConversations: true,
-            canPost: true,
-            canViewMembers: true,
-            canManageMembers: true,
-          },
-        },
-        {
-          managers: {
-            canContact: true,
-            canViewConversations: true,
-            canPost: true,
-            canViewMembers: true,
-            canManageMembers: true,
-          },
-        },
-        {
-          members: {
-            canContact: true,
-            canViewConversations: true,
-            canPost: true,
-            canViewMembers: true,
-            canManageMembers: false,
-          },
-        },
-        {
-          organization: {
-            canContact: true,
-            canViewConversations: false,
-            canPost: false,
-            canViewMembers: false,
-            canManageMembers: false,
-          },
-        },
-        {
-          external: {
-            canContact: false,
-            canViewConversations: false,
-            canPost: false,
-            canViewMembers: false,
-            canManageMembers: false,
-          },
-        },
-      ],
-
-      whoCanJoin: 'INVITED_CAN_JOIN',
-      allowExternalMembers: 'false', //google returns it as string, so changing to string for now
-      whoCanLeaveGroup: 'NONE_CAN_LEAVE',
-    },
-  },
-  {
-    name: 'Public Group',
-    email: 'group3@pvp-test-domain2.com',
-    members: 1500,
-    hasExternalMembers: true,
-
-    emailAliases: ['product_discussions@pvp-test-domain2.com'],
-
-    settings: {
-      access: [
-        {
-          owners: {
-            canContact: true,
-            canViewConversations: true,
-            canPost: true,
-            canViewMembers: true,
-            canManageMembers: true,
-          },
-        },
-        {
-          managers: {
-            canContact: true,
-            canViewConversations: true,
-            canPost: true,
-            canViewMembers: true,
-            canManageMembers: true,
-          },
-        },
-        {
-          members: {
-            canContact: true,
-            canViewConversations: true,
-            canPost: true,
-            canViewMembers: true,
-            canManageMembers: false,
-          },
-        },
-        {
-          organization: {
-            canContact: true,
-            canViewConversations: true,
-            canPost: true,
-            canViewMembers: true,
-            canManageMembers: true,
-          },
-        },
-        {
-          external: {
-            canContact: true,
-            canViewConversations: true,
-            canPost: true,
-            canViewMembers: false,
-            canManageMembers: false,
-          },
-        },
-      ],
-
-      whoCanJoin: 'ANYONE_CAN_JOIN',
-      allowExternalMembers: 'true', //google returns it as string, so changing to string for now
-      whoCanLeaveGroup: 'ALL_MEMBERS_CAN_LEAVE',
-    },
-  },
-]
 
 const csvDummyData = [
   {
-    name: 'Group1',
-    email: 'group1@pvp-test-domain2.com',
-    members: 500,
-    hasExternalMembers: false,
-    whoCanLeaveGroup: 'ALL_MEMBERS_CAN_LEAVE',
-    emailAliases: ['group1@sub.pvp-test-domain2.com', 'group1@test-a-google-blah@pvp-test-domain2.com'],
-    whoCanContactOwner: 'ANYONE_CAN_CONTACT',
-    whoCanViewGroup: 'ALL_IN_DOMAIN_CAN_VIEW',
-    whoCanPostMessage: 'ALL_IN_DOMAIN_CAN_POST',
-    whoCanViewMembership: 'ALL_IN_DOMAIN_CAN_VIEW',
-    whoCanAdd: 'ALL_MANAGERS_CAN_ADD',
-    whoCanJoin: 'CAN_REQUEST_TO_JOIN',
-    allowExternalMembers: 'true', //google returns it as string, so changing to string for now
-  },
-  {
-    name: 'Group2',
-    email: 'group2@pvp-test-domain2.com',
-    members: 10,
-    hasExternalMembers: false,
-    whoCanLeaveGroup: 'NONE_CAN_LEAVE',
-    emailAliases: ['group2@sub.pvp-test-domain2.com', 'group2@test-a-google-blah@pvp-test-domain2.com'],
-    whoCanContactOwner: 'ANYONE_CAN_CONTACT',
-    whoCanViewGroup: 'ALL_IN_DOMAIN_CAN_VIEW',
-    whoCanPostMessage: 'ALL_IN_DOMAIN_CAN_POST',
-    whoCanViewMembership: 'ALL_IN_DOMAIN_CAN_VIEW',
-    whoCanAdd: 'ALL_MANAGERS_CAN_ADD',
-    whoCanContactOwner: 'ANYONE_CAN_CONTACT',
-    whoCanJoin: 'INVITED_CAN_JOIN',
-    allowExternalMembers: 'false', //google returns it as string, so changing to string for now
+    name: 'group name',
+    email: 'group email',
+    directMembersCount: 'members count',
+    description: 'group description',
+    nonEditableAliases: 'group aliases',
+    hasExternalMembers: 'has external members',
+    whoCanLeaveGroup: 'who can leave',
+    whoCanContactOwner: 'who can contact owner',
+    whoCanViewGroup: 'who can view group',
+    whoCanPostMessage: 'who can post',
+    whoCanViewMembership: 'who can view membership',
+    whoCanAdd: 'who can add',
+    whoCanJoin: 'who can join',
+    allowExternalMembers: 'allow external members',
   },
 ]
+
+function filterGroupProperties(groups) {
+  return groups.map((group) => ({
+    email: group.email,
+    name: group.name,
+    directMembersCount: group.directMembersCount,
+    description: group.description,
+    // adminCreated: group.adminCreated,
+    nonEditableAliases: group.nonEditableAliases,
+    hasExternalMembers: group.hasExternalMembers,
+    whoCanLeaveGroup: group.whoCanLeaveGroup,
+    whoCanContactOwner: group.whoCanContactOwner,
+    whoCanViewGroup: group.whoCanViewGroup,
+    whoCanPostMessage: group.whoCanPostMessage,
+    whoCanViewMembership: group.whoCanViewMembership,
+    whoCanAdd: group.whoCanAdd,
+    whoCanJoin: group.whoCanJoin,
+    allowExternalMembers: group.allowExternalMembers,
+  }))
+}
+
+function detectAccess(setting, searchWords) {
+  if (searchWords.some((word) => setting.includes(word))) {
+    return true
+  } else {
+    return false
+  }
+}
+
+function expandGroupSettings(settings) {
+  const access = []
+
+  // Owners
+  access.push({
+    owners: {
+      whoCanContactOwner: detectAccess(settings.whoCanContactOwner, ['ALL', 'ANYONE', 'OWNERS']),
+      whoCanViewGroup: detectAccess(settings.whoCanViewGroup, ['ALL', 'ANYONE', 'OWNERS']),
+      whoCanPostMessage: detectAccess(settings.whoCanPostMessage, ['ALL', 'ANYONE', 'OWNERS']),
+      whoCanViewMembership: detectAccess(settings.whoCanViewMembership, ['ALL', 'ANYONE', 'OWNERS']),
+      whoCanAdd: detectAccess(settings.whoCanAdd, ['ALL', 'ANYONE', 'OWNERS']),
+    },
+  })
+
+  // Managers
+  access.push({
+    managers: {
+      whoCanContactOwner: detectAccess(settings.whoCanContactOwner, ['ALL', 'ANYONE', 'MANAGERS']),
+      whoCanViewGroup: detectAccess(settings.whoCanViewGroup, ['ALL', 'ANYONE', 'MANAGERS']),
+      whoCanPostMessage: detectAccess(settings.whoCanPostMessage, ['ALL', 'ANYONE', 'MANAGERS']),
+      whoCanViewMembership: detectAccess(settings.whoCanViewMembership, ['ALL', 'ANYONE', 'MANAGERS']),
+      whoCanAdd: detectAccess(settings.whoCanAdd, ['ALL', 'ANYONE', 'MANAGERS']),
+    },
+  })
+
+  // Members
+  access.push({
+    members: {
+      whoCanContactOwner: detectAccess(settings.whoCanContactOwner, ['ANYONE', 'ALL_IN_DOMAIN', 'MEMBERS']),
+      whoCanViewGroup: detectAccess(settings.whoCanViewGroup, ['ANYONE', 'ALL_IN_DOMAIN', 'MEMBERS']),
+      whoCanPostMessage: detectAccess(settings.whoCanPostMessage, ['ANYONE', 'ALL_IN_DOMAIN', 'MEMBERS']),
+      whoCanViewMembership: detectAccess(settings.whoCanViewMembership, ['ANYONE', 'ALL_IN_DOMAIN', 'MEMBERS']),
+      whoCanAdd: detectAccess(settings.whoCanAdd, ['ANYONE', 'ALL_IN_DOMAIN', 'MEMBERS']),
+    },
+  })
+
+  // Organization
+  access.push({
+    organization: {
+      whoCanContactOwner: detectAccess(settings.whoCanContactOwner, ['ANYONE', 'ALL_IN_DOMAIN']),
+      whoCanViewGroup: detectAccess(settings.whoCanViewGroup, ['ANYONE', 'ALL_IN_DOMAIN']),
+      whoCanPostMessage: detectAccess(settings.whoCanPostMessage, ['ANYONE', 'ALL_IN_DOMAIN']),
+      whoCanViewMembership: detectAccess(settings.whoCanViewMembership, ['ANYONE', 'ALL_IN_DOMAIN']),
+      whoCanAdd: detectAccess(settings.whoCanAdd, ['ANYONE', 'ALL_IN_DOMAIN']),
+    },
+  })
+
+  // External
+  access.push({
+    external: {
+      whoCanContactOwner: detectAccess(settings.whoCanContactOwner, ['ANYONE']),
+      whoCanViewGroup: detectAccess(settings.whoCanViewGroup, ['ANYONE']),
+      whoCanPostMessage: detectAccess(settings.whoCanPostMessage, ['ANYONE']),
+      whoCanViewMembership: detectAccess(settings.whoCanViewMembership, ['ANYONE']),
+      whoCanAdd: detectAccess(settings.whoCanAdd, ['ANYONE']),
+    },
+  })
+
+  return access
+}
 
 function GroupsManager() {
   const [groupList, setGroupList] = useState([])
@@ -398,9 +285,10 @@ function GroupsManager() {
         return
       }
 
-      setGroupList(groupsDummyData)
+      setGroupList(filterGroupProperties(groupsDummyData))
     } catch (error) {
       setError(error)
+      console.error(error)
     } finally {
       setTimeout(() => {
         setIsLoading(false)
@@ -686,7 +574,7 @@ function GroupsTable({ groupList, selectAll, setSelectAll, selectedRows, setSele
             <CustomTableHead className={groupsStyles.tableHead}>Restrict members from leaving</CustomTableHead>
             <CustomTableHead className={groupsStyles.tableHead}>Alias address</CustomTableHead>
             <CustomTableHead className="justify-items-end pe-0 me-0">
-              <ExportDialog />
+              <ExportDialog groupList={groupList} />
             </CustomTableHead>
             <CustomTableHead className={`px-2`}></CustomTableHead>
           </CustomTableRow>
@@ -728,7 +616,7 @@ function GroupsTable({ groupList, selectAll, setSelectAll, selectedRows, setSele
                   <span className="ms-3"> {group.name}</span>
                 </CustomTableCell>
                 <CustomTableCell className={groupsStyles.middleCell}>{group.email}</CustomTableCell>
-                <CustomTableCell className={groupsStyles.middleCell}>{group.members}</CustomTableCell>
+                <CustomTableCell className={groupsStyles.middleCell}>{group.directMembersCount}</CustomTableCell>
                 <CustomTableCell className={groupsStyles.middleCell}>
                   {group.hasExternalMembers === true ? 'Yes' : 'No'}
                 </CustomTableCell>
@@ -736,11 +624,11 @@ function GroupsTable({ groupList, selectAll, setSelectAll, selectedRows, setSele
                   {/* Careful with the line below, because the column name says the opposite: "Restrict members from leaving." */}
                   {/* So "All members can leave" means "No, don't restrict them from leaving." */}
                   {/* NB: I count "ALL_MANAGERS_CAN_LEAVE" as "Yes" because common members cannot leave. */}
-                  {group.settings.whoCanLeaveGroup === 'ALL_MEMBERS_CAN_LEAVE' ? 'No' : 'Yes'}
+                  {group.whoCanLeaveGroup === 'ALL_MEMBERS_CAN_LEAVE' ? 'No' : 'Yes'}
                 </CustomTableCell>
                 <CustomTableCell className={groupsStyles.middleCell}>
-                  {group?.emailAliases.length > 0 && (
-                    <AliasList aliasArray={group.emailAliases} groupId={group.email} />
+                  {group?.nonEditableAliases.length > 0 && (
+                    <AliasList aliasArray={group.nonEditableAliases} groupId={group.email} />
                   )}
                 </CustomTableCell>
                 <CustomTableCell className={` ${groupsStyles.edgeCell} rounded-r-lg border-l-0  justify-items-end`}>
@@ -768,7 +656,7 @@ function GroupsTable({ groupList, selectAll, setSelectAll, selectedRows, setSele
                       &nbsp;
                     </CustomTableCell>
                     <CustomTableCell colSpan={7} className="px-0 pt-1 pb-0">
-                      <GroupCard groupSettings={group.settings} />
+                      <GroupCard group={group} />
                     </CustomTableCell>
                     <CustomTableCell className={`hover:bg-background px-0 leading-none`} style={{ userSelect: 'none' }}>
                       &nbsp;
@@ -785,7 +673,7 @@ function GroupsTable({ groupList, selectAll, setSelectAll, selectedRows, setSele
   )
 }
 
-function GroupCard({ groupSettings }) {
+function GroupCard({ group }) {
   return (
     <Card className="rounded-lg w-full">
       <CardHeader>
@@ -795,16 +683,16 @@ function GroupCard({ groupSettings }) {
       <CardContent>
         <div className="grid auto-rows-min grid-cols-2 gap-x-[74px] gap-y-8">
           <GroupCardItem title="Access settings">
-            <AccessSettingsGrid accessData={groupSettings.access} />
+            <AccessSettingsGrid group={group} />
           </GroupCardItem>
           <GroupCardItem title="Who can join the group?">
-            <WhoCanJoinCardContents whoCanJoin={groupSettings.whoCanJoin} />
+            <WhoCanJoinCardContents whoCanJoin={group.whoCanJoin} />
           </GroupCardItem>
           <GroupCardItem title="Allow external users to join?">
-            <YesNoContentForGroupCard condition={groupSettings.allowExternalMembers === 'true'} />
+            <YesNoContentForGroupCard condition={group.allowExternalMembers === 'true'} />
           </GroupCardItem>
           <GroupCardItem title="Restrict members from leaving the group?">
-            <YesNoContentForGroupCard condition={groupSettings.whoCanLeaveGroup !== 'ALL_MEMBERS_CAN_LEAVE'} />
+            <YesNoContentForGroupCard condition={group.whoCanLeaveGroup !== 'ALL_MEMBERS_CAN_LEAVE'} />
           </GroupCardItem>
         </div>
       </CardContent>
@@ -821,7 +709,8 @@ function GroupCardItem({ title, children }) {
   )
 }
 
-function AccessSettingsGrid({ accessData }) {
+function AccessSettingsGrid({ group }) {
+  const accessData = expandGroupSettings(group)
   return (
     <Table>
       <TableHeader>
@@ -859,7 +748,7 @@ function AccessSettingsGrid({ accessData }) {
           <TableCell>Who can contact group owners</TableCell>
           {accessData.map((item) => (
             <TableCell key={Object.keys(item)[0]}>
-              {item[Object.keys(item)[0]].canContact ? <GrayCheck /> : null}
+              {item[Object.keys(item)[0]].whoCanContactOwner ? <GrayCheck /> : null}
             </TableCell>
           ))}
         </TableRow>
@@ -867,7 +756,7 @@ function AccessSettingsGrid({ accessData }) {
           <TableCell>Who can view conversations</TableCell>
           {accessData.map((item) => (
             <TableCell key={Object.keys(item)[0]}>
-              {item[Object.keys(item)[0]].canViewConversations ? <GrayCheck /> : null}
+              {item[Object.keys(item)[0]].whoCanViewGroup ? <GrayCheck /> : null}
             </TableCell>
           ))}
         </TableRow>
@@ -875,7 +764,7 @@ function AccessSettingsGrid({ accessData }) {
           <TableCell>Who can post</TableCell>
           {accessData.map((item) => (
             <TableCell key={Object.keys(item)[0]}>
-              {item[Object.keys(item)[0]].canPost ? <GrayCheck /> : null}
+              {item[Object.keys(item)[0]].whoCanPostMessage ? <GrayCheck /> : null}
             </TableCell>
           ))}
         </TableRow>
@@ -883,7 +772,7 @@ function AccessSettingsGrid({ accessData }) {
           <TableCell>Who can view members</TableCell>
           {accessData.map((item) => (
             <TableCell key={Object.keys(item)[0]}>
-              {item[Object.keys(item)[0]].canViewMembers ? <GrayCheck /> : null}
+              {item[Object.keys(item)[0]].whoCanViewMembership ? <GrayCheck /> : null}
             </TableCell>
           ))}
         </TableRow>
@@ -891,7 +780,7 @@ function AccessSettingsGrid({ accessData }) {
           <TableCell>Who can manage members</TableCell>
           {accessData.map((item) => (
             <TableCell key={Object.keys(item)[0]}>
-              {item[Object.keys(item)[0]].canManageMembers ? <GrayCheck /> : null}
+              {item[Object.keys(item)[0]].whoCanAdd ? <GrayCheck /> : null}
             </TableCell>
           ))}
         </TableRow>
@@ -1110,7 +999,7 @@ function AliasList({ aliasArray, groupId }) {
   )
 }
 
-function ExportDialog() {
+function ExportDialog({ groupList }) {
   const [fileName, setFileName] = useState('Search results')
   return (
     <Dialog>
@@ -1175,7 +1064,7 @@ function ExportDialog() {
               </DialogClose>
 
               <CsvDownloadButton
-                data={csvDummyData}
+                data={groupList}
                 headers={columnHeaders}
                 filename={fileName}
                 className="hidden"

@@ -1,4 +1,4 @@
-const groupsDummyData = [
+export const groupsDummyData = [
   {
     email: 'group@pvp-test-domain2.com',
     name: 'group',
