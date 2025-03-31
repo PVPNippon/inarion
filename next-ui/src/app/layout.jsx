@@ -1,5 +1,5 @@
 import { figtree } from './ui/fonts'
-import './ui/globals.css'
+import '../app/globals.css'
 import { Toaster } from '@/components/ui/toaster'
 
 export default function RootLayout({ children }) {

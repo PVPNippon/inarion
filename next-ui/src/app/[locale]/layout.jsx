@@ -9,7 +9,7 @@ import { ProjectDataProvider } from '../ui/contexts/ProjectDataContext'
 import { NextIntlClientProvider } from 'next-intl'
 import { routing } from '@/i18n/routing'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 
 export const experimental_ppr = true
 
@@ -28,7 +28,8 @@ export const experimental_ppr = true
  * @returns {React.ReactElement} The rendered dashboard layout.
  */
 
-export default function Layout({ children, params: { locale } }) {
+export default function Layout({ children, params }) {
+  const { locale } = use(params)
   const router = useRouter()
   const [messages, setMessages] = useState(null)
 
