@@ -89,8 +89,15 @@ const whoCanJoinStrings = {
     description: 'Users in the organization need to ask first to join the group.',
   },
 }
+
+const whoCanLeaveGroupStrings = {
+  ALL_MEMBERS_CAN_LEAVE: { long: 'All members can leave', short: 'Everyone' },
+  ALL_MANAGERS_CAN_LEAVE: { long: 'All managers can leave', short: 'Managers' },
+  NONE_CAN_LEAVE: { long: 'None can leave', short: 'None' },
+}
+
 const filterTitles = {
-  whoCanLeaveGroup: 'Restrict members from leaving?',
+  whoCanLeaveGroup: 'Who can leave group?',
   directMembersCount: 'Number of members',
   allowExternalMembers: 'Allow external members?',
   hasExternalMembers: 'Has external members?',
@@ -469,7 +476,7 @@ function FilterChipPanel({
             if (filter !== 'query' && filter !== 'directMembersCount' && value !== '') {
               return (
                 <div key={filter} className={groupsStyles.filterButtonOrChip}>
-                  {filterTitles[filter]}: {value}
+                  {filterTitles[filter]}: {filter === 'whoCanLeaveGroup' ? whoCanLeaveGroupStrings[value].short : value}
                 </div>
               )
             }
@@ -571,7 +578,7 @@ function GroupsTable({ groupList, selectAll, setSelectAll, selectedRows, setSele
             <CustomTableHead className={groupsStyles.tableHead}>Email address</CustomTableHead>
             <CustomTableHead className={groupsStyles.tableHead}>Members</CustomTableHead>
             <CustomTableHead className={groupsStyles.tableHead}>Has external members?</CustomTableHead>
-            <CustomTableHead className={groupsStyles.tableHead}>Restrict members from leaving</CustomTableHead>
+            <CustomTableHead className={groupsStyles.tableHead}>Who can leave group?</CustomTableHead>
             <CustomTableHead className={groupsStyles.tableHead}>Alias address</CustomTableHead>
             <CustomTableHead className="justify-items-end pe-0 me-0">
               <ExportDialog groupList={groupList} />
@@ -621,10 +628,7 @@ function GroupsTable({ groupList, selectAll, setSelectAll, selectedRows, setSele
                   {group.hasExternalMembers === true ? 'Yes' : 'No'}
                 </CustomTableCell>
                 <CustomTableCell className={groupsStyles.middleCell}>
-                  {/* Careful with the line below, because the column name says the opposite: "Restrict members from leaving." */}
-                  {/* So "All members can leave" means "No, don't restrict them from leaving." */}
-                  {/* NB: I count "ALL_MANAGERS_CAN_LEAVE" as "Yes" because common members cannot leave. */}
-                  {group.whoCanLeaveGroup === 'ALL_MEMBERS_CAN_LEAVE' ? 'No' : 'Yes'}
+                  {whoCanLeaveGroupStrings[group.whoCanLeaveGroup].short}
                 </CustomTableCell>
                 <CustomTableCell className={groupsStyles.middleCell}>
                   {group?.nonEditableAliases.length > 0 && (
@@ -691,8 +695,8 @@ function GroupCard({ group }) {
           <GroupCardItem title="Allow external users to join?">
             <YesNoContentForGroupCard condition={group.allowExternalMembers === 'true'} />
           </GroupCardItem>
-          <GroupCardItem title="Restrict members from leaving the group?">
-            <YesNoContentForGroupCard condition={group.whoCanLeaveGroup !== 'ALL_MEMBERS_CAN_LEAVE'} />
+          <GroupCardItem title="Who can leave the group?">
+            <div className="text-base/6">{whoCanLeaveGroupStrings[group.whoCanLeaveGroup].long}</div>
           </GroupCardItem>
         </div>
       </CardContent>
@@ -828,12 +832,16 @@ function YesNoContentForGroupCard({ condition }) {
 function Filters({ filterState, dispatchFilterState }) {
   return (
     <div className="flex flex-row gap-x-3 ">
-      <NumberOfMembersFilter filterState={filterState} dispatchFilterState={dispatchFilterState} />
-      <SimpleFilter
+      <NumberOfMembersFilter
+        filter="directMembersCount"
+        filterState={filterState}
+        dispatchFilterState={dispatchFilterState}
+      />
+      <WhoCanLeaveGroupFilter
         filter="whoCanLeaveGroup"
         filterState={filterState}
         dispatchFilterState={dispatchFilterState}
-      ></SimpleFilter>
+      />
       <SimpleFilter
         filter="allowExternalMembers"
         filterState={filterState}
@@ -887,8 +895,51 @@ function SimpleFilter({ filter, filterState, dispatchFilterState }) {
   )
 }
 
-function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
-  const filter = 'directMembersCount'
+function WhoCanLeaveGroupFilter({ filter, filterState, dispatchFilterState }) {
+  const [hiddenClass, setHiddenClass] = useState('hidden')
+  const [open, setOpen] = useState(false)
+  return (
+    <Select
+      open={open}
+      value={filterState[filter]}
+      onOpenChange={setOpen}
+      onValueChange={(value) => {
+        if (value !== '') {
+          setHiddenClass('')
+        }
+        dispatchFilterState({ type: filter, value: value })
+      }}
+    >
+      <CustomSelectTrigger
+        className="w-auto"
+        hiddenClass={hiddenClass}
+        onOpenChange={setOpen}
+        handleClose={() => {
+          setOpen(false)
+          dispatchFilterState({ type: filter, value: '' })
+          setHiddenClass('hidden')
+        }}
+      >
+        <SelectValue placeholder={filterTitles[filter]}>
+          {filterState[filter] !== ''
+            ? `${filterTitles[filter]}: ${whoCanLeaveGroupStrings[filterState[filter]].short}`
+            : filterTitles[filter]}
+        </SelectValue>
+      </CustomSelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          {Object.keys(whoCanLeaveGroupStrings).map((key) => (
+            <SelectItem key={key} value={key}>
+              {whoCanLeaveGroupStrings[key].short}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
+  )
+}
+
+function NumberOfMembersFilter({ filter, filterState, dispatchFilterState }) {
   const [minValue, setMinValue] = useState(filterState[filter][0])
   const [maxValue, setMaxValue] = useState(filterState[filter][1])
   const [open, setOpen] = useState(false)
