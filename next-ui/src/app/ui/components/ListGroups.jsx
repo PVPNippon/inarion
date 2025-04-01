@@ -1,8 +1,9 @@
 'use client'
 import React, { useState, useEffect, useContext } from 'react'
 import { Button } from '@/components/ui/button'
-import { apiClient } from '@/utils/apiClient'
+//import { apiClient } from '@/utils/apiClient' //even unused, it caused nextjs to fail, so needed to comment out
 import axios from 'axios'
+const email = 'testadmin@pvp-test-domain2.com'
 
 /**
  * Temporary component for dev purposes.
@@ -12,7 +13,6 @@ function ListGroups() {
   const [groupList, setGroupList] = useState([])
   const [clickCount, setClickCount] = useState(0)
   const [error, setError] = useState(null)
-  let email
 
   useEffect(() => {
     const fetchGroups = async (req, res) => {
@@ -21,29 +21,6 @@ function ListGroups() {
       }
       try {
         console.log('fetching groups...')
-
-        // const response = await apiClient(
-        //   '/api/groups/list', // Endpoint path relative to API_BASE_URL
-        //   'POST', // HTTP method
-
-        //   {
-        //     userEmail: email,
-        //   },
-        //   {}, // Additional headers, if any
-        //   true // withCredentials flag
-        // )
-        // //WARNING:if you need to use the response data as an array or object, you need to parse it with JSON.parse()
-        // //I'm not doing it here because I only display the response data as is for now.
-        // setGroupList(response)
-
-        //Temporary bypass encryption
-        // email = window.localStorage.getItem('email')
-        // console.log('email:', email)
-        email = 'testadmin@pvp-test-domain2.com'
-        //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back
-        // const token = localStorage.getItem('jwtToken')
-        // console.log('TOKEN', token)
-
         const response = await axios.get(
           `http://localhost:4000/api/groups/?userEmail=${email}`,
 

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useContext } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { apiClient } from '@/utils/apiClient'
+//import { apiClient } from '@/utils/apiClient'
 import axios from 'axios'
 
 //Please note that it's a temporary UI created hastily for testing/visualization purposes and it's not dev-quality
