@@ -144,7 +144,7 @@ const csvDummyData = [
     whoCanViewGroup: 'who can view group',
     whoCanPostMessage: 'who can post',
     whoCanViewMembership: 'who can view membership',
-    whoCanAdd: 'who can add',
+    whoCanModerateMembers: 'who can manage members',
     whoCanJoin: 'who can join',
     allowExternalMembers: 'allow external members',
   },
@@ -164,7 +164,7 @@ function filterGroupProperties(groups) {
     whoCanViewGroup: group.whoCanViewGroup,
     whoCanPostMessage: group.whoCanPostMessage,
     whoCanViewMembership: group.whoCanViewMembership,
-    whoCanAdd: group.whoCanAdd,
+    whoCanModerateMembers: group.whoCanModerateMembers,
     whoCanJoin: group.whoCanJoin,
     allowExternalMembers: group.allowExternalMembers,
   }))
@@ -178,28 +178,35 @@ function detectAccess(setting, searchWords) {
   }
 }
 
+//WARNING: google documentation is incomplete, not all possible values are mentioned! be careful!
+//https://developers.google.com/workspace/admin/groups-settings/v1/reference/groups#json
+//For example, whoCanContactOwner also has "ALL_OWNERS_CAN_CONTACT", which is not mentioned in the documentation
 function expandGroupSettings(settings) {
   const access = []
 
   // Owners
+  //Note: most options cannot be disabled in AC and groups UI.
+  //However, if groups UI itself is turned off(i.e., groups only operate via email posting, then I wonder if there is another option like NONE_CAN etc),
+  //Since google documentation doesn't provide all the options, it's possible.
+  //Needs more testing, so for now I will leave checking for keywords for all options here.
   access.push({
     owners: {
       whoCanContactOwner: detectAccess(settings.whoCanContactOwner, ['ALL', 'ANYONE', 'OWNERS']),
       whoCanViewGroup: detectAccess(settings.whoCanViewGroup, ['ALL', 'ANYONE', 'OWNERS']),
-      whoCanPostMessage: detectAccess(settings.whoCanPostMessage, ['ALL', 'ANYONE', 'OWNERS']),
+      whoCanPostMessage: !detectAccess(settings.whoCanPostMessage, ['NONE']),
       whoCanViewMembership: detectAccess(settings.whoCanViewMembership, ['ALL', 'ANYONE', 'OWNERS']),
-      whoCanAdd: detectAccess(settings.whoCanAdd, ['ALL', 'ANYONE', 'OWNERS']),
+      whoCanModerateMembers: !detectAccess(settings.whoCanModerateMembers, ['NONE']),
     },
   })
 
   // Managers
   access.push({
     managers: {
-      whoCanContactOwner: detectAccess(settings.whoCanContactOwner, ['ALL', 'ANYONE', 'MANAGERS']),
-      whoCanViewGroup: detectAccess(settings.whoCanViewGroup, ['ALL', 'ANYONE', 'MANAGERS']),
-      whoCanPostMessage: detectAccess(settings.whoCanPostMessage, ['ALL', 'ANYONE', 'MANAGERS']),
-      whoCanViewMembership: detectAccess(settings.whoCanViewMembership, ['ALL', 'ANYONE', 'MANAGERS']),
-      whoCanAdd: detectAccess(settings.whoCanAdd, ['ALL', 'ANYONE', 'MANAGERS']),
+      whoCanContactOwner: !detectAccess(settings.whoCanContactOwner, ['NONE', 'OWNERS']),
+      whoCanViewGroup: !detectAccess(settings.whoCanViewGroup, ['NONE', 'OWNERS']),
+      whoCanPostMessage: !detectAccess(settings.whoCanPostMessage, ['NONE', 'OWNERS']),
+      whoCanViewMembership: !detectAccess(settings.whoCanViewMembership, ['NONE', 'OWNERS']),
+      whoCanModerateMembers: detectAccess(settings.whoCanModerateMembers, ['ALL', 'MANAGERS']),
     },
   })
 
@@ -210,7 +217,7 @@ function expandGroupSettings(settings) {
       whoCanViewGroup: detectAccess(settings.whoCanViewGroup, ['ANYONE', 'ALL_IN_DOMAIN', 'MEMBERS']),
       whoCanPostMessage: detectAccess(settings.whoCanPostMessage, ['ANYONE', 'ALL_IN_DOMAIN', 'MEMBERS']),
       whoCanViewMembership: detectAccess(settings.whoCanViewMembership, ['ANYONE', 'ALL_IN_DOMAIN', 'MEMBERS']),
-      whoCanAdd: detectAccess(settings.whoCanAdd, ['ANYONE', 'ALL_IN_DOMAIN', 'MEMBERS']),
+      whoCanModerateMembers: detectAccess(settings.whoCanModerateMembers, ['MEMBERS']),
     },
   })
 
@@ -220,8 +227,8 @@ function expandGroupSettings(settings) {
       whoCanContactOwner: detectAccess(settings.whoCanContactOwner, ['ANYONE', 'ALL_IN_DOMAIN']),
       whoCanViewGroup: detectAccess(settings.whoCanViewGroup, ['ANYONE', 'ALL_IN_DOMAIN']),
       whoCanPostMessage: detectAccess(settings.whoCanPostMessage, ['ANYONE', 'ALL_IN_DOMAIN']),
-      whoCanViewMembership: detectAccess(settings.whoCanViewMembership, ['ANYONE', 'ALL_IN_DOMAIN']),
-      whoCanAdd: detectAccess(settings.whoCanAdd, ['ANYONE', 'ALL_IN_DOMAIN']),
+      whoCanViewMembership: detectAccess(settings.whoCanViewMembership, ['ALL_IN_DOMAIN']),
+      whoCanModerateMembers: false, //disabled
     },
   })
 
@@ -231,8 +238,8 @@ function expandGroupSettings(settings) {
       whoCanContactOwner: detectAccess(settings.whoCanContactOwner, ['ANYONE']),
       whoCanViewGroup: detectAccess(settings.whoCanViewGroup, ['ANYONE']),
       whoCanPostMessage: detectAccess(settings.whoCanPostMessage, ['ANYONE']),
-      whoCanViewMembership: detectAccess(settings.whoCanViewMembership, ['ANYONE']),
-      whoCanAdd: detectAccess(settings.whoCanAdd, ['ANYONE']),
+      whoCanViewMembership: false,
+      whoCanModerateMembers: false,
     },
   })
 
@@ -784,7 +791,7 @@ function AccessSettingsGrid({ group }) {
           <TableCell>Who can manage members</TableCell>
           {accessData.map((item) => (
             <TableCell key={Object.keys(item)[0]}>
-              {item[Object.keys(item)[0]].whoCanAdd ? <GrayCheck /> : null}
+              {item[Object.keys(item)[0]].whoCanModerateMembers ? <GrayCheck /> : null}
             </TableCell>
           ))}
         </TableRow>
