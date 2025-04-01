@@ -90,8 +90,8 @@ const whoCanJoinStrings = {
   },
 }
 const filterTitles = {
-  restrictFromLeaving: 'Restrict members from leaving?',
-  numberOfMembers: 'Number of members',
+  whoCanLeaveGroup: 'Restrict members from leaving?',
+  directMembersCount: 'Number of members',
   allowExternalMembers: 'Allow external members?',
   hasExternalMembers: 'Has external members?',
 }
@@ -103,8 +103,8 @@ const simpleFilterOptions = {
 
 const initialState = {
   query: '',
-  numberOfMembers: ['', ''],
-  restrictFromLeaving: '',
+  directMembersCount: ['', ''],
+  whoCanLeaveGroup: '',
   allowExternalMembers: '',
   hasExternalMembers: '',
 }
@@ -247,10 +247,10 @@ function GroupsManager() {
     switch (action.type) {
       case 'query':
         return { ...state, query: action.value }
-      case 'numberOfMembers':
-        return { ...state, numberOfMembers: action.value }
-      case 'restrictFromLeaving':
-        return { ...state, restrictFromLeaving: action.value }
+      case 'directMembersCount':
+        return { ...state, directMembersCount: action.value }
+      case 'whoCanLeaveGroup':
+        return { ...state, whoCanLeaveGroup: action.value }
       case 'allowExternalMembers':
         return { ...state, allowExternalMembers: action.value }
       case 'hasExternalMembers':
@@ -457,16 +457,16 @@ function FilterChipPanel({
               Showing search result of <span className="font-semibold">{`'${filterState.query}'`}</span>
             </div>
           )}
-          {filterState.numberOfMembers &&
-            (filterState.numberOfMembers[0] !== '' || filterState.numberOfMembers[1] !== '') && (
+          {filterState.directMembersCount &&
+            (filterState.directMembersCount[0] !== '' || filterState.directMembersCount[1] !== '') && (
               <div className={groupsStyles.filterButtonOrChip}>
-                {`${filterTitles['numberOfMembers']}: ${
-                  filterState.numberOfMembers[0] === '' ? '0' : filterState.numberOfMembers[0]
-                } - ${filterState.numberOfMembers[1] === '' ? 'all' : filterState.numberOfMembers[1]}`}
+                {`${filterTitles['directMembersCount']}: ${
+                  filterState.directMembersCount[0] === '' ? '0' : filterState.directMembersCount[0]
+                } - ${filterState.directMembersCount[1] === '' ? 'all' : filterState.directMembersCount[1]}`}
               </div>
             )}
           {Object.entries(filterState).map(([filter, value]) => {
-            if (filter !== 'query' && filter !== 'numberOfMembers' && value !== '') {
+            if (filter !== 'query' && filter !== 'directMembersCount' && value !== '') {
               return (
                 <div key={filter} className={groupsStyles.filterButtonOrChip}>
                   {filterTitles[filter]}: {value}
@@ -830,7 +830,7 @@ function Filters({ filterState, dispatchFilterState }) {
     <div className="flex flex-row gap-x-3 ">
       <NumberOfMembersFilter filterState={filterState} dispatchFilterState={dispatchFilterState} />
       <SimpleFilter
-        filter="restrictFromLeaving"
+        filter="whoCanLeaveGroup"
         filterState={filterState}
         dispatchFilterState={dispatchFilterState}
       ></SimpleFilter>
@@ -888,13 +888,25 @@ function SimpleFilter({ filter, filterState, dispatchFilterState }) {
 }
 
 function NumberOfMembersFilter({ filterState, dispatchFilterState }) {
-  const filter = 'numberOfMembers'
+  const filter = 'directMembersCount'
   const [minValue, setMinValue] = useState(filterState[filter][0])
   const [maxValue, setMaxValue] = useState(filterState[filter][1])
   const [open, setOpen] = useState(false)
 
   function setTitle() {
-    dispatchFilterState({ type: filter, value: [minValue, maxValue] })
+    if (!minValue && !maxValue) return
+
+    // Check if the min value is greater than the max value
+    // If so, swap the values
+    if (Number(minValue) > Number(maxValue)) {
+      const oldMaxValue = maxValue
+      const oldMinValue = minValue
+      setMaxValue(oldMinValue)
+      setMinValue(oldMaxValue)
+      dispatchFilterState({ type: filter, value: [oldMaxValue, oldMinValue] })
+    } else {
+      dispatchFilterState({ type: filter, value: [minValue, maxValue] })
+    }
   }
   const handleMinValueChange = (value) => {
     setMinValue(value.toString())
