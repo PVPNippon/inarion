@@ -57,7 +57,7 @@ import {
 } from '@/components/ui/table'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CustomSelectTrigger } from '@/components/ui/custom-filter-select'
+import { CustomSelectTrigger } from '@/components/ui/custom-filter'
 import { PopoverClose } from '@radix-ui/react-popover'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -865,12 +865,12 @@ function Filters({ filterState, dispatchFilterState }) {
 
 function SimpleFilter({ filter, filterState, dispatchFilterState }) {
   const [hiddenClass, setHiddenClass] = useState('hidden')
-  const [open, setOpen] = useState(false)
+  //const [open, setOpen] = useState(false)
   return (
     <Select
-      open={open}
+      // open={open}
       value={filterState[filter]}
-      onOpenChange={setOpen}
+      // onOpenChange={setOpen}
       onValueChange={(value) => {
         if (value !== '') {
           setHiddenClass('')
@@ -881,9 +881,7 @@ function SimpleFilter({ filter, filterState, dispatchFilterState }) {
       <CustomSelectTrigger
         className="w-auto"
         hiddenClass={hiddenClass}
-        onOpenChange={setOpen}
         handleClose={() => {
-          setOpen(false)
           dispatchFilterState({ type: filter, value: '' })
           setHiddenClass('hidden')
         }}
@@ -892,7 +890,7 @@ function SimpleFilter({ filter, filterState, dispatchFilterState }) {
           {filterState[filter] !== '' ? `${filterTitles[filter]}: ${filterState[filter]}` : filterTitles[filter]}
         </SelectValue>
       </CustomSelectTrigger>
-      <SelectContent>
+      <SelectContent sideOffset={4} align="start" alignOffset={-10}>
         <SelectGroup>
           <SelectItem value={simpleFilterOptions.yes}>{simpleFilterOptions.yes}</SelectItem>
           <SelectItem value={simpleFilterOptions.no}>{simpleFilterOptions.no}</SelectItem>
@@ -904,12 +902,9 @@ function SimpleFilter({ filter, filterState, dispatchFilterState }) {
 
 function WhoCanLeaveGroupFilter({ filter, filterState, dispatchFilterState }) {
   const [hiddenClass, setHiddenClass] = useState('hidden')
-  const [open, setOpen] = useState(false)
   return (
     <Select
-      open={open}
       value={filterState[filter]}
-      onOpenChange={setOpen}
       onValueChange={(value) => {
         if (value !== '') {
           setHiddenClass('')
@@ -920,9 +915,7 @@ function WhoCanLeaveGroupFilter({ filter, filterState, dispatchFilterState }) {
       <CustomSelectTrigger
         className="w-auto"
         hiddenClass={hiddenClass}
-        onOpenChange={setOpen}
         handleClose={() => {
-          setOpen(false)
           dispatchFilterState({ type: filter, value: '' })
           setHiddenClass('hidden')
         }}
@@ -933,7 +926,7 @@ function WhoCanLeaveGroupFilter({ filter, filterState, dispatchFilterState }) {
             : filterTitles[filter]}
         </SelectValue>
       </CustomSelectTrigger>
-      <SelectContent>
+      <SelectContent sideOffset={4} align="start" alignOffset={-10}>
         <SelectGroup>
           {Object.keys(whoCanLeaveGroupStrings).map((key) => (
             <SelectItem key={key} value={key}>
