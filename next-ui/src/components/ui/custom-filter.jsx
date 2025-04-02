@@ -4,10 +4,18 @@ import { ChevronDownIcon, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { groupsStyles } from '@/app/ui/variables/group-variables'
 
+function CustomFilterWrapper({ children }) {
+  return <div className={groupsStyles.filterButtonOrChip}>{children}</div>
+}
+
+function CustomFilterClose({ handleClose, hiddenClass }) {
+  return <X size={16} className={`opacity-50 cursor-pointer ${hiddenClass}`} onClick={handleClose} />
+}
+
 const CustomSelectTrigger = React.forwardRef(
   ({ className, hiddenClass, handleClose, children, onOpenChange, ...props }, ref) => {
     return (
-      <div className={groupsStyles.filterButtonOrChip}>
+      <CustomFilterWrapper>
         <SelectPrimitive.Trigger
           ref={ref}
           className={cn('flex flex-row gap-x-2 items-center cursor-pointer focus:outline-none', className)}
@@ -18,11 +26,11 @@ const CustomSelectTrigger = React.forwardRef(
             <ChevronDownIcon className="h-4 w-4 opacity-50" />
           </SelectPrimitive.Icon>
         </SelectPrimitive.Trigger>
-        <X size={16} className={`opacity-50 ${hiddenClass} cursor-pointer`} onClick={handleClose} />
-      </div>
+        <CustomFilterClose handleClose={handleClose} hiddenClass={hiddenClass} />
+      </CustomFilterWrapper>
     )
   }
 )
 CustomSelectTrigger.displayName = SelectPrimitive.Trigger.displayName
 
-export { CustomSelectTrigger }
+export { CustomSelectTrigger, CustomFilterWrapper, CustomFilterClose }

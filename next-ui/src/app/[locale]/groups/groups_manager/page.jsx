@@ -57,7 +57,7 @@ import {
 } from '@/components/ui/table'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { CustomSelectTrigger } from '@/components/ui/custom-filter'
+import { CustomSelectTrigger, CustomFilterWrapper, CustomFilterClose } from '@/components/ui/custom-filter'
 import { PopoverClose } from '@radix-ui/react-popover'
 import { Switch } from '@/components/ui/switch'
 import {
@@ -115,6 +115,7 @@ const initialState = {
   allowExternalMembers: '',
   hasExternalMembers: '',
 }
+
 const columnHeaders = [
   'Name',
   'Email address',
@@ -149,6 +150,21 @@ const csvDummyData = [
     allowExternalMembers: 'allow external members',
   },
 ]
+
+function createNumberOfMembersTitle(min, max) {
+  let title = filterTitles.directMembersCount
+  if (min === '' && max === '') return title
+
+  title = title + ': '
+
+  if ((min === '' && max === '0') || (min === '0' && max === '0')) return title + '0'
+
+  if (min === max) return title + min
+
+  if (min === '') title = title + '0'
+
+  return title + min + ' - ' + max
+}
 
 function filterGroupProperties(groups) {
   return groups.map((group) => ({
@@ -474,9 +490,7 @@ function FilterChipPanel({
           {filterState.directMembersCount &&
             (filterState.directMembersCount[0] !== '' || filterState.directMembersCount[1] !== '') && (
               <div className={groupsStyles.filterButtonOrChip}>
-                {`${filterTitles['directMembersCount']}: ${
-                  filterState.directMembersCount[0] === '' ? '0' : filterState.directMembersCount[0]
-                } - ${filterState.directMembersCount[1] === '' ? 'all' : filterState.directMembersCount[1]}`}
+                {createNumberOfMembersTitle(filterState.directMembersCount[0], filterState.directMembersCount[1])}
               </div>
             )}
           {Object.entries(filterState).map(([filter, value]) => {
@@ -865,12 +879,9 @@ function Filters({ filterState, dispatchFilterState }) {
 
 function SimpleFilter({ filter, filterState, dispatchFilterState }) {
   const [hiddenClass, setHiddenClass] = useState('hidden')
-  //const [open, setOpen] = useState(false)
   return (
     <Select
-      // open={open}
       value={filterState[filter]}
-      // onOpenChange={setOpen}
       onValueChange={(value) => {
         if (value !== '') {
           setHiddenClass('')
@@ -890,7 +901,7 @@ function SimpleFilter({ filter, filterState, dispatchFilterState }) {
           {filterState[filter] !== '' ? `${filterTitles[filter]}: ${filterState[filter]}` : filterTitles[filter]}
         </SelectValue>
       </CustomSelectTrigger>
-      <SelectContent sideOffset={4} align="start" alignOffset={-10}>
+      <SelectContent sideOffset={4} align="start" alignOffset={-11}>
         <SelectGroup>
           <SelectItem value={simpleFilterOptions.yes}>{simpleFilterOptions.yes}</SelectItem>
           <SelectItem value={simpleFilterOptions.no}>{simpleFilterOptions.no}</SelectItem>
@@ -926,7 +937,7 @@ function WhoCanLeaveGroupFilter({ filter, filterState, dispatchFilterState }) {
             : filterTitles[filter]}
         </SelectValue>
       </CustomSelectTrigger>
-      <SelectContent sideOffset={4} align="start" alignOffset={-10}>
+      <SelectContent sideOffset={4} align="start" alignOffset={-11}>
         <SelectGroup>
           {Object.keys(whoCanLeaveGroupStrings).map((key) => (
             <SelectItem key={key} value={key}>
@@ -942,14 +953,24 @@ function WhoCanLeaveGroupFilter({ filter, filterState, dispatchFilterState }) {
 function NumberOfMembersFilter({ filter, filterState, dispatchFilterState }) {
   const [minValue, setMinValue] = useState(filterState[filter][0])
   const [maxValue, setMaxValue] = useState(filterState[filter][1])
-  const [open, setOpen] = useState(false)
+  const [hiddenClass, setHiddenClass] = useState('hidden')
+
+  function resetValues() {
+    setMinValue('')
+    setMaxValue('')
+    dispatchFilterState({ type: filter, value: ['', ''] })
+    setHiddenClass('hidden')
+  }
 
   function setTitle() {
-    if (!minValue && !maxValue) return
+    if (!minValue && !maxValue) {
+      resetValues()
+      return
+    }
 
     // Check if the min value is greater than the max value
     // If so, swap the values
-    if (Number(minValue) > Number(maxValue)) {
+    if (maxValue !== '' && Number(minValue) > Number(maxValue)) {
       const oldMaxValue = maxValue
       const oldMinValue = minValue
       setMaxValue(oldMinValue)
@@ -958,6 +979,7 @@ function NumberOfMembersFilter({ filter, filterState, dispatchFilterState }) {
     } else {
       dispatchFilterState({ type: filter, value: [minValue, maxValue] })
     }
+    setHiddenClass('')
   }
   const handleMinValueChange = (value) => {
     setMinValue(value.toString())
@@ -967,46 +989,29 @@ function NumberOfMembersFilter({ filter, filterState, dispatchFilterState }) {
     setMaxValue(value.toString())
   }
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <button className={groupsStyles.filterButtonOrChip}>
-          <span>{`Number of members ${
-            filterState[filter][0] !== '' || filterState[filter][1] !== '' ? ':' : ''
-          }`}</span>
-          {(filterState[filter][0] !== '' || filterState[filter][1] !== '') && (
-            <>
-              <span>
-                {`${filterState[filter][0] === '' ? '0' : filterState[filter][0]}`} -
-                {` ${filterState[filter][1] === '' ? 'all' : filterState[filter][1]}`}
-              </span>
-            </>
-          )}{' '}
-          <ChevronDownIcon className="h-4 w-4 opacity-50 ml-auto " />
-          {(filterState[filter][0] !== '' || filterState[filter][1] !== '') && (
-            <X
-              size={16}
-              className="opacity-50 "
-              onClick={() => {
-                setOpen(false)
-                setMinValue('')
-                setMaxValue('')
-                dispatchFilterState({ type: filter, value: ['', ''] })
-                setTimeout(() => {
-                  const closeButton = document.getElementById('popover-close-button')
-                  if (closeButton) closeButton.click()
-                }, 100)
-              }}
-            />
-          )}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent className="max-w-[188px]" onInteractOutside={setTitle}>
+    <Popover>
+      <CustomFilterWrapper>
+        <PopoverTrigger asChild>
+          <button className="flex flex-row items-center gap-x-2">
+            <span>{createNumberOfMembersTitle(filterState[filter][0], filterState[filter][1])}</span>
+            <ChevronDownIcon className="h-4 w-4 opacity-50 ml-auto " />
+          </button>
+        </PopoverTrigger>
+        <CustomFilterClose
+          hiddenClass={hiddenClass}
+          handleClose={() => {
+            resetValues()
+          }}
+        />
+      </CustomFilterWrapper>
+      <PopoverContent
+        className="max-w-[178px]"
+        onInteractOutside={setTitle}
+        sideOffset={8}
+        align="start"
+        alignOffset={-12}
+      >
         <div className="flex gap-x-2 items-center justify-evenly">
-          <PopoverClose asChild>
-            <button id="popover-close-button" className="hidden">
-              X
-            </button>
-          </PopoverClose>
           <Input
             type="number"
             min="0"
@@ -1014,8 +1019,16 @@ function NumberOfMembersFilter({ filter, filterState, dispatchFilterState }) {
             className="w-[60px] text-center"
             placeholder="Min"
             value={minValue}
+            onKeyDown={(e) => {
+              // Prevent entering "e", "+", "-", "." characters
+              if (['e', '+', '-', '.'].includes(e.key)) {
+                e.preventDefault()
+              }
+            }}
             onChange={(e) => {
-              handleMinValueChange(e.target.value)
+              // Ensure we only have integers by removing any decimals
+              const value = e.target.value !== '' ? Math.floor(Number(e.target.value)) : ''
+              handleMinValueChange(value)
             }}
           ></Input>
           <div> - </div>
@@ -1026,7 +1039,17 @@ function NumberOfMembersFilter({ filter, filterState, dispatchFilterState }) {
             className="w-[60px] text-center"
             placeholder="Max"
             value={maxValue}
-            onChange={(e) => handleMaxValueChange(e.target.value)}
+            onKeyDown={(e) => {
+              // Prevent entering "e", "+", "-", "." characters
+              if (['e', '+', '-', '.'].includes(e.key)) {
+                e.preventDefault()
+              }
+            }}
+            onChange={(e) => {
+              // Ensure we only have integers by removing any decimals
+              const value = e.target.value !== '' ? Math.floor(Number(e.target.value)) : ''
+              handleMaxValueChange(value)
+            }}
           ></Input>
         </div>
       </PopoverContent>
