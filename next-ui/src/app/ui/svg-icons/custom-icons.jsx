@@ -1,23 +1,21 @@
 'use client'
 
 const defaultSize = 20
-const defaultStrokeColor = 'hsl(240 10% 3.9%)' //foreground color
+const defaultStrokeColor = 'currentColor'
 const defaultFillColor = 'none'
 const defaultStrokeWidth = 1.66667
 const defaultStrokeLinecap = 'round'
 const defaultStrokeLinejoin = 'round'
 
-function CustomIconExport({
-  size = defaultSize,
-  viewBox = `0 0 ${size} ${size}`,
-  strokeColor = defaultStrokeColor,
-  fillColor = defaultFillColor,
-  strokeWidth = defaultStrokeWidth,
-  strokeLinecap = defaultStrokeLinecap,
-  strokeLinejoin = defaultStrokeLinejoin,
-}) {
+function CustomIconExport({ size, strokeColor, fillColor, strokeWidth, strokeLinecap, strokeLinejoin }) {
+  size = size ? size : defaultSize
+  strokeColor = strokeColor ? strokeColor : defaultStrokeColor
+  fillColor = fillColor ? fillColor : defaultFillColor
+  strokeWidth = strokeWidth ? strokeWidth : defaultStrokeWidth
+  strokeLinecap = strokeLinecap ? strokeLinecap : defaultStrokeLinecap
+  strokeLinejoin = strokeLinejoin ? strokeLinejoin : defaultStrokeLinejoin
   return (
-    <svg width={size} height={size} viewBox={viewBox} fill={fillColor} xmlns="http://www.w3.org/2000/svg">
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} fill={fillColor} xmlns="http://www.w3.org/2000/svg">
       <path
         d="M9.99984 7.49984V5.83317C9.99984 5.39114 10.1754 4.96722 10.488 4.65466C10.8006 4.3421 11.2245 4.1665 11.6665 4.1665H16.6665"
         stroke={strokeColor}

@@ -1211,48 +1211,41 @@ function BulkOperationMenu({ selectedRows, setSelectedRows }) {
   }
 
   return (
-    <Tabs
-      activationMode="manual"
-      className={`${
-        hidden ? 'hidden' : 'block'
-      } w-content justify-self-center relative translate-y-[-70px] shadow-menu1 shadow-menu2`}
-    >
-      <TabsList className={`flex h-[42px] justify-between bg-background shadow-menu1 shadow-menu2`}>
-        <TabsTrigger
-          value="groups"
-          className="border-r border-input rounded-none gap-x-2 pointer-events-none justify-center w-[124px] hover:text-foreground text-foreground font-normal"
+    <div className={`${hidden ? 'hidden' : 'block'} w-content justify-self-center relative translate-y-[-70px]`}>
+      <div className={`h-[44px] bg-background inline-flex border border-foreground/10 items-center  rounded-lg p-1`}>
+        {/* Groups checkbox */}
+        <div
+          className={`pointer-events-none ${groupsStyles.bulkOperationMenuOptionAll} ${groupsStyles.bulkOperationMenuOptionWithBorder}`}
         >
           <Checkbox asChild checked={selectedGroups.length > 0} />
           <span> {`${selectedGroups.length} Groups`}</span>
-        </TabsTrigger>
+        </div>
         <CsvDownloadButton
+          className="hidden"
           data={csvDummyData}
           headers={columnHeaders}
           filename="bulk-export-group-details"
           id="bulk-export-group-details"
+        />
+        {/* Bulk export button */}
+        <button
+          onClick={() => document.getElementById('bulk-export-group-details').click()}
+          className={`${groupsStyles.bulkOperationMenuOptionAll} ${groupsStyles.bulkOperationMenuOptionWithBorder}`}
         >
-          <TabsTrigger
-            value="export"
-            className="border-r border-input rounded-none gap-x-2 w-[224px] hover:text-foreground text-foreground font-normal"
-          >
-            <CustomIconExport size={20} /> Bulk export group details
-          </TabsTrigger>
-        </CsvDownloadButton>
-
-        <TabsTrigger
-          value="list"
-          className="border-r border-input rounded-none gap-x-2 w-[172px] hover:text-foreground text-foreground font-normal"
+          <CustomIconExport size={20} /> Bulk export group details
+        </button>
+        {/* Export group list button */}
+        <button
+          className={`${groupsStyles.bulkOperationMenuOptionAll} ${groupsStyles.bulkOperationMenuOptionWithBorder}`}
         >
           <List size={20} strokeWidth={1.8} />
           Export group list
-        </TabsTrigger>
-        <TabsTrigger
-          value="bulk-menu-close"
-          className="w-[60px] hover:text-muted-foreground text-foreground focus:text-foreground active:text-foreground font-normal"
-        >
-          <X size={20} onClick={handleClose} />
-        </TabsTrigger>
-      </TabsList>
-    </Tabs>
+        </button>
+        {/* Close button */}
+        <button onClick={handleClose} className={`${groupsStyles.bulkOperationMenuOptionAll}`}>
+          <X size={20} />
+        </button>
+      </div>
+    </div>
   )
 }

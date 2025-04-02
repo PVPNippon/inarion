@@ -40,6 +40,10 @@ export const groupsStyles = {
   //filters and filter chips
   filterButtonOrChip:
     'flex h-9 gap-2 items-center justify-between whitespace-nowrap rounded-lg border border-input bg-transparent px-3 py-1.5 text-sm shadow-menu1 shadow-menu2 ring-offset-background placeholder:text-muted-foreground focus:outline-none  disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 relative',
+  //bulk operations menu
+  bulkOperationMenuOptionAll:
+    'cursor-pointer gap-x-2 justify-center text-foreground font-normal inline-flex items-center justify-center whitespace-nowrap hover:text-primary hover:underline px-4',
+  bulkOperationMenuOptionWithBorder: 'border-r border-input',
 }
 
 export const groupElementIds = {
