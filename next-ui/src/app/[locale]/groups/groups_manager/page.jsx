@@ -101,6 +101,7 @@ const filterTitles = {
   directMembersCount: 'Number of members',
   allowExternalMembers: 'Allow external members?',
   hasExternalMembers: 'Has external members?',
+  adminCreated: 'Is admin created?',
 }
 
 const simpleFilterOptions = {
@@ -114,6 +115,7 @@ const initialState = {
   whoCanLeaveGroup: '',
   allowExternalMembers: '',
   hasExternalMembers: '',
+  adminCreated: '',
 }
 
 const columnHeaders = [
@@ -130,6 +132,7 @@ const columnHeaders = [
   'Who can manage members',
   'Who can join the group?',
   'Allow external users to join?',
+  'Is admin created?',
 ]
 
 const csvDummyData = [
@@ -172,7 +175,7 @@ function filterGroupProperties(groups) {
     name: group.name,
     directMembersCount: group.directMembersCount,
     description: group.description,
-    // adminCreated: group.adminCreated,
+    adminCreated: group.adminCreated,
     nonEditableAliases: group.nonEditableAliases,
     hasExternalMembers: group.hasExternalMembers,
     whoCanLeaveGroup: group.whoCanLeaveGroup,
@@ -285,6 +288,8 @@ function GroupsManager() {
         return { ...state, allowExternalMembers: action.value }
       case 'hasExternalMembers':
         return { ...state, hasExternalMembers: action.value }
+      case 'adminCreated':
+        return { ...state, adminCreated: action.value }
       default:
         return state
     }
@@ -600,6 +605,7 @@ function GroupsTable({ groupList, selectAll, setSelectAll, selectedRows, setSele
             <CustomTableHead className={groupsStyles.tableHead}>Members</CustomTableHead>
             <CustomTableHead className={groupsStyles.tableHead}>Has external members?</CustomTableHead>
             <CustomTableHead className={groupsStyles.tableHead}>Who can leave group?</CustomTableHead>
+            <CustomTableHead className={groupsStyles.tableHead}>Is admin created?</CustomTableHead>
             <CustomTableHead className={groupsStyles.tableHead}>Alias address</CustomTableHead>
             <CustomTableHead className="justify-items-end pe-0 me-0">
               <ExportDialog groupList={groupList} />
@@ -652,6 +658,9 @@ function GroupsTable({ groupList, selectAll, setSelectAll, selectedRows, setSele
                   {whoCanLeaveGroupStrings[group.whoCanLeaveGroup].short}
                 </CustomTableCell>
                 <CustomTableCell className={groupsStyles.middleCell}>
+                  {group.adminCreated === true ? 'Yes' : 'No'}
+                </CustomTableCell>
+                <CustomTableCell className={groupsStyles.middleCell}>
                   {group?.nonEditableAliases.length > 0 && (
                     <AliasList aliasArray={group.nonEditableAliases} groupId={group.email} />
                   )}
@@ -680,7 +689,7 @@ function GroupsTable({ groupList, selectAll, setSelectAll, selectedRows, setSele
                     <CustomTableCell className={`!w-[4px] px-0 py-0 leading-none`} style={{ userSelect: 'none' }}>
                       &nbsp;
                     </CustomTableCell>
-                    <CustomTableCell colSpan={7} className="px-0 pt-1 pb-0">
+                    <CustomTableCell colSpan={8} className="px-0 pt-1 pb-0">
                       <GroupCard group={group} />
                     </CustomTableCell>
                     <CustomTableCell className={`hover:bg-background px-0 leading-none`} style={{ userSelect: 'none' }}>
@@ -870,6 +879,11 @@ function Filters({ filterState, dispatchFilterState }) {
       ></SimpleFilter>
       <SimpleFilter
         filter="hasExternalMembers"
+        filterState={filterState}
+        dispatchFilterState={dispatchFilterState}
+      ></SimpleFilter>
+      <SimpleFilter
+        filter="adminCreated"
         filterState={filterState}
         dispatchFilterState={dispatchFilterState}
       ></SimpleFilter>
