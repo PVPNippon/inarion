@@ -1,7 +1,8 @@
 'use client'
 import React, { useState, useEffect, useRef, useReducer } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+// import { Input } from '@/components/ui/input'
+import { Input } from '@/components/ui/legacy-input'
 //import { apiClient } from '@/utils/apiClient'
 import {
   ExternalLinkIcon,
@@ -68,6 +69,7 @@ import {
 } from '@/components/ui/custom-list-accordion'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { groupsDummyData } from '@/app/[locale]/groups/groups_manager/dummyData'
+import { CustomSpinnerComponentWithText } from '@/components/ui/custom-spinner'
 
 //constants
 //Object with strings for the "Who can join" field of the groups's card. Used to get strings with title and description by the setting name.
@@ -460,7 +462,7 @@ function SearchAndFilterPanel({
  */
 
 function Loader() {
-  return <p>Loading...</p>
+  return <CustomSpinnerComponentWithText text="Loading..." />
 }
 
 function EmptyResultOrError({ type, title, description }) {

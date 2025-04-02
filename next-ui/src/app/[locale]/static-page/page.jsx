@@ -1153,6 +1153,8 @@ export default function StaticPage() {
         {/* <CustomTable /> */}
 
         {/* <ScrollArea className="relative w-full px-5 py-3 overflow-auto border rounded-lg border-[#E4E4E7] h-[200px]"> */}
+        <br />
+        <br />
         <CustomTable>
           <CustomTableHeader>
             <CustomTableRow>
