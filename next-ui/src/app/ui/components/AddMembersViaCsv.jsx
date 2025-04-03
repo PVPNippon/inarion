@@ -65,8 +65,10 @@ function AddMembersViaCsv() {
         </Button>
       </div>
 
-      <div className="flex">
-        <input
+      <div className="flex gap-x-11">
+        <Input
+          className="w-[200px]"
+          type="file"
           accept=".csv"
           id="add-members-csv-input" //N.B. the id must be unique or it will clash with other compoments
           onChange={() => {

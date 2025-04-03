@@ -34,6 +34,7 @@ import {
   CustomTableCell,
 } from '@/components/ui/custom-table'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { CustomSpinner } from '@/components/ui/custom-spinner'
 
 //icons
 import { Download, CloudUpload, X, Check, CircleX, TriangleAlert, CircleAlert } from 'lucide-react'
@@ -576,7 +577,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
               {/* Upload in progress spinner */}
               {uploadState.status === groupStrings.uploadStates.uploadInProgress && (
                 <div className={`${groupsStyles.uploadArea} border-dashed`}>
-                  <div className="loader"></div>
+                  <CustomSpinner />
                   <p>Upload in progress</p>
                 </div>
               )}
@@ -795,7 +796,7 @@ function CsvFileBadge({ fileName, dispatchUploadState, resetStates }) {
 function Loader() {
   return (
     <div className={`${groupsStyles.uploadAreaExtended} border-dashed`}>
-      <div className="loader"></div>
+      <CustomSpinner />
       <p>Removal in progress</p>
     </div>
   )

@@ -88,8 +88,9 @@ function DeleteMemberFromGroups() {
         </Button>
       </div>
 
-      <div className="flex">
-        <input
+      <div className="flex gap-x-11">
+        <Input
+          className="w-[200px]"
           accept=".csv"
           id="csvInput2" //N.B. the id must be unique or it will clash with other compoments
           onChange={() => {

@@ -1,10 +1,12 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+// import { Input } from '@/components/ui/input'
+import { Input } from '@/components/ui/legacy-input'
 //import { apiClient } from '@/utils/apiClient'
 import axios from 'axios'
 import CsvDownloadButton from 'react-json-to-csv'
+import { CustomSpinnerComponentWithText } from '@/components/ui/custom-spinner'
 
 /**
  * Component for creating a single group.
@@ -182,8 +184,9 @@ export function CreateGroupsByCsv() {
         column A.
       </small>
       <div className="flex w-full max-w-sm items-center space-x-2 mb-7 mt-3">
-        <div className="flex">
-          <input
+        <div className="flex gap-x-11">
+          <Input
+            className="w-[200px]"
             accept=".csv"
             id="create-groups-csv-input" //N.B. the id must be unique or it will clash with other compoments
             onChange={() => {
@@ -212,7 +215,7 @@ export function CreateGroupsByCsv() {
           </pre>
         </div>
       </div>
-      {loading && <div className="loader items-center justify-center"></div>}
+      {loading && <CustomSpinnerComponentWithText text="Creating groups..." />}
       {group && (
         <div>
           <div>{`Result: ${group.message}`}</div>
@@ -336,7 +339,7 @@ export function CreateGroupsWithSerialNumbers() {
           placeholder="Enter a group email base"
         />
         <div className="flex">
-          <input
+          <Input
             type="number"
             id="numInput"
             min="1"
@@ -351,7 +354,7 @@ export function CreateGroupsWithSerialNumbers() {
         </Button>
       </div>
 
-      {loading && <div className="loader items-center justify-center"></div>}
+      {loading && <CustomSpinnerComponentWithText text="Creating groups..." />}
       {group && (
         <div>
           <div>{`Result: ${group.message}`}</div>
