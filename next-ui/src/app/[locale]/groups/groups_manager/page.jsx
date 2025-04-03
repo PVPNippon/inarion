@@ -67,8 +67,9 @@ import {
   CustomListAccordionTrigger,
   CustomListAccordionContent,
 } from '@/components/ui/custom-list-accordion'
-import { groupsDummyData } from '@/app/[locale]/groups/groups_manager/dummyData'
+import { groupsDummyData } from '@/dummy-data/dummyData.js'
 import { CustomSpinnerComponentWithText } from '@/components/ui/custom-spinner'
+import { set } from 'react-hook-form'
 
 //constants
 //Object with strings for the "Who can join" field of the groups's card. Used to get strings with title and description by the setting name.
@@ -135,6 +136,74 @@ const columnHeaders = [
   'Allow external users to join?',
   'Is admin created?',
 ]
+const allColumnHeaders = [
+  'Email',
+  'Name',
+  'Direct Members Count',
+  'Description',
+  'Admin Created',
+  'Non-Editable Aliases',
+  'Has External Members',
+  'Who Can Join',
+  'Who Can View Membership',
+  'Who Can View Group',
+  'Who Can Invite',
+  'Who Can Add',
+  'Allow External Members',
+  'Who Can Post Message',
+  'Allow Web Posting',
+  'Primary Language',
+  'Max Message Bytes',
+  'Is Archived',
+  'Archive Only',
+  'Message Moderation Level',
+  'Spam Moderation Level',
+  'Reply To',
+  'Include Custom Footer',
+  'Custom Footer Text',
+  'Send Message Deny Notification',
+  'Default Message Deny Notification Text',
+  'Show In Group Directory',
+  'Allow Google Communication',
+  'Members Can Post As The Group',
+  'Message Display Font',
+  'Include In Global Address List',
+  'Who Can Leave Group',
+  'Who Can Contact Owner',
+  'Who Can Add References',
+  'Who Can Assign Topics',
+  'Who Can Unassign Topic',
+  'Who Can Take Topics',
+  'Who Can Mark Duplicate',
+  'Who Can Mark No Response Needed',
+  'Who Can Mark Favorite Reply On Any Topic',
+  'Who Can Mark Favorite Reply On Own Topic',
+  'Who Can Unmark Favorite Reply On Any Topic',
+  'Who Can Enter Free Form Tags',
+  'Who Can Modify Tags And Categories',
+  'Favorite Replies On Top',
+  'Who Can Approve Members',
+  'Who Can Ban Users',
+  'Who Can Modify Members',
+  'Who Can Approve Messages',
+  'Who Can Delete Any Post',
+  'Who Can Delete Topics',
+  'Who Can Lock Topics',
+  'Who Can Move Topics In',
+  'Who Can Move Topics Out',
+  'Who Can Post Announcements',
+  'Who Can Hide Abuse',
+  'Who Can Make Topics Sticky',
+  'Who Can Moderate Members',
+  'Who Can Moderate Content',
+  'Who Can Assist Content',
+  'Custom Roles Enabled For Settings To Be Merged',
+  'Enable Collaborative Inbox',
+  'Who Can Discover Group',
+  'Default Sender',
+]
+
+const exemptFromConversionArray = ['name', 'email', 'description', 'directMembersCount', 'customFooterText']
 
 function createNumberOfMembersTitle(min, max) {
   let title = filterTitles.directMembersCount
@@ -690,7 +759,7 @@ function GroupsTable({ groupList, selectAll, setSelectAll, selectedRows, setSele
           ))}
         </CustomTableBody>
       </CustomTable>
-      <BulkOperationMenu selectedRows={selectedRows} setSelectedRows={setSelectedRows} />
+      <BulkOperationMenu selectedRows={selectedRows} setSelectedRows={setSelectedRows} groupList={groupList} />
     </>
   )
 }
@@ -1181,9 +1250,23 @@ function ExportDialog({ groupList }) {
   )
 }
 
-function BulkOperationMenu({ selectedRows, setSelectedRows }) {
+function BulkOperationMenu({ selectedRows, setSelectedRows, groupList }) {
   const selectedGroups = Object.keys(selectedRows)
   const [hidden, setHidden] = useState(selectedGroups.length === 0)
+  const [data, setData] = useState([])
+  const [ready, setReady] = useState(false)
+
+  function createDetailedCSVData(groupList, selectedGroups) {
+    const filteredGroupList = groupList.filter((group) => selectedGroups.includes(group.email))
+    return filteredGroupList.map((group) => {
+      const convertedGroup = { ...group }
+      Object.keys(group).forEach((key) => {
+        console.log(group)
+        if (!exemptFromConversionArray.includes(key)) convertedGroup[key] = convertSettingNameToWord(group[key])
+      })
+      return convertedGroup
+    })
+  }
 
   useEffect(() => {
     if (selectedGroups.length === 0) {
@@ -1193,6 +1276,18 @@ function BulkOperationMenu({ selectedRows, setSelectedRows }) {
     }
   }, [selectedRows])
 
+  useEffect(() => {
+    if (data.length === 0) return
+
+    const links = document.getElementsByClassName('csv-download-details')
+
+    for (let i = 0; i < links.length; i++) {
+      links[i].click()
+      links[i].disabled = true
+    }
+    setReady(false)
+  }, [ready])
+
   const handleClose = () => {
     setSelectedRows({})
     setHidden(true)
@@ -1200,7 +1295,7 @@ function BulkOperationMenu({ selectedRows, setSelectedRows }) {
 
   return (
     <div className={`${hidden ? 'hidden' : 'block'} w-content justify-self-center relative translate-y-[-70px]`}>
-      <div className={`h-[44px] bg-background inline-flex border border-foreground/10 items-center  rounded-lg p-1`}>
+      <div className={`h-[44px] bg-background inline-flex border border-foreground/10 items-center rounded-lg p-1`}>
         {/* Groups checkbox */}
         <div
           className={`pointer-events-none ${groupsStyles.bulkOperationMenuOptionAll} ${groupsStyles.bulkOperationMenuOptionWithBorder}`}
@@ -1208,16 +1303,29 @@ function BulkOperationMenu({ selectedRows, setSelectedRows }) {
           <Checkbox asChild checked={selectedGroups.length > 0} />
           <span> {`${selectedGroups.length} Groups`}</span>
         </div>
-        <CsvDownloadButton
-          className="hidden"
-          data={filterGroupProperties(selectedGroups)}
-          headers={columnHeaders}
-          filename="bulk-export-group-details"
-          id="bulk-export-group-details"
-        />
+        <div>
+          <ul>
+            {data.length > 0 &&
+              data.map((file, index) => {
+                return (
+                  <CsvDownloadButton
+                    key={'csv-download-details' + index.toString()}
+                    data={file}
+                    headers={allColumnHeaders}
+                    filename={'groupDetails' + index.toString()}
+                    className={'csv-download-details hidden'}
+                  ></CsvDownloadButton>
+                )
+              })}
+          </ul>
+        </div>
         {/* Bulk export button */}
         <button
-          onClick={() => document.getElementById('bulk-export-group-details').click()}
+          onClick={() => {
+            const csvData = createDetailedCSVData(groupList, selectedGroups)
+            setData(csvData)
+            setReady(true)
+          }}
           className={`${groupsStyles.bulkOperationMenuOptionAll} ${groupsStyles.bulkOperationMenuOptionWithBorder}`}
         >
           <CustomIconExport size={20} /> Bulk export group details
