@@ -272,74 +272,131 @@ export default function StaticPage() {
   return (
     <div className="min-h-screen bg-white flex p-10">
       <div className="overflow-auto flex-grow max-w-full max-h-full p-3">
-        <div className="grid grid-cols-4 gap-4 mb-4 w-[500px]">
+        <div>
+          <h1 className="text-xl font-semibold mb-2">Button components</h1>
           {/* Row 1: Filled Buttons */}
-          <Button>Button</Button>
-          <Button size="sm">Button</Button>
-          <Button size="lg">Button</Button>
-          <Button size="icon">
-            <BeakerIcon className="h-5 w-5" />
-          </Button>
+          <ButtonWrapper title="Default Button (variant unspecified):">
+            <Button>Button</Button>
+            <Button disabled>Button</Button>
+            <Button size="sm">Button</Button>
+            <Button disabled size="sm">
+              Button
+            </Button>
+            <Button size="lg">Button</Button>
+            <Button disabled size="lg">
+              Button
+            </Button>
+            <Button size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+            <Button disabled size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+          </ButtonWrapper>
 
           {/* Row 2: Outlined Buttons */}
-          <Button variant="outline">Button</Button>
-          <Button variant="outline" size="sm">
-            Button
-          </Button>
-          <Button variant="outline" size="lg">
-            Button
-          </Button>
-          <Button variant="outline" size="icon">
-            <BeakerIcon className="h-5 w-5" />
-          </Button>
+          <ButtonWrapper title="Outlined Button (variant='outline'):">
+            <Button variant="outline">Button</Button>
+            <Button disabled variant="outline">
+              Button
+            </Button>
+            <Button variant="outline" size="sm">
+              Button
+            </Button>
+            <Button disabled variant="outline" size="sm">
+              Button
+            </Button>
+            <Button variant="outline" size="lg">
+              Button
+            </Button>
+            <Button disabled variant="outline" size="lg">
+              Button
+            </Button>
+            <Button variant="outline" size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+            <Button disabled variant="outline" size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+          </ButtonWrapper>
 
-          {/* Row 3: Disabled Buttons */}
-          <Button disabled>Button</Button>
-          <Button disabled size="sm">
-            Button
-          </Button>
-          <Button disabled size="lg">
-            Button
-          </Button>
-          <Button disabled size="icon">
-            <BeakerIcon className="h-5 w-5" />
-          </Button>
+          {/* Row 3: Black Text Buttons */}
+          <ButtonWrapper title="Black Text Button (variant='ghost'):">
+            <Button variant="ghost">Button</Button>
+            <Button disabled variant="ghost">
+              Button
+            </Button>
+            <Button variant="ghost" size="sm">
+              Button
+            </Button>
+            <Button disabled variant="ghost" size="sm">
+              Button
+            </Button>
+            <Button variant="ghost" size="lg">
+              Button
+            </Button>
+            <Button disabled variant="ghost" size="lg">
+              Button
+            </Button>
+            <Button variant="ghost" size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+            <Button disabled variant="ghost" size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+          </ButtonWrapper>
 
-          {/* Row 4: Black Text Buttons */}
-          <Button variant="ghost">Button</Button>
-          <Button variant="ghost" size="sm">
-            Button
-          </Button>
-          <Button variant="ghost" size="lg">
-            Button
-          </Button>
-          <Button variant="ghost" size="icon">
-            <BeakerIcon className="h-5 w-5" />
-          </Button>
+          {/* Row 4: Default Text Buttons */}
+          <ButtonWrapper title="Default Text Button (variant='link'):">
+            <Button variant="link">Button</Button>
+            <Button disabled variant="link">
+              Button
+            </Button>
+            <Button variant="link" size="sm">
+              Button
+            </Button>
+            <Button disabled variant="link" size="sm">
+              Button
+            </Button>
+            <Button variant="link" size="lg">
+              Button
+            </Button>
+            <Button disabled variant="link" size="lg">
+              Button
+            </Button>
+            <Button variant="link" size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+            <Button disabled variant="link" size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+          </ButtonWrapper>
 
-          {/* Row 5: Default Text Buttons */}
-          <Button variant="link">Button</Button>
-          <Button variant="link" size="sm">
-            Button
-          </Button>
-          <Button variant="link" size="lg">
-            Button
-          </Button>
-          <Button variant="link" size="icon">
-            <BeakerIcon className="h-5 w-5" />
-          </Button>
-
-          {/* Row 6: Destructive Buttons */}
-          <Button variant="destructive">Button</Button>
-          <Button variant="destructive" size="sm">
-            Button
-          </Button>
-          <Button variant="destructive" size="lg">
-            Button
-          </Button>
-          <Button variant="destructive" size="icon">
-            <BeakerIcon className="h-5 w-5" />
-          </Button>
+          {/* Row 5: Destructive Buttons */}
+          <ButtonWrapper title="Destructive Button (variant='destructive'):">
+            <Button variant="destructive">Button</Button>
+            <Button variant="destructive" disabled>
+              Button
+            </Button>
+            <Button variant="destructive" size="sm">
+              Button
+            </Button>
+            <Button variant="destructive" disabled size="sm">
+              Button
+            </Button>
+            <Button variant="destructive" size="lg">
+              Button
+            </Button>
+            <Button variant="destructive" disabled size="lg">
+              Button
+            </Button>
+            <Button variant="destructive" size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+            <Button variant="destructive" disabled size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+          </ButtonWrapper>
         </div>
 
         {/* Accordion */}
@@ -1250,3 +1307,12 @@ const ListItem = React.forwardRef(({ className, title, children, ...props }, ref
   )
 })
 ListItem.displayName = 'ListItem'
+
+function ButtonWrapper({ children, title }) {
+  return (
+    <div className="flex flex-col gap-y-3 mb-5">
+      <p className="text-md font-semibold">{title}</p>
+      <div className="grid grid-cols-8 gap-4">{children}</div>
+    </div>
+  )
+}

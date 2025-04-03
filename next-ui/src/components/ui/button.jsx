@@ -5,16 +5,16 @@ import { cva } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,box-shadow] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "cursor-pointer inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[color,box-shadow] disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
     variants: {
       variant: {
         default:
-          'bg-primary text-white shadow-button hover:bg-buttonHover hover:text-white disabled:shadow-none active:bg-darkPrimary', // Add disabled:shadow-none
+          'bg-primary text-white shadow-button hover:bg-buttonHover hover:text-white disabled:shadow-none active:bg-darkPrimary disabled:bg-secondary disabled:text-secondary-foreground', // Add disabled:shadow-none
         destructive:
           'bg-destructive text-white shadow-button hover:bg-destructiveHover hover:text-white disabled:shadow-none active:bg-darkDestructive', // Add disabled:shadow-none
         outline:
-          'border text-primary bg-background shadow-button hover:text-primary hover:border-primary hover:bg-outlineHover active:bg-darkOutline disabled:shadow-none disabled:border-none', // Add disabled:shadow-none
+          'border text-primary bg-background shadow-button hover:text-primary hover:border-primary hover:bg-outlineHover active:bg-darkOutline disabled:shadow-none disabled:border-none disabled:bg-secondary disabled:text-secondary-foreground', // Add disabled:shadow-none
         secondary:
           'bg-secondary text-secondary-foreground hover:bg-secondary/70 active:bg-secondary/90 disabled:shadow-none', // Add disabled:shadow-none
         ghost: 'hover:bg-accent hover:text-accent-foreground disabled:shadow-none', // Add disabled:shadow-none
