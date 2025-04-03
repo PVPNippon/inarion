@@ -67,7 +67,6 @@ import {
   CustomListAccordionTrigger,
   CustomListAccordionContent,
 } from '@/components/ui/custom-list-accordion'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { groupsDummyData } from '@/app/[locale]/groups/groups_manager/dummyData'
 import { CustomSpinnerComponentWithText } from '@/components/ui/custom-spinner'
 
@@ -125,7 +124,7 @@ const columnHeaders = [
   'Email address',
   'Members',
   'Has external members?',
-  'Restrict members from leaving',
+  'Who can leave group?',
   'Alias address',
   'Who can contact group owners',
   'Who can view conversations',
@@ -135,25 +134,6 @@ const columnHeaders = [
   'Who can join the group?',
   'Allow external users to join?',
   'Is admin created?',
-]
-
-const csvDummyData = [
-  {
-    name: 'group name',
-    email: 'group email',
-    directMembersCount: 'members count',
-    description: 'group description',
-    nonEditableAliases: 'group aliases',
-    hasExternalMembers: 'has external members',
-    whoCanLeaveGroup: 'who can leave',
-    whoCanContactOwner: 'who can contact owner',
-    whoCanViewGroup: 'who can view group',
-    whoCanPostMessage: 'who can post',
-    whoCanViewMembership: 'who can view membership',
-    whoCanModerateMembers: 'who can manage members',
-    whoCanJoin: 'who can join',
-    allowExternalMembers: 'allow external members',
-  },
 ]
 
 function createNumberOfMembersTitle(min, max) {
@@ -171,23 +151,29 @@ function createNumberOfMembersTitle(min, max) {
   return title + min + ' - ' + max
 }
 
+function convertSettingNameToWord(settingName) {
+  if (settingName instanceof Array) return settingName.map((item) => item.trim()).join('\u2028')
+  if (typeof settingName !== 'string') settingName = String(settingName)
+  if (settingName === 'true' || settingName === 'false') return settingName === 'true' ? 'yes' : 'no'
+  return settingName.split('_').join(' ').toLowerCase()
+}
+
 function filterGroupProperties(groups) {
   return groups.map((group) => ({
-    email: group.email,
     name: group.name,
+    email: group.email,
     directMembersCount: group.directMembersCount,
-    description: group.description,
-    adminCreated: group.adminCreated,
-    nonEditableAliases: group.nonEditableAliases,
-    hasExternalMembers: group.hasExternalMembers,
-    whoCanLeaveGroup: group.whoCanLeaveGroup,
-    whoCanContactOwner: group.whoCanContactOwner,
-    whoCanViewGroup: group.whoCanViewGroup,
-    whoCanPostMessage: group.whoCanPostMessage,
-    whoCanViewMembership: group.whoCanViewMembership,
-    whoCanModerateMembers: group.whoCanModerateMembers,
-    whoCanJoin: group.whoCanJoin,
-    allowExternalMembers: group.allowExternalMembers,
+    hasExternalMembers: convertSettingNameToWord(group.hasExternalMembers) || group.hasExternalMembers,
+    whoCanLeaveGroup: convertSettingNameToWord(group.whoCanLeaveGroup) || group.whoCanLeaveGroup,
+    nonEditableAliases: convertSettingNameToWord(group.nonEditableAliases) || group.nonEditableAliases,
+    whoCanContactOwner: convertSettingNameToWord(group.whoCanContactOwner) || group.whoCanContactOwner,
+    whoCanViewGroup: convertSettingNameToWord(group.whoCanViewGroup) || group.whoCanViewGroup,
+    whoCanPostMessage: convertSettingNameToWord(group.whoCanPostMessage) || group.whoCanPostMessage,
+    whoCanViewMembership: convertSettingNameToWord(group.whoCanViewMembership) || group.whoCanViewMembership,
+    whoCanModerateMembers: convertSettingNameToWord(group.whoCanModerateMembers) || group.whoCanModerateMembers,
+    whoCanJoin: convertSettingNameToWord(group.whoCanJoin) || group.whoCanJoin,
+    allowExternalMembers: convertSettingNameToWord(group.allowExternalMembers) || group.allowExternalMembers,
+    adminCreated: convertSettingNameToWord(group.adminCreated) || group.adminCreated,
   }))
 }
 
@@ -322,7 +308,7 @@ function GroupsManager() {
         return
       }
 
-      setGroupList(filterGroupProperties(groupsDummyData))
+      setGroupList(groupsDummyData)
     } catch (error) {
       setError(error)
       console.error(error)
@@ -1166,7 +1152,7 @@ function ExportDialog({ groupList }) {
               </DialogClose>
 
               <CsvDownloadButton
-                data={groupList}
+                data={filterGroupProperties(groupList)}
                 headers={columnHeaders}
                 filename={fileName}
                 className="hidden"
@@ -1224,7 +1210,7 @@ function BulkOperationMenu({ selectedRows, setSelectedRows }) {
         </div>
         <CsvDownloadButton
           className="hidden"
-          data={csvDummyData}
+          data={filterGroupProperties(selectedGroups)}
           headers={columnHeaders}
           filename="bulk-export-group-details"
           id="bulk-export-group-details"
