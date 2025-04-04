@@ -69,7 +69,6 @@ import {
 } from '@/components/ui/custom-list-accordion'
 import { groupsDummyData } from '@/dummy-data/dummyData.js'
 import { CustomSpinnerComponentWithText } from '@/components/ui/custom-spinner'
-import { set } from 'react-hook-form'
 
 //constants
 //Object with strings for the "Who can join" field of the groups's card. Used to get strings with title and description by the setting name.
@@ -137,8 +136,8 @@ const columnHeaders = [
   'Is admin created?',
 ]
 const allColumnHeaders = [
-  'Email',
   'Name',
+  'Email',
   'Direct Members Count',
   'Description',
   'Admin Created',
@@ -203,7 +202,14 @@ const allColumnHeaders = [
   'Default Sender',
 ]
 
-const exemptFromConversionArray = ['name', 'email', 'description', 'directMembersCount', 'customFooterText']
+const exemptFromConversionArray = [
+  'name',
+  'email',
+  'description',
+  'directMembersCount',
+  'customFooterText',
+  'primaryLanguage',
+]
 
 function createNumberOfMembersTitle(min, max) {
   let title = filterTitles.directMembersCount
@@ -1254,6 +1260,7 @@ function BulkOperationMenu({ selectedRows, setSelectedRows, groupList }) {
   const selectedGroups = Object.keys(selectedRows)
   const [hidden, setHidden] = useState(selectedGroups.length === 0)
   const [data, setData] = useState([])
+  const [separateCSVData, setSeparateCSVData] = useState([])
   const [ready, setReady] = useState(false)
 
   function createDetailedCSVData(groupList, selectedGroups) {
@@ -1261,15 +1268,31 @@ function BulkOperationMenu({ selectedRows, setSelectedRows, groupList }) {
     return filteredGroupList.map((group) => {
       const convertedGroup = { ...group }
       Object.keys(group).forEach((key) => {
-        console.log(group)
         if (!exemptFromConversionArray.includes(key)) convertedGroup[key] = convertSettingNameToWord(group[key])
       })
       return convertedGroup
     })
   }
 
+  function createSeparateCSVData(csvData) {
+    const groupsArray = []
+    csvData.forEach((group) => {
+      const groupArray = []
+      Object.keys(group).forEach((key, index) => {
+        groupArray.push({
+          settingName: allColumnHeaders[index],
+          settingValue: exemptFromConversionArray.includes(key) ? group[key] : convertSettingNameToWord(group[key]),
+        })
+      })
+      groupsArray.push(groupArray)
+    })
+    return groupsArray
+  }
+
   useEffect(() => {
     if (selectedGroups.length === 0) {
+      setData([])
+      setSeparateCSVData([])
       setHidden(true)
     } else {
       setHidden(false)
@@ -1277,19 +1300,24 @@ function BulkOperationMenu({ selectedRows, setSelectedRows, groupList }) {
   }, [selectedRows])
 
   useEffect(() => {
-    if (data.length === 0) return
+    if (!ready || data.length === 0) return
 
-    const links = document.getElementsByClassName('csv-download-details')
+    // Download the CSV as one file with all selected groups' details
+    const allResultsLink = document.getElementById('csv-download-details-search-results')
+    allResultsLink.click()
 
-    for (let i = 0; i < links.length; i++) {
-      links[i].click()
-      links[i].disabled = true
-    }
+    // Download the CSV for each group separately
+    selectedGroups.forEach((group) => {
+      const perGroupLink = document.getElementById('csv-download-details-' + group)
+      perGroupLink.click()
+    })
     setReady(false)
   }, [ready])
 
   const handleClose = () => {
     setSelectedRows({})
+    setData([])
+    setSeparateCSVData([])
     setHidden(true)
   }
 
@@ -1303,16 +1331,26 @@ function BulkOperationMenu({ selectedRows, setSelectedRows, groupList }) {
           <Checkbox asChild checked={selectedGroups.length > 0} />
           <span> {`${selectedGroups.length} Groups`}</span>
         </div>
+        {/* CSV download button to download all details in one file */}
+        <CsvDownloadButton
+          id={'csv-download-details-search-results'}
+          data={data}
+          headers={allColumnHeaders}
+          filename={'all_group_details_for_search_results'}
+          className={'csv-download-details hidden'}
+        ></CsvDownloadButton>
         <div>
           <ul>
-            {data.length > 0 &&
-              data.map((file, index) => {
+            {separateCSVData.length > 0 &&
+              separateCSVData.map((file, index) => {
                 return (
+                  // CSV download button to download each selected group details separately
                   <CsvDownloadButton
+                    id={'csv-download-details-' + file[1].settingValue}
                     key={'csv-download-details' + index.toString()}
                     data={file}
-                    headers={allColumnHeaders}
-                    filename={'groupDetails' + index.toString()}
+                    headers={['Setting Name', 'Setting Value']}
+                    filename={'group_details_for_' + file[1].settingValue}
                     className={'csv-download-details hidden'}
                   ></CsvDownloadButton>
                 )
@@ -1324,6 +1362,7 @@ function BulkOperationMenu({ selectedRows, setSelectedRows, groupList }) {
           onClick={() => {
             const csvData = createDetailedCSVData(groupList, selectedGroups)
             setData(csvData)
+            setSeparateCSVData(createSeparateCSVData(csvData))
             setReady(true)
           }}
           className={`${groupsStyles.bulkOperationMenuOptionAll} ${groupsStyles.bulkOperationMenuOptionWithBorder}`}

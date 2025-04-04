@@ -89,7 +89,6 @@ function AddMembersViaCsv() {
 
             reader.readAsText(document.getElementById('add-members-csv-input').files[0])
           }}
-          type="file"
         />
         <pre id="add-members-csv-out">
           <p>File contents will appear here</p>
