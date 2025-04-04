@@ -33,7 +33,6 @@ import {
 } from '@/components/ui/dialog'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { CustomIconExport, CustomIconUserArrow } from '@/app/ui/svg-icons/custom-icons'
 import {
   CustomTable,
@@ -45,21 +44,11 @@ import {
 } from '@/components/ui/custom-table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { customTableHandler, classListHandler } from '@/utils/virtualDOMHackers'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectValue } from '@/components/ui/select'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { CustomSelectTrigger, CustomFilterWrapper, CustomFilterClose } from '@/components/ui/custom-filter'
-import { PopoverClose } from '@radix-ui/react-popover'
 import { Switch } from '@/components/ui/switch'
 import {
   CustomListAccordion,
@@ -353,6 +342,8 @@ function GroupsManager() {
         return { ...state, hasExternalMembers: action.value }
       case 'adminCreated':
         return { ...state, adminCreated: action.value }
+      case 'reset':
+        return initialState
       default:
         return state
     }
@@ -418,6 +409,7 @@ function GroupsManager() {
             setHiddenClass={setHiddenClass}
             groupList={groupList}
             filterState={filterState}
+            setGroupList={setGroupList}
             setEmptyResult={setEmptyResult}
             setError={setError}
             setSelectAll={setSelectAll}
@@ -434,6 +426,8 @@ function GroupsManager() {
           setSelectAll={setSelectAll}
           selectedRows={selectedRows}
           setSelectedRows={setSelectedRows}
+          filterState={filterState}
+          includeAliases={includeAliases}
         />
       )}
       {!isLoading && emptyResult && (
@@ -541,6 +535,7 @@ function FilterChipPanel({
   hiddenClass,
   setHiddenClass,
   filterState,
+  setGroupList,
   setEmptyResult,
   setError,
   setSelectAll,
@@ -581,6 +576,7 @@ function FilterChipPanel({
             setError('')
             setSelectAll(false)
             setSelectedRows({})
+            setGroupList([])
             if (hiddenClass === 'hidden') {
               setHiddenClass('')
             }
@@ -593,7 +589,15 @@ function FilterChipPanel({
   )
 }
 
-function GroupsTable({ groupList, selectAll, setSelectAll, selectedRows, setSelectedRows }) {
+function GroupsTable({
+  groupList,
+  selectAll,
+  setSelectAll,
+  selectedRows,
+  setSelectedRows,
+  filterState,
+  includeAliases,
+}) {
   const tableRef = useRef(null)
   const customTableRowRefs = useRef([])
   const [expandedGroups, setExpandedGroups] = useState({})
@@ -765,7 +769,13 @@ function GroupsTable({ groupList, selectAll, setSelectAll, selectedRows, setSele
           ))}
         </CustomTableBody>
       </CustomTable>
-      <BulkOperationMenu selectedRows={selectedRows} setSelectedRows={setSelectedRows} groupList={groupList} />
+      <BulkOperationMenu
+        selectedRows={selectedRows}
+        setSelectedRows={setSelectedRows}
+        groupList={groupList}
+        filterState={filterState}
+        includeAliases={includeAliases}
+      />
     </>
   )
 }
@@ -1256,7 +1266,7 @@ function ExportDialog({ groupList }) {
   )
 }
 
-function BulkOperationMenu({ selectedRows, setSelectedRows, groupList }) {
+function BulkOperationMenu({ selectedRows, setSelectedRows, groupList, filterState, includeAliases }) {
   const selectedGroups = Object.keys(selectedRows)
   const [hidden, setHidden] = useState(selectedGroups.length === 0)
   const [data, setData] = useState([])
@@ -1287,6 +1297,49 @@ function BulkOperationMenu({ selectedRows, setSelectedRows, groupList }) {
       groupsArray.push(groupArray)
     })
     return groupsArray
+  }
+
+  function downloadGroupList() {
+    let filterText = ''
+
+    if (filterState.query !== '') {
+      filterText += `Query: ${filterState.query}\n`
+      if (includeAliases === true) {
+        filterText += 'Include aliases: yes\n'
+      } else {
+        filterText += 'Include aliases: no\n'
+      }
+    }
+
+    if (filterState.directMembersCount[0] !== '' || filterState.directMembersCount[1] !== '') {
+      filterText += `${createNumberOfMembersTitle(
+        filterState.directMembersCount[0],
+        filterState.directMembersCount[1]
+      )}\n`
+    }
+
+    filterText += Object.keys(filterState).reduce((acc, filter) => {
+      if (filterState[filter] !== '' && filter !== 'directMembersCount' && filter !== 'query') {
+        acc += `${filterTitles[filter]}: ${filterState[filter]}\n`
+      }
+      return acc
+    }, '')
+
+    const groupListHeader = `${
+      groupList.length > selectedGroups.length ? selectedGroups.length + ' selected' : groupList.length
+    } groups matched the search condition`
+
+    const groupListText = selectedGroups.join('\n')
+
+    const textContent = `Applied Filters:\n${filterText}\n\n${groupListHeader}:\n${groupListText}`
+
+    const blob = new Blob([textContent], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'group_list.txt'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   useEffect(() => {
@@ -1371,6 +1424,7 @@ function BulkOperationMenu({ selectedRows, setSelectedRows, groupList }) {
         </button>
         {/* Export group list button */}
         <button
+          onClick={downloadGroupList}
           className={`${groupsStyles.bulkOperationMenuOptionAll} ${groupsStyles.bulkOperationMenuOptionWithBorder}`}
         >
           <List size={20} strokeWidth={1.8} />
