@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/legacy-input'
 import axios from 'axios'
 import CsvDownloadButton from 'react-json-to-csv'
 import { CustomSpinnerComponentWithText } from '@/components/ui/custom-spinner'
+const email = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL //temporarily bypass login and jwttoken check
 
 /**
  * Component for creating a single group.
@@ -36,7 +37,6 @@ export function CreateGroup() {
   const [group, setGroup] = useState(null)
   const [clickCount, setClickCount] = useState(0)
   const [error, setError] = useState(null)
-  let email
 
   useEffect(() => {
     const createGroup = async (req, res) => {
@@ -44,7 +44,6 @@ export function CreateGroup() {
         if (inputValue === '') {
           return
         }
-        email = 'testadmin@pvp-test-domain2.com'
         const response = await axios.post(
           `http://localhost:4000/api/groups/?userEmail=${email}`,
 
@@ -124,14 +123,12 @@ export function CreateGroupsByCsv() {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [failedGroups, setFailedGroups] = useState([])
-  let email
 
   useEffect(() => {
     const createGroups = async (req, res) => {
       try {
         if (data.length === 0) return
         setLoading(true)
-        email = 'testadmin@pvp-test-domain2.com'
         const response = await axios.post(
           `http://localhost:4000/api/groups/?userEmail=${email}`,
 
@@ -264,12 +261,11 @@ export function CreateGroupsWithSerialNumbers() {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [failedGroups, setFailedGroups] = useState([])
-  let email
 
   function serialEmails(nrOfGroups, inputValue) {
     let emails = []
     for (let i = 1; i <= nrOfGroups; i++) {
-      emails.push(inputValue + i + '@pvp-test-domain2.com')
+      emails.push(inputValue + i + '@' + process.env.NEXT_PUBLIC_DOMAIN)
     }
     return emails
   }
@@ -282,7 +278,6 @@ export function CreateGroupsWithSerialNumbers() {
       if (confirm(`Are you sure you want to create ${nrOfGroups} groups with email base ${inputValue}?`)) {
         setLoading(true)
         try {
-          email = 'testadmin@pvp-test-domain2.com'
           const data = serialEmails(nrOfGroups, inputValue)
 
           const response = await axios.post(

@@ -1,9 +1,9 @@
 'use client'
-import React, { useState, useEffect, useContext } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 //import { apiClient } from '@/utils/apiClient' //even unused, it caused nextjs to fail, so needed to comment out
 import axios from 'axios'
-const email = 'testadmin@pvp-test-domain2.com'
+const email = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL //temporarily bypass login and jwttoken check
 
 /**
  * Temporary component for dev purposes.

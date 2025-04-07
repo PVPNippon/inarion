@@ -58,7 +58,7 @@ const uploadStateArray = [
   groupStrings.uploadStates.showTable,
   groupStrings.uploadStates.showDeletionResult,
 ]
-const email = 'testadmin@pvp-test-domain2.com' //TODO:temporary bypass, remove when the apiClient module is ready
+const email = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL //temporarily bypass login and jwttoken check
 
 /**
  * Returns the number of occurrences of a given value in an array.
@@ -298,11 +298,11 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
   [
     {
       "Member Name [ optional ]": "Group1",
-      "Member Email [ required ]": "group@pvp-test-domain2.com"
+      "Member Email [ required ]": "group@yourdomain.com"
   },
   {
       "Member Name [ optional ]": "Group2",
-      "Member Email [ required ]": "group2@pvp-test-domain2.com"
+      "Member Email [ required ]": "group2@yourdomain.com"
   }
 ]) 
 

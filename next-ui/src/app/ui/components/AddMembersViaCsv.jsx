@@ -3,9 +3,9 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+const email = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL //temporarily bypass login and jwttoken check
 
 function AddMembersViaCsv() {
-  const email = 'testadmin@pvp-test-domain2.com'
   const [inputValue, setInputValue] = useState('')
   const [error, setError] = useState(null)
   const [data, setData] = useState([])

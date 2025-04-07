@@ -1,9 +1,9 @@
 'use client'
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
-
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+const email = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL //temporarily bypass login and jwttoken check
 
 /**
  * Component for deleting a member from multiple groups using a CSV file.
@@ -35,7 +35,6 @@ import { Input } from '@/components/ui/input'
 //Important: This component is for dev purposes and by no means it's final or thoughrougly tested
 //I keep it here in case some logic can be reused, and also for testing purposes
 function DeleteMemberFromGroups() {
-  const email = 'testadmin@pvp-test-domain2.com'
   const [inputValue, setInputValue] = useState('')
   const [error, setError] = useState(null)
   const [data, setData] = useState([])

@@ -1,18 +1,17 @@
 'use client'
-import React, { useState, useEffect, useContext } from 'react'
-//import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
+import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import CsvDownloadButton from 'react-json-to-csv'
 import { Checkbox } from '@/components/ui/checkbox'
 //import { apiClient } from '@/utils/apiClient'
 import axios from 'axios'
+const email = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL //temporarily bypass login and jwttoken check
 
 //temporary component for dev purposes
 //it supports 4 types of csv export, and files for separate groups are downloaded separately with group email being the csv file name
 //However, the implementation is kinda roundabout, there should be an easier way to achieve that
 function ExportGroups() {
-  // const { email } = useContext(LoggedInUserContext)
   const [inputValue, setInputValue] = useState('')
   const [error, setError] = useState(null)
   const [data, setData] = useState([])
@@ -121,21 +120,8 @@ function ExportGroups() {
           includeAllColumns: allColumns,
         }))
 
-        // const response = await apiClient(
-        //   '/api/groups/bulk-export', // Endpoint path relative to API_BASE_URL
-        //   'POST', // HTTP method
-        //   {
-        //     userEmail: email,
-        //     groups: groupsArray,
-        //   },
-        //   {}, // Additional headers, if any
-        //   true // withCredentials flag
-        // )
-
-        // const tableData = JSON.parse(response)
-
         const response = await axios.post(
-          `http://localhost:4000/api/groups/members/export?userEmail=testadmin@pvp-test-domain2.com`,
+          `http://localhost:4000/api/groups/members/export?userEmail=${email}`,
 
           {
             groups: groupsArray,

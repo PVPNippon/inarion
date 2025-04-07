@@ -326,7 +326,6 @@ function GroupsManager() {
   const [includeAliases, setIncludeAliases] = useState(false)
   const [selectAll, setSelectAll] = useState(false)
   const [selectedRows, setSelectedRows] = useState({})
-  const email = 'testadmin@pvp-test-domain2.com'
 
   const filterReducer = (state, action) => {
     switch (action.type) {

@@ -1,33 +1,25 @@
 'use client'
-import React, { useState, useEffect, useContext } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-//import { apiCall } from '@/utils/securePayload'
 //import { apiClient } from '@/utils/apiClient'
 import axios from 'axios'
+const email = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL //temporarily bypass login and jwttoken check
 
 /**
- * Component for listing all members of a group, both direct and nested.
- *
- * This component allows the user to enter a group's email address and fetches
- * the list of all members when the "Go" button is clicked. The members are
- * displayed in a div, and any errors encountered during the fetch operation
- * are also displayed.
- *
- * Contexts:
- * - Utilizes `LoggedInUserContext` to access the user's email.
+ * A temporary component for dev purposes.
+ * On click of button, fetch all group's members (both direct and nested) and display in div(error or member list)
  *
  * States:
  * - `inputValue`: Stores the group email address entered by the user.
- * - `members`: Stores the fetched list of members or error messages.
+ * - `members`: Stores the fetched list of direct members or error messages.
  * - `clickCount`: A counter to trigger the fetch operation.
  *
  * Side Effects:
- * - Uses `useEffect` to trigger the fetch of members whenever `clickCount` changes.
+ * - Uses `useEffect` to trigger the fetch of direct members whenever `clickCount` changes.
  *
  * API:
- * - Sends a POST request to `/api/groups/list-all-members` with the user's email
- *   and the group email to retrieve the list of members.
+ * - Sends a GET request to `/api/groups/group/:groupEmail/members?userEmail=:userEmail&includeDerivedMembership=true` with the user's email and the group email to retrieve the list of all members.
  *
  * @returns {JSX.Element} The rendered component for listing all group members.
  */
@@ -38,7 +30,6 @@ function ListAllMembers() {
   const [members, setMembers] = useState([])
   const [clickCount, setClickCount] = useState(0)
   const [error, setError] = useState(null)
-  let email
 
   useEffect(() => {
     const fetchMembers = async (req, res) => {
@@ -47,27 +38,6 @@ function ListAllMembers() {
           return
         }
 
-        // const response = await apiClient(
-        //   '/api/groups/list-all-members', // Endpoint path relative to API_BASE_URL
-        //   'POST', // HTTP method
-        //   {
-        //     userEmail: email,
-        //     groupEmail: inputValue,
-        //   },
-        //   {}, // Additional headers, if any
-        //   true // withCredentials flag
-        // )
-
-        // setMembers(response)
-
-        //Temporary bypass encryption and authorzation
-        // email = window.localStorage.getItem('email')
-        // console.log('email:', email)
-
-        // const token = localStorage.getItem('jwtToken')
-        // console.log('TOKEN', token)
-
-        email = 'testadmin@pvp-test-domain2.com'
         const response = await axios.get(
           `http://localhost:4000/api/groups/group/${inputValue}/members?userEmail=${email}&includeDerivedMembership=true`,
 
