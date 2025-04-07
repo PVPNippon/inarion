@@ -19,9 +19,12 @@ function GroupsDashboard() {
   return (
     <main className="overflow-auto space-y-7">
       <h2 className="text-3xl font-semibold text-center">Temporary Page for Google Groups</h2>
-      <Tabs defaultValue="devtools">
+      <Tabs defaultValue="groupsmanager">
         <TabsList className="flex m-auto w-fit">
-          <TabsTrigger value="devtools" className="text-md ">
+          <TabsTrigger value="groupsmanager" className="text-md">
+            Groups Manager
+          </TabsTrigger>
+          <TabsTrigger value="devtools" className="text-md">
             DevTools
           </TabsTrigger>
           <TabsTrigger value="features" className="text-md">
@@ -31,6 +34,13 @@ function GroupsDashboard() {
             Backend response data
           </TabsTrigger>
         </TabsList>
+        <TabsContent value="groupsmanager">
+          <a href={`${window.location.pathname}/groups_manager`} target="_tab">
+            <div className="cursor-pointer text-center hover:underline hover:text-primary my-8">
+              To Groups Manager Page
+            </div>
+          </a>
+        </TabsContent>
         <TabsContent value="devtools">
           <CreateGroup></CreateGroup>
           <Separator className="my-4" />

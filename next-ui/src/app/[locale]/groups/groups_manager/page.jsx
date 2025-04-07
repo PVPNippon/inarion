@@ -1,14 +1,10 @@
 'use client'
 import React, { useState, useEffect, useRef, useReducer } from 'react'
 import { Button } from '@/components/ui/button'
-// import { Input } from '@/components/ui/input'
 import { Input } from '@/components/ui/legacy-input'
-//import { apiClient } from '@/utils/apiClient'
 import {
-  ExternalLinkIcon,
   SearchIcon,
   Ellipsis,
-  CircleAlert,
   ChevronDownIcon,
   UserRoundCog,
   UserRound,
@@ -57,7 +53,6 @@ import {
   CustomListAccordionContent,
 } from '@/components/ui/custom-list-accordion'
 import { groupsDummyData } from '@/dummy-data/dummyData.js'
-import { CustomSpinnerComponentWithText } from '@/components/ui/custom-spinner'
 
 //constants
 //Object with strings for the "Who can join" field of the groups's card. Used to get strings with title and description by the setting name.
@@ -387,7 +382,7 @@ function GroupsManager() {
     <div style={{ height: (emptyResult || error) && `calc(100vh - 288px)` }} className="mx-8 mb-6">
       {/* apply custom height only when emptyResult is displayed(maybe it should also be set when there is an error screen in the future) */}
       <div className="flex flex-col gap-y-3.5">
-        <div className="text-2xl font-medium leading-7">Groups Manager</div>
+        <div className="text-2xl font-medium leading-7">Groups Manager (dummy data)</div>
         <div className="text-lg text-muted-foreground leading-5">
           {emptyResult || groupList.length > 0 ? 'Search results' : 'List groups'}
         </div>
@@ -516,7 +511,7 @@ function SearchAndFilterPanel({
  */
 
 function Loader() {
-  return <CustomSpinnerComponentWithText text="Loading..." />
+  return <div> Loading...</div>
 }
 
 function EmptyResultOrError({ type, title, description }) {
