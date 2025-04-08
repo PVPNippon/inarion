@@ -1,12 +1,17 @@
-const express = require('express');
-const router = express.Router();
-const userController = require('../controllers/userController');
-const tokenController = require('../controllers/tokenController');
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
 
-router.get('/get', tokenController.authenticateToken, userController.getData);
+const express = require('express')
+const router = express.Router()
+const userController = require('../controllers/userController')
+const tokenController = require('../controllers/tokenController')
 
-router.post('/get-admins', userController.getAdmins);
+router.get('/get', tokenController.authenticateToken, userController.getData)
 
+router.post('/get-admins', userController.getAdmins)
 
-
-module.exports = router;
+module.exports = router

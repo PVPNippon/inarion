@@ -1,16 +1,18 @@
-import React, { createContext, useState, useEffect } from 'react';
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
 
-export const NumContext = createContext();
+import React, { createContext, useState, useEffect } from 'react'
 
-export const NumProvider = ({children}) =>{
+export const NumContext = createContext()
 
-    const [contextNum, setContextNum] = useState(0);
+export const NumProvider = ({ children }) => {
+  const [contextNum, setContextNum] = useState(0)
 
-    useEffect(()=>{}, [contextNum]);
+  useEffect(() => {}, [contextNum])
 
-    return (
-        <NumContext.Provider value={{ contextNum, setContextNum }}>
-          {children}
-        </NumContext.Provider>
-      );
+  return <NumContext.Provider value={{ contextNum, setContextNum }}>{children}</NumContext.Provider>
 }

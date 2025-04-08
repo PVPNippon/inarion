@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const { stack } = require('sequelize/lib/utils')
 const winston = require('winston')
 const { combine, timestamp, printf, label, align, errors } = winston.format

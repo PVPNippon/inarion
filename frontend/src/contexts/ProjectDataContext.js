@@ -1,31 +1,33 @@
-// contexts/ProjectDataContext.js
-import React, { createContext, useState, useEffect  } from 'react';
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
 
-export const ProjectDataContext = createContext();
+// contexts/ProjectDataContext.js
+import React, { createContext, useState, useEffect } from 'react'
+
+export const ProjectDataContext = createContext()
 
 export const ProjectDataProvider = ({ children }) => {
-    console.log('Inside Project Data context');
+  console.log('Inside Project Data context')
 
-  const [projectData, setProjectData] = useState(()=>{
-    const storedData = window.localStorage.getItem('projectData');
-    return storedData ? JSON.parse(storedData) : null; // Parse the JSON string
+  const [projectData, setProjectData] = useState(() => {
+    const storedData = window.localStorage.getItem('projectData')
+    return storedData ? JSON.parse(storedData) : null // Parse the JSON string
 
     // return window.localStorage.getItem('projectData') || '';
-
-  });
+  })
 
   useEffect(() => {
     // Update localStorage whenever projectData changes
     if (projectData) {
-        window.localStorage.setItem('projectData', JSON.stringify(projectData));
+      window.localStorage.setItem('projectData', JSON.stringify(projectData))
     } else {
-        window.localStorage.removeItem('projectData');
+      window.localStorage.removeItem('projectData')
     }
-  }, [projectData]);
+  }, [projectData])
 
-  return (
-    <ProjectDataContext.Provider value={{ projectData, setProjectData }}>
-      {children}
-    </ProjectDataContext.Provider>
-  );
-};
+  return <ProjectDataContext.Provider value={{ projectData, setProjectData }}>{children}</ProjectDataContext.Provider>
+}

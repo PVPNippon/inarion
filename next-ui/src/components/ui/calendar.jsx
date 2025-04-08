@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 //Commented out temporarily because the react-day-picker library is causing a conflict and the project cannot be run on Docker.
 // "use client"
 

@@ -1,19 +1,26 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 // src/components/UsersDisplay.js
-import React, { useContext, useState, useEffect } from 'react';
-import { UserContext } from '../contexts/ValueContext';
+import React, { useContext, useState, useEffect } from 'react'
+import { UserContext } from '../contexts/ValueContext'
 
 const UsersDisplay = () => {
-  const { email } = useContext(UserContext); 
-  const [users, setUsers] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const { email } = useContext(UserContext)
+  const [users, setUsers] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     const fetchUsers = async () => {
-      if (!email) return;
+      if (!email) return
 
-      setLoading(true);
-      setError(null);
+      setLoading(true)
+      setError(null)
 
       try {
         const response = await fetch('http://localhost:4000/user/get-admins', {
@@ -21,28 +28,27 @@ const UsersDisplay = () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ email }), 
-        });
+          body: JSON.stringify({ email }),
+        })
 
         if (!response.ok) {
-          throw new Error('Failed to fetch users');
+          throw new Error('Failed to fetch users')
         }
 
-        const data = await response.json();
-        console.log(data);
-        setUsers(JSON.stringify(data, null, 2));
+        const data = await response.json()
+        console.log(data)
+        setUsers(JSON.stringify(data, null, 2))
       } catch (error) {
-        setError(error.message);
+        setError(error.message)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchUsers();
-  }, [email]);
+    fetchUsers()
+  }, [email])
 
   return (
-    
     <div>
       <h2>Users List</h2>
       <p>{email}</p>
@@ -51,7 +57,7 @@ const UsersDisplay = () => {
       {loading && <p>Loading users...</p>}
       {error && <p>Error: {error}</p>}
     </div>
-  );
-};
+  )
+}
 
-export default UsersDisplay;
+export default UsersDisplay

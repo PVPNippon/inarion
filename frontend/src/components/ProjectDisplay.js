@@ -1,41 +1,48 @@
-import React, { useEffect, useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import axios from 'axios';
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
+import React, { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
+import axios from 'axios'
 
 const ProjectDisplay = () => {
-  const location = useLocation();
-  const [email, setEmail] = useState('');
-  const [projectName, setProjectName] = useState('');
-  const [projectData, setProjectData] = useState(null);
+  const location = useLocation()
+  const [email, setEmail] = useState('')
+  const [projectName, setProjectName] = useState('')
+  const [projectData, setProjectData] = useState(null)
 
   useEffect(() => {
     const fetchProjectData = async () => {
-      const urlParams = new URLSearchParams(location.search);
-      const email = urlParams.get('email');
-      const projectName = urlParams.get('projectName');
+      const urlParams = new URLSearchParams(location.search)
+      const email = urlParams.get('email')
+      const projectName = urlParams.get('projectName')
 
-      setEmail(email);
-      setProjectName(projectName);
+      setEmail(email)
+      setProjectName(projectName)
 
       try {
         const response = await axios.get('http://localhost:4000/project/get-project-data', {
           params: {
             email,
-            projectName
+            projectName,
           },
           withCredentials: true,
-        });
-        setProjectData(response.data);
+        })
+        setProjectData(response.data)
       } catch (error) {
-        console.error('Error fetching project data:', error);
+        console.error('Error fetching project data:', error)
       }
-    };
+    }
 
-    fetchProjectData();
-  }, [location]);
+    fetchProjectData()
+  }, [location])
 
   if (!projectData) {
-    return <p>Loading...</p>;
+    return <p>Loading...</p>
   }
 
   return (
@@ -45,7 +52,7 @@ const ProjectDisplay = () => {
       <p>Project Name: {projectName}</p>
       <pre>{JSON.stringify(projectData, null, 2)}</pre>
     </div>
-  );
-};
+  )
+}
 
-export default ProjectDisplay;
+export default ProjectDisplay
