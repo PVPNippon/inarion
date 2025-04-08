@@ -195,6 +195,12 @@ const exemptFromConversionArray = [
   'primaryLanguage',
 ]
 
+/**
+ * Create a title string for the number of members filter.
+ * @param {string} min minimum number of members
+ * @param {string} max maximum number of members
+ * @return {string} a title string in the format 'Number of Members: x - y'
+ */
 function createNumberOfMembersTitle(min, max) {
   let title = filterTitles.directMembersCount
   if (min === '' && max === '') return title
@@ -210,6 +216,17 @@ function createNumberOfMembersTitle(min, max) {
   return title + min + ' - ' + max
 }
 
+/**
+ * Converts a setting name into a readable word or phrase.
+ *
+ * - If the setting name is an array, it trims each element and joins them with a line separator.
+ * - If the setting name is not a string, it converts it to a string.
+ * - If the setting name is 'true' or 'false', it returns 'yes' or 'no' respectively.
+ * - Otherwise, it replaces underscores with spaces and converts the string to lowercase.
+ *
+ * @param {string|Array} settingName - The setting name to be converted.
+ * @return {string} The converted setting name.
+ */
 function convertSettingNameToWord(settingName) {
   if (settingName instanceof Array) return settingName.map((item) => item.trim()).join('\u2028')
   if (typeof settingName !== 'string') settingName = String(settingName)
@@ -217,6 +234,12 @@ function convertSettingNameToWord(settingName) {
   return settingName.split('_').join(' ').toLowerCase()
 }
 
+/**
+ * Filter a list of groups to only include a subset of properties.
+ *
+ * @param {Array} groups - The list of groups to filter.
+ * @return {Array} A new list of groups with only the filtered properties.
+ */
 function filterGroupProperties(groups) {
   return groups.map((group) => ({
     name: group.name,
@@ -236,6 +259,13 @@ function filterGroupProperties(groups) {
   }))
 }
 
+/**
+ * Detects if a setting value contains any of the given search words.
+ *
+ * @param {string} setting - The setting value to search.
+ * @param {Array<string>} searchWords - The words to search for in the setting value.
+ * @return {boolean} True if the setting value contains any of the search words, false otherwise.
+ */
 function detectAccess(setting, searchWords) {
   if (searchWords.some((word) => setting.includes(word))) {
     return true
@@ -247,6 +277,21 @@ function detectAccess(setting, searchWords) {
 //WARNING: google documentation is incomplete, not all possible values are mentioned! be careful!
 //https://developers.google.com/workspace/admin/groups-settings/v1/reference/groups#json
 //For example, whoCanContactOwner also has "ALL_OWNERS_CAN_CONTACT", which is not mentioned in the documentation
+/**
+ * Expands group settings from the Google Workspace Admin SDK into a more
+ * human-readable format.
+ *
+ * The returned object contains four properties, each representing a group of
+ * users: owners, managers, members, and organization. Each property is an
+ * object containing five properties: whoCanContactOwner,
+ * whoCanViewGroup, whoCanPostMessage, whoCanViewMembership, and
+ * whoCanModerateMembers. Each of these properties is a boolean indicating
+ * whether the corresponding action is allowed for the corresponding group of
+ * users.
+ *
+ * @param {Object} settings - The group settings from the Google Workspace Admin SDK.
+ * @return {Object} An object containing the expanded group settings.
+ */
 function expandGroupSettings(settings) {
   const access = []
 
@@ -312,6 +357,14 @@ function expandGroupSettings(settings) {
   return access
 }
 
+/**
+ * A component that displays a table with groups.
+ * It allows the user to filter the results using a search bar and a filter panel.
+ * It also allows the user to select all groups and view the selected groups.
+ * It displays a loading indicator while the data is being fetched.
+ * It displays an error message if there is an error with the data fetching.
+ * It displays an empty result message if the search query returns no results.
+ */
 function GroupsManager() {
   const [groupList, setGroupList] = useState([])
   const [error, setError] = useState('')
@@ -444,6 +497,26 @@ function GroupsManager() {
 
 export default GroupsManager
 
+/**
+ * A component that renders a search and filter panel.
+ *
+ * The panel includes:
+ *   1. An input field to search for groups by name or email address.
+ *   2. A switch to include group aliases in the search.
+ *   3. A filter component to filter the search results by criteria.
+ *   4. A button to execute the search.
+ *
+ * The component expects the following props:
+ *   1. `hiddenClass`: A string representing the CSS class to use when hiding the panel.
+ *   2. `includeAliases`: A boolean indicating whether to include group aliases in the search.
+ *   3. `setIncludeAliases`: A function to set the value of `includeAliases`.
+ *   4. `filterState`: An object containing the current filter state.
+ *   5. `dispatchFilterState`: A function to update the filter state.
+ *   6. `fetchGroupsTable`: A function to fetch the groups table after the search.
+ *
+ * The component uses the `useState` hook to maintain a state variable `disabled` to enable or disable the search button.
+ * The component uses the `useEffect` hook to update the `disabled` state when the filter state changes.
+ */
 function SearchAndFilterPanel({
   hiddenClass,
   includeAliases,
@@ -509,11 +582,22 @@ function SearchAndFilterPanel({
  *
  * @returns {JSX.Element} The JSX element containing the loading message.
  */
-
 function Loader() {
   return <div> Loading...</div>
 }
 
+/**
+ * A component that displays an empty result or error message.
+ *
+ * The component can be used to display a message when the group search result is empty or when an error has occurred.
+ *
+ * @param {{ type: 'search' | 'error', title: string, description: string }} props - The props object.
+ * @prop {string} type - The type of message to display. Can be 'search' for an empty result message or 'error' for an error message.
+ * @prop {string} title - The title of the message.
+ * @prop {string} description - The description of the message.
+ *
+ * @returns {JSX.Element} The JSX element containing the message.
+ */
 function EmptyResultOrError({ type, title, description }) {
   return (
     <div className={`${groupsStyles.roundBorder} w-full h-full mt-3 pb-7 flex flex-col items-center justify-center`}>
@@ -525,6 +609,28 @@ function EmptyResultOrError({ type, title, description }) {
   )
 }
 
+/**
+ * A component that displays a panel containing filter chips and a button to refine search conditions.
+ *
+ * The component expects the following props:
+ *   1. `hiddenClass`: A string representing the CSS class to use when hiding the panel.
+ *   2. `setHiddenClass`: A function to set the value of `hiddenClass`.
+ *   3. `filterState`: An object containing the current filter state.
+ *   4. `setGroupList`: A function to update the group list.
+ *   5. `setEmptyResult`: A function to set the empty result state.
+ *   6. `setError`: A function to set the error state.
+ *   7. `setSelectAll`: A function to set the select all state.
+ *   8. `setSelectedRows`: A function to set the selected rows state.
+ *
+ * The component displays a panel containing filter chips that represent the current filter state.
+ * When the user clicks on the "Refine search conditions" button, the component will:
+ *   1. Set the empty result state to false.
+ *   2. Clear the error state.
+ *   3. Set the select all state to false.
+ *   4. Clear the selected rows state.
+ *   5. Clear the group list.
+ *   6. Toggle the visibility of the panel.
+ */
 function FilterChipPanel({
   hiddenClass,
   setHiddenClass,
@@ -583,6 +689,32 @@ function FilterChipPanel({
   )
 }
 
+/**
+ * A component that displays a table containing a list of groups.
+ *
+ * The component expects the following props:
+ *   1. `groupList`: An array of group objects.
+ *   2. `selectAll`: A boolean indicating whether all groups should be selected initially.
+ *   3. `setSelectAll`: A function to set the `selectAll` state.
+ *   4. `selectedRows`: An object containing the selected groups, where each key is the group email and the value is a boolean indicating whether the group is selected.
+ *   5. `setSelectedRows`: A function to set the `selectedRows` state.
+ *   6. `filterState`: An object containing the current filter state.
+ *   7. `includeAliases`: A boolean indicating whether aliases should be included in the table.
+ *
+ * The component displays a table containing the list of groups. Each row in the table represents a group. The table has the following columns:
+ *   1. A checkbox column where the user can select/deselect a group.
+ *   2. A column displaying the group name.
+ *   3. A column displaying the group email address.
+ *   4. A column displaying the number of members in the group.
+ *   5. A column indicating whether the group has external members.
+ *   6. A column indicating who can leave the group.
+ *   7. A column indicating whether the group was created by an admin.
+ *   8. A column displaying the alias addresses for the group.
+ *   9. A column containing an export button that allows the user to export the group to a CSV file.
+ *   10. A column containing a dropdown button that allows the user to perform bulk operations on the selected groups.
+ *
+ * The component also includes a `BulkOperationMenu` component at the bottom of the table, which allows the user to perform bulk operations on the selected groups.
+ */
 function GroupsTable({
   groupList,
   selectAll,
@@ -596,6 +728,14 @@ function GroupsTable({
   const customTableRowRefs = useRef([])
   const [expandedGroups, setExpandedGroups] = useState({})
 
+  /**
+   * Handles a change to a checkbox in the table. If the checkbox is checked,
+   * adds the group email to the selectedRows object. If the checkbox is not
+   * checked, removes the group email from the selectedRows object.
+   *
+   * @param {string} email The email address of the group.
+   * @param {boolean} checked Whether the checkbox is checked.
+   */
   const handleCheckboxChange = (email, checked) => {
     setSelectedRows((prevSelectedRows) => {
       if (checked) {
@@ -618,6 +758,13 @@ function GroupsTable({
     }
   }, [selectedRows, groupList])
 
+  /**
+   * Handles a change to the select all checkbox. If the checkbox is checked,
+   * selects all groups in the table. If the checkbox is not checked, deselects
+   * all groups in the table.
+   *
+   * @param {boolean} checked Whether the checkbox is checked.
+   */
   const handleSelectAllChange = (checked) => {
     setSelectAll(checked)
     if (checked) {
@@ -774,6 +921,21 @@ function GroupsTable({
   )
 }
 
+/**
+ * A card component that displays key settings applied to the given group.
+ *
+ * Renders a Card component with the following content:
+ * - CardHeader: Title and description.
+ * - CardContent:
+ *   - A grid with key settings:
+ *     - Access settings: rendered as AccessSettingsGrid.
+ *     - Who can join the group: rendered as WhoCanJoinCardContents.
+ *     - Allow external users to join: rendered as YesNoContentForGroupCard.
+ *     - Who can leave the group: rendered as a long string description.
+ *
+ * @param {{ group: Group }} props - The group object to display.
+ * @returns {JSX.Element} The rendered Card component.
+ */
 function GroupCard({ group }) {
   return (
     <Card className="rounded-lg w-full">
@@ -801,6 +963,11 @@ function GroupCard({ group }) {
   )
 }
 
+/**
+ * A utility component for rendering a single item in the GroupCard.
+ * @param {{ title: string, children: JSX.Element }} props - The title and content of the item.
+ * @returns {JSX.Element} The rendered item.
+ */
 function GroupCardItem({ title, children }) {
   return (
     <div className={`flex flex-col gap-y-5`}>
@@ -810,6 +977,21 @@ function GroupCardItem({ title, children }) {
   )
 }
 
+/**
+ * A component that renders a table displaying access settings for a group.
+ * The table includes columns for different user roles (Owners, Managers,
+ * Members, Entire Organization, External Users) and rows for various access
+ * permissions (such as who can contact group owners, view conversations,
+ * post messages, view members, and manage members).
+ *
+ * The component uses the `expandGroupSettings` function to transform the
+ * group settings into a more readable format and displays check marks
+ * for permissions that are granted.
+ *
+ * @param {Object} props - The component props.
+ * @param {Object} props.group - The group object containing settings to be expanded and displayed.
+ * @returns {JSX.Element} The rendered table of access settings.
+ */
 function AccessSettingsGrid({ group }) {
   const accessData = expandGroupSettings(group)
   return (
@@ -890,6 +1072,18 @@ function AccessSettingsGrid({ group }) {
   )
 }
 
+/**
+ * A component that renders a header cell for a table with an icon and a column name.
+ *
+ * The component takes an icon element and a column name as props and displays
+ * them in a styled div. The icon size and stroke are adjusted for consistency
+ * with the table's design.
+ *
+ * @param {{ children: JSX.Element, columnName: string }} props
+ * @param {JSX.Element} props.children - The icon element to be displayed in the header cell.
+ * @param {string} props.columnName - The name of the column to be displayed.
+ * @returns {JSX.Element} The rendered table header cell with icon and column name.
+ */
 const TableHeaderCell = ({ children, columnName }) => (
   <div className={groupsStyles.gridHeader}>
     <span className="flex items-center">
@@ -899,6 +1093,12 @@ const TableHeaderCell = ({ children, columnName }) => (
   </div>
 )
 
+/**
+ * A component that renders a gray check icon, used to indicate a true value
+ * in a table cell.
+ *
+ * @returns {JSX.Element} The rendered check icon.
+ */
 function GrayCheck() {
   return (
     <div className="justify-items-center">
@@ -907,6 +1107,22 @@ function GrayCheck() {
   )
 }
 
+/**
+ * A component that renders the contents of a card displaying information
+ * about who can join a group.
+ *
+ * The component takes a `whoCanJoin` prop, which is a string value
+ * representing the policy of who can join a group. This value is used to
+ * retrieve the necessary strings from the `whoCanJoinStrings` object.
+ *
+ * The component renders a `div` element with two children: a `div` with the
+ * title of the policy and a `div` with the description of the policy. The
+ * title is rendered with a larger font size and the description is rendered
+ * with a smaller font size.
+ *
+ * @param {{ whoCanJoin: string }} props
+ * @returns {JSX.Element} The rendered card contents.
+ */
 function WhoCanJoinCardContents({ whoCanJoin }) {
   const whoCanJoinData = whoCanJoinStrings[whoCanJoin] //retrieve necessary strings by key
   return (
@@ -917,6 +1133,19 @@ function WhoCanJoinCardContents({ whoCanJoin }) {
   )
 }
 
+/**
+ * A component that renders a check icon and a 'Yes' or 'No' string
+ * depending on the value of the `condition` prop.
+ *
+ * The component takes a `condition` prop, which is a boolean value.
+ * If `true`, the component renders a check icon and a 'Yes' string.
+ * If `false`, the component renders a 'No' string.
+ *
+ * The component is used to display yes/no values in table cells.
+ *
+ * @param {{ condition: boolean }} props
+ * @returns {JSX.Element} The rendered check icon and yes/no string.
+ */
 function YesNoContentForGroupCard({ condition }) {
   return (
     <div className="flex flex-row gap-x-3 items-center">
@@ -926,6 +1155,26 @@ function YesNoContentForGroupCard({ condition }) {
   )
 }
 
+/**
+ * A component that renders a row of filters for groups.
+ *
+ * The component takes `filterState` and `dispatchFilterState` as props.
+ * `filterState` is an object containing the current filter state.
+ * `dispatchFilterState` is a function to update the filter state.
+ *
+ * The component renders a row of filters, which are:
+ *   1. A filter for groups with a specified number of direct members.
+ *   2. A filter for groups with a specified policy of who can leave the group.
+ *   3. A filter for groups that allow external members.
+ *   4. A filter for groups that have external members.
+ *   5. A filter for groups that are admin-created.
+ *
+ * Each filter is rendered as a separate component, which is passed the
+ * `filterState` and `dispatchFilterState` as props.
+ *
+ * @param {{ filterState: object, dispatchFilterState: function }} props
+ * @returns {JSX.Element} The rendered row of filters.
+ */
 function Filters({ filterState, dispatchFilterState }) {
   return (
     <div className="flex flex-row gap-x-3 ">
@@ -958,6 +1207,25 @@ function Filters({ filterState, dispatchFilterState }) {
   )
 }
 
+/**
+ * A component that renders a simple filter dropdown.
+ *
+ * This component is used to render a single filter dropdown for a given
+ * filter. It takes the filter name, the current filter state, and a
+ * dispatch function to update the filter state as props.
+ *
+ * The component renders a dropdown with two options: 'Yes' and 'No'. When
+ * the user selects an option, the component updates the filter state with
+ * the selected value. If the user selects the same value as the current
+ * filter state, the component hides the dropdown.
+ *
+ * The component also renders a trigger element that displays the current
+ * value of the filter, and a close button that allows the user to clear the
+ * filter.
+ *
+ * @param {{ filter: string, filterState: object, dispatchFilterState: function }} props
+ * @returns {JSX.Element} The rendered simple filter dropdown.
+ */
 function SimpleFilter({ filter, filterState, dispatchFilterState }) {
   const [hiddenClass, setHiddenClass] = useState('hidden')
   return (
@@ -992,6 +1260,17 @@ function SimpleFilter({ filter, filterState, dispatchFilterState }) {
   )
 }
 
+/**
+ * A component that renders a filter dropdown for the 'Who can leave the group' column.
+ *
+ * This component is used to render a single filter dropdown for the 'Who can leave the group' column. It takes the filter name, the current filter state, and a
+ * dispatch function to update the filter state as props.
+ *
+ * The component renders a dropdown with four options: 'All', 'Managers', 'Members', and 'None'. When the user selects an option, the component updates the filter
+ * state with the selected value. If the user selects the same value as the current filter state, the component hides the dropdown.
+ *
+ * The component also renders a trigger element that displays the current value of the filter, and a close button that allows the user to clear the filter.
+ */
 function WhoCanLeaveGroupFilter({ filter, filterState, dispatchFilterState }) {
   const [hiddenClass, setHiddenClass] = useState('hidden')
   return (
@@ -1031,11 +1310,27 @@ function WhoCanLeaveGroupFilter({ filter, filterState, dispatchFilterState }) {
   )
 }
 
+/**
+ * A component that renders a filter dropdown for the 'Number of members' column.
+ *
+ * This component is used to render a single filter dropdown for the 'Number of members' column. It takes the filter name, the current filter state, and a
+ * dispatch function to update the filter state as props.
+ *
+ * The component renders a dropdown with a min and max input field. When the user enters values in the input fields, the component updates the filter
+ * state with the entered values. If the user enters invalid values (e.g. non-numeric characters, negative numbers, or numbers greater than the max value), the
+ * component will not update the filter state.
+ *
+ * The component also renders a trigger element that displays the current value of the filter, and a close button that allows the user to clear the filter.
+ */
 function NumberOfMembersFilter({ filter, filterState, dispatchFilterState }) {
   const [minValue, setMinValue] = useState(filterState[filter][0])
   const [maxValue, setMaxValue] = useState(filterState[filter][1])
   const [hiddenClass, setHiddenClass] = useState('hidden')
 
+  /**
+   * Resets the min and max values of the filter to empty strings and the hidden class to 'hidden'.
+   * Also dispatches an action to update the filter state to an empty array.
+   */
   function resetValues() {
     setMinValue('')
     setMaxValue('')
@@ -1043,6 +1338,12 @@ function NumberOfMembersFilter({ filter, filterState, dispatchFilterState }) {
     setHiddenClass('hidden')
   }
 
+  /**
+   * Sets the title of the filter dropdown based on the values of the min and max input fields.
+   * If the min value is greater than the max value, it swaps the values.
+   * If the min and max values are empty, it resets the values and hidden class to their initial states.
+   * Dispatches an action to update the filter state with the new values.
+   */
   function setTitle() {
     if (!minValue && !maxValue) {
       resetValues()
@@ -1138,6 +1439,16 @@ function NumberOfMembersFilter({ filter, filterState, dispatchFilterState }) {
   )
 }
 
+/**
+ * A component that renders a collapsible list of alias addresses.
+ *
+ * @param {{ aliasArray: string[], groupId: string }} props The props object.
+ * @prop {string[]} aliasArray An array containing alias addresses to be displayed.
+ * @prop {string} groupId The ID of the group that the alias addresses belong to.
+ *
+ * @returns {JSX.Element} The JSX element representing the collapsible list of alias addresses.
+ * If there is only one alias, it renders a simple span with the alias address.
+ */
 function AliasList({ aliasArray, groupId }) {
   const [isExpanded, setIsExpanded] = useState('')
   if (aliasArray.length === 1) {
@@ -1166,6 +1477,21 @@ function AliasList({ aliasArray, groupId }) {
   )
 }
 
+/**
+ * A dialog component that provides functionality to export a list of groups.
+ *
+ * @param {object} props - The component props.
+ * @param {Array} props.groupList - An array of group objects to be exported.
+ *
+ * @description
+ * This component renders a dialog with options to export search results.
+ * The user can specify a name for the export, choose the format (currently only CSV is available),
+ * and trigger the export process. The dialog includes a dropdown menu to initiate the export
+ * and handles the download of the CSV file. The export button programmatically triggers the
+ * CSV download by simulating a click event.
+ *
+ * @returns {JSX.Element} The ExportDialog component.
+ */
 function ExportDialog({ groupList }) {
   const [fileName, setFileName] = useState('Search results')
   return (
@@ -1260,6 +1586,22 @@ function ExportDialog({ groupList }) {
   )
 }
 
+/**
+ * A component that provides a bulk operation menu for groups.
+ *
+ * The component renders a dropdown menu at the bottom of the groups table
+ * with options to export selected groups' details as CSV, export the group list
+ * as a plain text file, and close the menu.
+ *
+ * @param {object} props - The component props.
+ * @param {object} props.selectedRows - An object containing the selected groups, where each key is the group email and the value is a boolean indicating whether the group is selected.
+ * @param {function} props.setSelectedRows - A function to set the selectedRows state.
+ * @param {array} props.groupList - An array of group objects.
+ * @param {object} props.filterState - An object containing the current filter state.
+ * @param {boolean} props.includeAliases - A boolean indicating whether aliases should be included in the exported group list.
+ *
+ * @returns {JSX.Element} The BulkOperationMenu component.
+ */
 function BulkOperationMenu({ selectedRows, setSelectedRows, groupList, filterState, includeAliases }) {
   const selectedGroups = Object.keys(selectedRows)
   const [hidden, setHidden] = useState(selectedGroups.length === 0)
@@ -1267,6 +1609,18 @@ function BulkOperationMenu({ selectedRows, setSelectedRows, groupList, filterSta
   const [separateCSVData, setSeparateCSVData] = useState([])
   const [ready, setReady] = useState(false)
 
+  /**
+   * Converts a list of group objects into a list of objects with the same
+   * structure, but with the setting names converted from camelCase to
+   * space-separated words.
+   *
+   * @param {array} groupList - An array of group objects.
+   * @param {array} selectedGroups - An array of group email addresses to be
+   * included in the output.
+   *
+   * @returns {array} A list of objects with the same structure as the input
+   * group objects, but with the setting names converted.
+   */
   function createDetailedCSVData(groupList, selectedGroups) {
     const filteredGroupList = groupList.filter((group) => selectedGroups.includes(group.email))
     return filteredGroupList.map((group) => {
@@ -1278,6 +1632,16 @@ function BulkOperationMenu({ selectedRows, setSelectedRows, groupList, filterSta
     })
   }
 
+  /**
+   * Converts a list of group objects into a list of arrays of objects with setting names as keys and
+   * setting values as values. Each group is represented as an array of objects, where each object
+   * contains a setting name (converted from camelCase to space-separated words) and the corresponding
+   * setting value (also converted if it is not in the exemptFromConversionArray).
+   *
+   * @param {array} csvData - An array of group objects.
+   *
+   * @returns {array} An array of arrays of objects with setting names as keys and setting values as values.
+   */
   function createSeparateCSVData(csvData) {
     const groupsArray = []
     csvData.forEach((group) => {
@@ -1293,6 +1657,21 @@ function BulkOperationMenu({ selectedRows, setSelectedRows, groupList, filterSta
     return groupsArray
   }
 
+  /**
+   * Downloads a text file containing a list of selected groups and their applied filters.
+   *
+   * This function compiles a string with the current filter settings, including the search query,
+   * alias inclusion, and member count range, and appends the list of selected group emails.
+   * It then creates a text file with this information and triggers a download of the file.
+   *
+   * The file includes:
+   * - The query used in the filter, if any.
+   * - Whether aliases are included in the filter.
+   * - The range of direct member counts.
+   * - Any additional filters applied.
+   * - The number of groups matching the search condition.
+   * - A list of emails of the selected groups.
+   */
   function downloadGroupList() {
     let filterText = ''
 

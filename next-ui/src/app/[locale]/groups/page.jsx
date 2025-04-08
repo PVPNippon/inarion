@@ -1,5 +1,4 @@
 'use client'
-
 import ListGroups from '@/app/ui/components/ListGroups'
 import GetGroup from '@/app/ui/components/GetGroup'
 import ListDirectMembers from '@/app/ui/components/ListDirectMembers'
@@ -14,6 +13,7 @@ import ListGroupSettings from '@/app/ui/components/ListGroupSettings'
 import { Separator } from '@/components/ui/separator'
 import AddMembersViaCsv from '@/app/ui/components/AddMembersViaCsv'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import Link from 'next/link'
 
 function GroupsDashboard() {
   return (
@@ -35,11 +35,11 @@ function GroupsDashboard() {
           </TabsTrigger>
         </TabsList>
         <TabsContent value="groupsmanager">
-          <a href={`${window.location.pathname}/groups_manager`} target="_tab">
+          <Link href="/[locale]/groups/groups_manager" as="/en/groups/groups_manager">
             <div className="cursor-pointer text-center hover:underline hover:text-primary my-8">
               To Groups Manager Page
             </div>
-          </a>
+          </Link>
         </TabsContent>
         <TabsContent value="devtools">
           <CreateGroup></CreateGroup>
