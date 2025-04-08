@@ -15,6 +15,16 @@ Ensure the following files are up-to-date:
 
 ## Breaking Changes
 
+### April 8, 2025 - Added .env to next-ui folder
+
+**Summary**:
+
+- Created .env file in next-ui folder and moved all hard-coded domain and email addresses from group-related pages to .env (non-groups pages are untouched because I'm not sure I can properly test them. Their possible owners have been warned.)
+
+**Impact**:
+
+- All groups-related API calls will fail in Frontend if .env in next-ui is not updated (see env.example in next-ui folder).
+
 ### February 6, 2025 - Redis-related utility functions merged
 
 **Summary**:
