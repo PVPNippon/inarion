@@ -1,5 +1,11 @@
-'use client'
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
 
+'use client'
 import ListGroups from '@/app/ui/components/ListGroups'
 import GetGroup from '@/app/ui/components/GetGroup'
 import ListDirectMembers from '@/app/ui/components/ListDirectMembers'
@@ -14,14 +20,18 @@ import ListGroupSettings from '@/app/ui/components/ListGroupSettings'
 import { Separator } from '@/components/ui/separator'
 import AddMembersViaCsv from '@/app/ui/components/AddMembersViaCsv'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import Link from 'next/link'
 
 function GroupsDashboard() {
   return (
     <main className="overflow-auto space-y-7">
       <h2 className="text-3xl font-semibold text-center">Temporary Page for Google Groups</h2>
-      <Tabs defaultValue="devtools">
+      <Tabs defaultValue="groupsmanager">
         <TabsList className="flex m-auto w-fit">
-          <TabsTrigger value="devtools" className="text-md ">
+          <TabsTrigger value="groupsmanager" className="text-md">
+            Groups Manager
+          </TabsTrigger>
+          <TabsTrigger value="devtools" className="text-md">
             DevTools
           </TabsTrigger>
           <TabsTrigger value="features" className="text-md">
@@ -31,6 +41,13 @@ function GroupsDashboard() {
             Backend response data
           </TabsTrigger>
         </TabsList>
+        <TabsContent value="groupsmanager">
+          <Link href="/[locale]/groups/groups_manager" as="/en/groups/groups_manager">
+            <div className="cursor-pointer text-center hover:underline hover:text-primary my-8">
+              To Groups Manager Page
+            </div>
+          </Link>
+        </TabsContent>
         <TabsContent value="devtools">
           <CreateGroup></CreateGroup>
           <Separator className="my-4" />

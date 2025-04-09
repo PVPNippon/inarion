@@ -1,8 +1,14 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 'use client'
 import React, { useState, useContext } from 'react'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 import axios from 'axios'
-import StoreUserEmail from '../serveractions/storeUserEmail'
 
 /**
  * A React component that renders a form to register a new user or
@@ -37,7 +43,6 @@ function RegisteOrLogin() {
         projectName,
       })
       setAuthUrl(response.data.authUrl)
-      await StoreUserEmail(email)
       console.log(email)
     } catch (error) {
       console.error('Error fetching auth URL:', error)

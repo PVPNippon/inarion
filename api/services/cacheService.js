@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const redisClient = require('../config/redis.js')
 //Important! This file will be deprecated.
 //Please use api/services/redisCacheService.js instead.

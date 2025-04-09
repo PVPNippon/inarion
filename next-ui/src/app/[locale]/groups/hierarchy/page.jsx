@@ -1,8 +1,15 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 'use client'
 import React, { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { apiClient } from '@/utils/apiClient'
+import { Input } from '@/components/ui/legacy-input'
+//import { apiClient } from '@/utils/apiClient'
 import moment from 'moment-timezone'
 import { ExternalLinkIcon, SearchIcon, EyeIcon, Ellipsis, CircleAlert } from 'lucide-react'
 import { groupsStyles, groupElementIds, groupStrings } from '@/app/ui/variables/group-variables'
@@ -43,6 +50,7 @@ import {
 
 import { checkIfDomainIsValid } from '@/utils/checkIfDomainIsValid'
 import { useDomainList } from '@/utils/getDomains'
+const email = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL //temporarily bypass login and jwttoken check
 
 //constants
 const columnHeaders = ['Group email', 'Membership type', 'Inherited via', 'Join timestamp'] //column headers
@@ -69,7 +77,6 @@ function NestedGroupsLister() {
   const [fileName, setFileName] = useState('')
   const [csvGroups, setCsvGroups] = useState([])
   const { domainList } = useDomainList()
-  let email
 
   /**
    * Takes an array of objects and formats the "inherited" property
@@ -129,28 +136,8 @@ function NestedGroupsLister() {
         setFileName('')
         setCsvGroups([])
 
-        //getting email and token from local storage is a temporary measure, so I'm not refactoring or improving this part
-        // email = window.localStorage.getItem('email')
-        email = 'testadmin@pvp-test-domain2.com'
-        console.log('email:', email)
+        //Temporarily bypass apiClient
 
-        //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back (temprorary measure, so no refactoring or optimization here)
-        // const token = localStorage.getItem('jwtToken')
-        // console.log('TOKEN', token)
-
-        //temporary disabled apiClient because encryption logic is not ready for get requrests
-        // const response = await apiClient(
-        //   '/api/groups/get-nested-membership', // Endpoint path relative to API_BASE_URL
-        //   'POST', // HTTP method
-        //   {
-        //     userEmail: email,
-        //     queryEmail: query,
-        //   },
-        //   {}, // Additional headers, if any
-        //   true // withCredentials flag
-        // )
-
-        //while FE is broken, falling back to the good old fetch(beware of cache though)
         const response = await fetch(
           `http://localhost:4000/api/groups/target/${query}/nested-membership?userEmail=${email}`,
           {
@@ -258,12 +245,6 @@ function HierarchyButton({ groupList, query, className }) {
     const newTab = window.open(`${path}/graph?target=${query}`)
 
     try {
-      // const email = window.localStorage.getItem('email')
-      // console.log('email:', email)
-      const email = 'testadmin@pvp-test-domain2.com'
-      // const token = localStorage.getItem('jwtToken')
-      // console.log('TOKEN', token)
-      //while FE is broken, falling back to the good old fetch(beware of cache though)
       const response = await fetch(`http://localhost:4000/api/groups/target/${query}/hierarchy?userEmail=${email}`, {
         headers: {
           //  Authorization: `Bearer ${token}`,
@@ -272,20 +253,7 @@ function HierarchyButton({ groupList, query, className }) {
         cache: 'no-store', //this disables cache
       })
 
-      //disabled apiClient because the logic for get requests is not ready yet
-      // const response = await apiClient(
-      //   '/api/groups/get-hierarchy', // Endpoint path relative to API_BASE_URL
-      //   'POST', // HTTP method
-      //   {
-      //     userEmail: email,
-      //     queryEmail: inputValue,
-      //   },
-      //   {}, // Additional headers, if any
-      //   true // withCredentials flag
-      // )
-      // if emtpy data is returned, set error 'No memberships found', otherwise set groupList
       if (response) {
-        // const responseData = JSON.parse(response)
         const responseData = await response.json()
 
         if (responseData.nodes && responseData.nodes.length > 0) {

@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 'use client'
 
 import * as React from 'react'
@@ -272,74 +279,131 @@ export default function StaticPage() {
   return (
     <div className="min-h-screen bg-white flex p-10">
       <div className="overflow-auto flex-grow max-w-full max-h-full p-3">
-        <div className="grid grid-cols-4 gap-4 mb-4 w-[500px]">
+        <div>
+          <h1 className="text-xl font-semibold mb-2">Button components</h1>
           {/* Row 1: Filled Buttons */}
-          <Button>Button</Button>
-          <Button size="sm">Button</Button>
-          <Button size="lg">Button</Button>
-          <Button size="icon">
-            <BeakerIcon className="h-5 w-5" />
-          </Button>
+          <ButtonWrapper title="Default Button (variant unspecified):">
+            <Button>Button</Button>
+            <Button disabled>Button</Button>
+            <Button size="sm">Button</Button>
+            <Button disabled size="sm">
+              Button
+            </Button>
+            <Button size="lg">Button</Button>
+            <Button disabled size="lg">
+              Button
+            </Button>
+            <Button size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+            <Button disabled size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+          </ButtonWrapper>
 
           {/* Row 2: Outlined Buttons */}
-          <Button variant="outline">Button</Button>
-          <Button variant="outline" size="sm">
-            Button
-          </Button>
-          <Button variant="outline" size="lg">
-            Button
-          </Button>
-          <Button variant="outline" size="icon">
-            <BeakerIcon className="h-5 w-5" />
-          </Button>
+          <ButtonWrapper title="Outlined Button (variant='outline'):">
+            <Button variant="outline">Button</Button>
+            <Button disabled variant="outline">
+              Button
+            </Button>
+            <Button variant="outline" size="sm">
+              Button
+            </Button>
+            <Button disabled variant="outline" size="sm">
+              Button
+            </Button>
+            <Button variant="outline" size="lg">
+              Button
+            </Button>
+            <Button disabled variant="outline" size="lg">
+              Button
+            </Button>
+            <Button variant="outline" size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+            <Button disabled variant="outline" size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+          </ButtonWrapper>
 
-          {/* Row 3: Disabled Buttons */}
-          <Button disabled>Button</Button>
-          <Button disabled size="sm">
-            Button
-          </Button>
-          <Button disabled size="lg">
-            Button
-          </Button>
-          <Button disabled size="icon">
-            <BeakerIcon className="h-5 w-5" />
-          </Button>
+          {/* Row 3: Black Text Buttons */}
+          <ButtonWrapper title="Black Text Button (variant='ghost'):">
+            <Button variant="ghost">Button</Button>
+            <Button disabled variant="ghost">
+              Button
+            </Button>
+            <Button variant="ghost" size="sm">
+              Button
+            </Button>
+            <Button disabled variant="ghost" size="sm">
+              Button
+            </Button>
+            <Button variant="ghost" size="lg">
+              Button
+            </Button>
+            <Button disabled variant="ghost" size="lg">
+              Button
+            </Button>
+            <Button variant="ghost" size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+            <Button disabled variant="ghost" size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+          </ButtonWrapper>
 
-          {/* Row 4: Black Text Buttons */}
-          <Button variant="ghost">Button</Button>
-          <Button variant="ghost" size="sm">
-            Button
-          </Button>
-          <Button variant="ghost" size="lg">
-            Button
-          </Button>
-          <Button variant="ghost" size="icon">
-            <BeakerIcon className="h-5 w-5" />
-          </Button>
+          {/* Row 4: Default Text Buttons */}
+          <ButtonWrapper title="Default Text Button (variant='link'):">
+            <Button variant="link">Button</Button>
+            <Button disabled variant="link">
+              Button
+            </Button>
+            <Button variant="link" size="sm">
+              Button
+            </Button>
+            <Button disabled variant="link" size="sm">
+              Button
+            </Button>
+            <Button variant="link" size="lg">
+              Button
+            </Button>
+            <Button disabled variant="link" size="lg">
+              Button
+            </Button>
+            <Button variant="link" size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+            <Button disabled variant="link" size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+          </ButtonWrapper>
 
-          {/* Row 5: Default Text Buttons */}
-          <Button variant="link">Button</Button>
-          <Button variant="link" size="sm">
-            Button
-          </Button>
-          <Button variant="link" size="lg">
-            Button
-          </Button>
-          <Button variant="link" size="icon">
-            <BeakerIcon className="h-5 w-5" />
-          </Button>
-
-          {/* Row 6: Destructive Buttons */}
-          <Button variant="destructive">Button</Button>
-          <Button variant="destructive" size="sm">
-            Button
-          </Button>
-          <Button variant="destructive" size="lg">
-            Button
-          </Button>
-          <Button variant="destructive" size="icon">
-            <BeakerIcon className="h-5 w-5" />
-          </Button>
+          {/* Row 5: Destructive Buttons */}
+          <ButtonWrapper title="Destructive Button (variant='destructive'):">
+            <Button variant="destructive">Button</Button>
+            <Button variant="destructive" disabled>
+              Button
+            </Button>
+            <Button variant="destructive" size="sm">
+              Button
+            </Button>
+            <Button variant="destructive" disabled size="sm">
+              Button
+            </Button>
+            <Button variant="destructive" size="lg">
+              Button
+            </Button>
+            <Button variant="destructive" disabled size="lg">
+              Button
+            </Button>
+            <Button variant="destructive" size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+            <Button variant="destructive" disabled size="icon">
+              <BeakerIcon className="h-5 w-5" />
+            </Button>
+          </ButtonWrapper>
         </div>
 
         {/* Accordion */}
@@ -594,15 +658,18 @@ export default function StaticPage() {
                   <ul className="grid gap-3 p-4 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
                     <li className="row-span-3">
                       <NavigationMenuLink asChild>
-                        <a
-                          className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
-                          href="/"
-                        >
-                          <div className="mb-2 mt-4 text-lg font-medium">shadcn/ui</div>
-                          <p className="text-sm leading-tight text-muted-foreground">
-                            Beautifully designed components built with Radix UI and Tailwind CSS.
-                          </p>
-                        </a>
+                        <>
+                          <a
+                            href="http://localhost:3000/"
+                            className="flex h-full w-full select-none flex-col justify-end rounded-md
+                            bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
+                          >
+                            <div className="mb-2 mt-4 text-lg font-medium">shadcn/ui</div>
+                            <p className="text-sm leading-tight text-muted-foreground">
+                              Beautifully designed components built with Radix UI and Tailwind CSS.
+                            </p>
+                          </a>
+                        </>
                       </NavigationMenuLink>
                     </li>
                     <ListItem href="/docs" title="Introduction">
@@ -1145,10 +1212,13 @@ export default function StaticPage() {
           </Tooltip>
         </TooltipProvider>
         {/* Calendar */}
-        <Calendar mode="single" selected={date} onSelect={setDate} className="max-w-xs " />
+        {/* Commented out temporarily because the react-day-picker library is causing a conflict and the project cannot be run on Docker. */}
+        {/* <Calendar mode="single" selected={date} onSelect={setDate} className="max-w-xs " /> */}
         {/* <CustomTable /> */}
 
         {/* <ScrollArea className="relative w-full px-5 py-3 overflow-auto border rounded-lg border-[#E4E4E7] h-[200px]"> */}
+        <br />
+        <br />
         <CustomTable>
           <CustomTableHeader>
             <CustomTableRow>
@@ -1213,7 +1283,7 @@ export default function StaticPage() {
         <div className=" flex flex-col items-center justify-center space-y-2">
           <div className="spinner-wrapper">
             <svg className="spinner" viewBox="0 0 50 50">
-              <circle className="path" cx="25" cy="25" r="20" fill="none" stroke="#ef5039" stroke-width="4" />
+              <circle className="path" cx="25" cy="25" r="20" fill="none" stroke="#ef5039" strokeWidth="4" />
             </svg>
           </div>
 
@@ -1244,3 +1314,12 @@ const ListItem = React.forwardRef(({ className, title, children, ...props }, ref
   )
 })
 ListItem.displayName = 'ListItem'
+
+function ButtonWrapper({ children, title }) {
+  return (
+    <div className="flex flex-col gap-y-3 mb-5">
+      <p className="text-md font-semibold">{title}</p>
+      <div className="grid grid-cols-8 gap-4">{children}</div>
+    </div>
+  )
+}

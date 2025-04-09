@@ -1,42 +1,48 @@
-import React, { useState, useContext } from 'react';
-import { LoggedInUserContext } from '../contexts/LoggedInUserContext';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { NumContext } from '../contexts/NumContext';
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
+import React, { useState, useContext } from 'react'
+import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
+import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
+import { NumContext } from '../contexts/NumContext'
 
 function RegisteOrLogin() {
-  const { email, setEmail } = useContext(LoggedInUserContext); // Access context values
+  const { email, setEmail } = useContext(LoggedInUserContext) // Access context values
   // const [inputNumber, setInputNumber] = useState(number); // Local state for the input, initialized with context value
-  const [inputEmail, setInputEmail] = useState(email); // Local state for adminEmail
-  const [projectName, setProjectName] = useState('');
-  const [authUrl, setAuthUrl] = useState('');
+  const [inputEmail, setInputEmail] = useState(email) // Local state for adminEmail
+  const [projectName, setProjectName] = useState('')
+  const [authUrl, setAuthUrl] = useState('')
 
-  const [num, setNum] = useState(0);
-  const navigate = useNavigate(); // Hook to navigate between routes
+  const [num, setNum] = useState(0)
+  const navigate = useNavigate() // Hook to navigate between routes
 
   const handleSubmit = async (e) => {
-    console.log('Inside Submit');
-    e.preventDefault();
-    setEmail(inputEmail); // Store the adminEmail in context
+    console.log('Inside Submit')
+    e.preventDefault()
+    setEmail(inputEmail) // Store the adminEmail in context
     // navigate('/display'); // Navigate to the display page
 
     try {
       const response = await axios.post('http://localhost:4000/auth/register', {
         email,
         projectName,
-      });
-      setAuthUrl(response.data.authUrl);
-      console.log(email);
+      })
+      setAuthUrl(response.data.authUrl)
+      console.log(email)
     } catch (error) {
-      console.error('Error fetching auth URL:', error);
+      console.error('Error fetching auth URL:', error)
     }
-  };
+  }
 
   return (
     <div>
       <h2>Register or Login with Admin Email</h2>
       <form onSubmit={handleSubmit}>
-   
         <input
           type="email"
           value={inputEmail}
@@ -51,9 +57,7 @@ function RegisteOrLogin() {
           placeholder="Project Name"
           required
         />
-        
-     
-      
+
         <button type="submit">Login</button>
       </form>
       {authUrl && (
@@ -64,11 +68,13 @@ function RegisteOrLogin() {
           </a>
         </div>
       )}
-      { num && (<div>
-        <p>This is the value for num: {num}</p>
-      </div>)}
+      {num && (
+        <div>
+          <p>This is the value for num: {num}</p>
+        </div>
+      )}
     </div>
-  );
+  )
 }
 
-export default RegisteOrLogin;
+export default RegisteOrLogin

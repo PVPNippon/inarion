@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 export const groupsStyles = {
   //links/icons
   //secondary chart-5
@@ -26,6 +33,24 @@ export const groupsStyles = {
   //member deletion by csv dialog window
   uploadArea: 'h-full w-[704px] border rounded-md flex flex-col justify-center items-center gap-y-2',
   uploadAreaExtended: 'h-[470px] w-[704px] border rounded-md flex flex-col justify-center items-center gap-y-2',
+
+  //groups manager page
+  //groups table
+  tableHead: 'text-nowrap',
+  edgeCell: 'text-nowrap border border-input',
+  middleCell: 'text-nowrap border border-y border-input border-x-0',
+  dummyCell: 'text-[2px] py-0 leading-none hover:bg-background',
+  //access settings
+  gridHeader: 'flex flex-col items-center align-middle',
+  gridColumnName: 'text-center text-[10px]/3 p-2 break-words max-w-[76px] h-[40px]',
+  gridRow: 'text-nowrap text-xs text-left py-3 border-none',
+  //filters and filter chips
+  filterButtonOrChip:
+    'flex h-9 gap-2 items-center justify-between whitespace-nowrap rounded-lg border border-input bg-transparent px-3 py-1.5 text-sm shadow-menu1 shadow-menu2 ring-offset-background placeholder:text-muted-foreground focus:outline-none  disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1 relative',
+  //bulk operations menu
+  bulkOperationMenuOptionAll:
+    'cursor-pointer gap-x-2 justify-center text-foreground font-normal inline-flex items-center justify-center whitespace-nowrap hover:text-primary hover:underline px-4',
+  bulkOperationMenuOptionWithBorder: 'border-r border-input',
 }
 
 export const groupElementIds = {

@@ -1,8 +1,16 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 'use client'
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { apiClient } from '@/utils/apiClient'
+//import { apiClient } from '@/utils/apiClient'
 import axios from 'axios'
+const email = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL //temporarily bypass login and jwttoken check
 
 /**
  * A temporary component for dev purposes.
@@ -10,7 +18,6 @@ import axios from 'axios'
  * @returns {JSX.Element} - A JSX element containing a button and a div to display the activities.
  */
 function ListGroupJoinedActivities() {
-  const email = 'testadmin@pvp-test-domain2.com'
   const [activityList, setActivityList] = useState([])
   const [clickCount, setClickCount] = useState(0)
   const [error, setError] = useState(null)

@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const googleService = require('../services/googleService') // Import Google service functions
 const oauth2Client = require('../models/googleAuth') // Import OAuth2 client for authentication
 const Project = require('../models/Project') // Import Project model

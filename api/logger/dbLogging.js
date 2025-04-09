@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const logBuffer = [] // Buffer to store logs before inserting them into the database
 const MAX_LOG_BUFFER_SIZE = 10 // Maximum number of logs before performing a bulk insert
 const FLUSH_INTERVAL = 30000 // Time interval (in milliseconds) to flush logs (30 seconds)

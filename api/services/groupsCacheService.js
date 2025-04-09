@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const redisCacheService = require('../services/redisCacheService')
 const config = require('../config/config')
 
@@ -554,7 +561,7 @@ function getNestedTableById(id) {
  *
  * @param {Object.<string, Array<Object>>} idsToTablesObj - Mapping of group ID to its nested table.
  *   It is expected to be in the following format:
- *   
+ *
  *   ```
  *   {
  *     groupId1: nestedTable1,
@@ -613,6 +620,6 @@ module.exports = {
   setSettingsById,
 
   /* Group Nested Tables */
-  getNestedTableById,  
+  getNestedTableById,
   setNestedTablesByIds,
 }

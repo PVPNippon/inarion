@@ -1,21 +1,23 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 'use client'
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { apiClient } from '@/utils/apiClient'
+//import { apiClient } from '@/utils/apiClient'
 import axios from 'axios'
+const email = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL //temporarily bypass login and jwttoken check
 
 /**
- * Function ListGroupsActivities
- *
- * This function fetches activities related to groups in the organization for the past 6 months.
- * It uses the user's email, project data, and click count to trigger the API call.
- * The API endpoint 'http://localhost:4000/groups/get-group-activity' is used to fetch the data.
- * If an error occurs during the API call, it logs the error and updates the activity list with an error message.
+ * Temporary component for dev purposes.
+ * On click of button, fetch groups activities and display in div (error or activity list).
+ * @returns {JSX.Element} - A JSX element containing a button and a div to display the activities.
  */
-//a temporary component for dev purposes.
-//on click of button, fetch group's activities and display in div(error or activity list)
 function ListGroupsActivities() {
-  const email = 'testadmin@pvp-test-domain2.com'
   const [activityList, setActivityList] = useState([])
   const [clickCount, setClickCount] = useState(0)
   const [error, setError] = useState(null)
@@ -50,10 +52,6 @@ function ListGroupsActivities() {
   return (
     <div className="my-6">
       <h1>Groups Activities in your organization for past 6 months</h1>
-      <p>
-        NB: these logs are for 'enterprise_groups' only. 'groups' are not included. Tell Maria if you want to include
-        'groups'
-      </p>
       <div className="flex w-full max-w-sm items-center space-x-2">
         <Button onClick={() => setClickCount(clickCount + 1)} type="submit">
           Check

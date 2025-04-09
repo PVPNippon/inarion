@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 // Import necessary configurations and utility functions
 const config = require('../config/config')
 const { buildQueryFromFilters } = require('../helper/drive/queryBuilder')
