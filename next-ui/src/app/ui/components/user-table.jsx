@@ -62,8 +62,6 @@ const UserResultsTable = () => {
 
   // console.log('users:', users)
 
-  // TODO(m.okamoto): Fetch users by filters
-
   return (
     <>
       <CustomTable ref={tableRef}>

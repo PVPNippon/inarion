@@ -25,7 +25,6 @@ const usersUtilityFunctions = require('../utility/usersUtilityFunctions')
  * @throws {Error} - Sends a 500 status code if there is an error fetching users.
  */
 exports.listAllUsers = async (req, res, next) => {
-  // TODO(m.okamoto): Will it be possible to get the logged-in email address from Redis/session in the future?
   // Retrieve the userEmail from the query parameter
   const { userEmail } = req.query
 
@@ -49,11 +48,8 @@ exports.listAllUsers = async (req, res, next) => {
     const users = await usersService.listUsers({ userEmail })
     logger.debug(`Fetched ${users.length} users from the domain in backend.`)
 
-    // TODO:(m.okamoto): If you want to add a filter, process the response of listAllUsers and pass it here.
     res.locals.dataToBeCached = users // Pass the list of all organization's users
 
-    // TODO(m.okamoto): 別のファイルへ切り分けた方が良い
-    // TODO(m.okamoto): 2回目に初めてフィルターかけた場合もlistAllUsers をbypass する
     if (
       !req.query.orgUnitPath &&
       !req.query.isEnrolledIn2Sv &&
@@ -126,7 +122,6 @@ exports.listAllUsers = async (req, res, next) => {
  * @throws {Error} - Sends a 500 status code if there is an error turning off two-step verification for users.
  */
 exports.turnOffTwoSVForUsers = async (req, res, next) => {
-  // TODO(m.okamoto): Will it be possible to get the logged-in email address from Redis/session in the future?
   // Retrieve the userEmail from the query parameter
   const { userEmail } = req.query
 
@@ -158,7 +153,6 @@ exports.turnOffTwoSVForUsers = async (req, res, next) => {
       logger.debug(`All ${response.failedUsers.length} users were not turned off 2sv.`)
       response.message = `No users were turned off 2sv.`
 
-      // TODO(m.okamoto): I need to think about validation later.
       res.locals.statusCode = response.failedUsers.some(({ statusCode }) => statusCode >= 500 && statusCode < 600)
         ? 500
         : 400
@@ -189,7 +183,6 @@ exports.turnOffTwoSVForUsers = async (req, res, next) => {
  * @throws {Error} - Sends a 500 status code if there is an error deleting users.
  */
 exports.deleteUsers = async (req, res, next) => {
-  // TODO(m.okamoto): Will it be possible to get the logged-in email address from Redis/session in the future?
   // Retrieve the userEmail from the query parameter
   const { userEmail } = req.query
 
@@ -221,7 +214,6 @@ exports.deleteUsers = async (req, res, next) => {
       logger.debug(`All ${response.undeletedUsers.length} users were not deleted.`)
       response.message = `No users were deleted.`
 
-      // TODO(m.okamoto): I need to think about validation later.
       res.locals.statusCode = response.undeletedUsers.some(({ statusCode }) => statusCode >= 500 && statusCode < 600)
         ? 500
         : 400
@@ -269,6 +261,10 @@ exports.listRoleAssignments = async (req, res, next) => {
   }
   next()
 }
+
+// role 関連のAPI 呼ぶのはコントローラー
+// 引数渡した上でのデータ加工はutility
+
 //
 
 /**
@@ -335,7 +331,7 @@ exports.getPreparations = async (req, res, next) => {
     // Pass the each piece of data separately
     res.locals.data = {
       users: usersResult.status === 'fulfilled' ? usersResult.value : [],
-      orgunits: orgunitsResult.status === 'fulfilled' ? orgunitsResult.value : [],
+      orgunits: orgunitsResult.status === 'fulfilled' ? orgunitsResult.value.organizationUnits : [],
       domains: domainsResult.status === 'fulfilled' ? domainsResult.value : [],
       groups: groupsResult.status === 'fulfilled' ? groupsResult.value : [],
       roleNames: roleNamesResult.status === 'fulfilled' ? roleNamesResult.value : [],
@@ -344,6 +340,20 @@ exports.getPreparations = async (req, res, next) => {
   } catch (error) {
     logger.error(error)
     res.status(500).json({ message: 'Error fetching preparations.' })
+  }
+  next()
+}
+
+exports.watchUsers = async (req, res, next) => {
+  const { userEmail } = req.query
+
+  try {
+    // Get the list of changes
+    const changes = await usersService.watchUsers({ userEmail })
+    res.locals.data = changes
+  } catch (error) {
+    logger.error(error)
+    res.status(500).json({ message: 'Error watching users.' })
   }
   next()
 }

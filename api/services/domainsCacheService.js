@@ -7,7 +7,6 @@
 
 const redisCacheService = require('../services/redisCacheService')
 const config = require('../config/config')
-// TODO (m.okamoto): implement logger in Redis (#267)
 
 /**
  * Retrieves an array of all domain names stored in the cache.
@@ -21,7 +20,6 @@ const config = require('../config/config')
  * @returns {Promise<Array<string>>} A Promise object which resolves to an array of domain names.
  */
 async function getDomainNames() {
-  // TODO(m.okamoto): Domain names: ${config.DOMAIN_TEST} will eventually stop being hard-coded
   const key = `${config.DOMAIN_TEST}:domains:*:info`
   const keys = await redisCacheService.scanSpecificKeys(key)
   // Since the key is made from the domain name, retrieve the domain name from the key again.
@@ -43,7 +41,6 @@ async function getDomainNames() {
  *   Each element of the array is a JSON object, which contains all information about a domain.
  */
 function getDomainsByNames(domainNames) {
-  // TODO(m.okamoto): VALIDATION: domainName should be an array of non-empty strings.
   const keys = domainNames.map((domainName) => `${config.DOMAIN_TEST}:domains:${domainName}:info`)
   return redisCacheService.getJsons(keys)
 }

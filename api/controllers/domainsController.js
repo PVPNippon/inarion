@@ -14,7 +14,6 @@ exports.listAllDomains = async (req, res, next) => {
     return next()
   }
 
-  // TODO(m.okamoto): Will it be possible to get the logged-in email address from Redis/session in the future?
   // Retrieve the userEmail from the query parameter
   const { userEmail } = req.query
 

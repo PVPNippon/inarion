@@ -8,7 +8,6 @@
 const { getImpersonatedClientInstanceForAdmin } = require('./authService')
 const logger = require('../logger/logger')(__filename, 'Domains Service')
 
-// TODO(m.okamoto): pagenation ないのでリファクタリングする
 async function listDomains({ userEmail, client }) {
   logger.debug('Reached listDomains endpoint.')
   //Retrieve an existing impersonated auth client for Directory API or create a new one

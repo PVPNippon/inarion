@@ -264,7 +264,6 @@ async function storeFilteredUsers(req, res, next) {
   const { userEmail } = req.query
 
   try {
-    // TODO(m.okamoto): Couldn't the next 6 if checks be done with Promise.allSettled?
     // NOTE: filteredUsers need to be initialized before any of the following 6 if checks
 
     if (req.query.orgUnitPath) {
@@ -323,9 +322,69 @@ async function storeFilteredUsers(req, res, next) {
   }
 }
 
+async function storeAllUsersAsPreparations(req, res, next) {
+  next()
+
+  if (res.locals.statusCode === 500) {
+    return next()
+  }
+
+  // JSON で保存
+  // キーにはuser.idを使う
+
+  // let roleNames = res.locals.data.roleNames
+
+  try {
+    let users = res.locals.data.users
+    console.log('users length:', users.length)
+
+    const emailsToIdsObj = usersUtilityFunctions.getUserEmailsToIdsObj(users)
+    emailsToIdsObj['ALL_USERS_LISTED'] = 'ALL_USERS_LISTED'
+
+    const result = await Promise.allSettled([
+      usersCacheService.overwriteIds(emailsToIdsObj),
+      usersCacheService.setOurOwnUsers(users), // , roleNames
+    ])
+    console.log('Stored all user ids and instances in the cache:', result)
+  } catch (error) {
+    console.log('Error storing all user ids and instances in the cache:', error)
+  }
+}
+
+async function storeAllFiltersAsPreparations(req, res, next) {
+  next()
+
+  if (res.locals.statusCode === 500) {
+    return next()
+  }
+
+  // define each filter value in each valuable
+  let users = res.locals.data.users
+  let orgunits = res.locals.data.orgunits
+  let domains = res.locals.data.domains
+  let groups = res.locals.data.groups
+  let roleNames = res.locals.data.roleNames
+
+  // console.log('orgunits', orgunits)
+
+  // 各フィルターの値をセットで保存する
+  try {
+    await usersCacheService.saveOrgUnitFilterValuesCache(orgunits)
+    await usersCacheService.saveDomainFilterValuesCache(domains)
+    await usersCacheService.saveIsEnrolledIn2SvValuesCache(users)
+    await usersCacheService.saveIsEnforcedIn2SvValuesCache(users)
+    await usersCacheService.saveGroupFilterValuesCache(groups) // listParents
+    await usersCacheService.saveRoleNameFilterValuesCache(roleNames) // roleNameをキーとしてuser.id のセットをvalue にする
+  } catch (error) {
+    console.log('Error storing filtered users in the cache:', error)
+  }
+}
+
 module.exports = {
   retrieveAllUsers,
   storeAllUsers,
   retrieveFilteredUsers,
   storeFilteredUsers,
+  storeAllUsersAsPreparations,
+  storeAllFiltersAsPreparations,
 }
