@@ -11,15 +11,35 @@ const driveController = require('../controllers/driveController')
 const { encryptResponseMiddleware } = require('../controllers/crypto/cryptoMiddleware')
 const cacheMiddleware = require('../middleware/cacheMiddleware')
 
+// Route to list all Shared Drives
+router.get(
+  '/shared-drives',
+  cacheMiddleware.fetchSharedDrivesFromCache,
+  driveController.fetchSharedDrives,
+  cacheMiddleware.storeSharedDrivesInCache,
+  encryptResponseMiddleware
+)
+
+// Route to list all users in the domain
+router.get(
+  '/users',
+  cacheMiddleware.fetchUsersFromCache,
+  driveController.fetchUsersFromAdminDirectory,
+  cacheMiddleware.storeUsersInCache,
+  encryptResponseMiddleware
+)
+
+// MEGA FETCH FUNCTION
 // Route to list all Google Drive files (MyDrive and SharedDrives)
 router.get(
   '/all-drives',
   cacheMiddleware.fetchDriveDataFromCache,
-  driveController.getAllDrives,
+  driveController.fetchAllDrives,
   cacheMiddleware.storeDriveDataInCache,
   encryptResponseMiddleware
 )
 
+// LIVE DATA FETCH FUNCTION
 // Route to to fetch drive files as per the filters provided by the user
 router.get(
   '/filters',

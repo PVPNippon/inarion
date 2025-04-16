@@ -29,13 +29,98 @@ const { extractEmails } = require('../utility/utilityFunctions')
 const logger = require('../logger/logger')(__filename, 'Drive Controller')
 
 /**
+ * Middleware to fetch shared drives from Google Drive.
+ *
+ * This middleware retrieves the admin's email from res.locals and uses it to fetch a list of shared drives.
+ * It then extracts the drive IDs from the fetched shared drive objects and stores them in res.locals.sharedDrives
+ * for subsequent middleware processing. If shared drive data is already present in res.locals.data, the middleware
+ * skips the API call to avoid redundant operations.
+ *
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object; expects adminEmail in res.locals.
+ * @param {Function} next - Express middleware next function.
+ * @returns {Promise<void>} Proceeds to the next middleware after setting res.locals.sharedDrives.
+ * @throws {Error} Returns a 500 HTTP response with an error message if fetching fails.
+ */
+const fetchSharedDrives = async (req, res, next) => {
+  try {
+    // Extract the admin's email from res.locals for API impersonation.
+    const { adminEmail } = res.locals
+
+    // If shared drive data is already available, skip fetching.
+    if (res.locals.data) {
+      return next()
+    }
+
+    // Log a debug message to indicate that cached data is missing and data will be fetched from Google Drive.
+    logger.debug('res.locals.data is empty in fetchAllDrives, fetching data from Google Drive')
+
+    // Fetch the list of shared drives using the admin's credentials.
+    const sharedDrives = await fetchAllSharedDrives(adminEmail)
+    // Extract drive IDs from the fetched shared drives.
+    const sharedDriveIds = sharedDrives.map((drive) => drive.id)
+
+    // Store the shared drive IDs in res.locals for downstream processing.
+    res.locals.sharedDrives = sharedDriveIds
+
+    // Proceed to the next middleware.
+    next()
+  } catch (err) {
+    // Log the error and return a 500 response if an exception occurs during the fetch.
+    logger.error('Error fetching or storing data:', err.message)
+    return res.status(500).json({ message: 'Failed to fetch data from Google Drive.', error: err.message })
+  }
+}
+
+/**
+ * Middleware to fetch users from the Admin Directory.
+ *
+ * This middleware uses the admin's email from res.locals to retrieve a list of organization users via
+ * the getOrganizationUsersList API call. It extracts user emails from the response and stores them in res.locals.users.
+ * If user data is already cached in res.locals.data, the API call is skipped to prevent redundant processing.
+ *
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object; expects adminEmail in res.locals.
+ * @param {Function} next - Express middleware next function.
+ * @returns {Promise<void>} Proceeds to the next middleware after setting res.locals.users.
+ * @throws {Error} Returns a 500 HTTP response with an error message if user fetching fails.
+ */
+const fetchUsersFromAdminDirectory = async (req, res, next) => {
+  try {
+    // Extract the admin's email from res.locals to access the Admin Directory.
+    const { adminEmail } = res.locals
+
+    // If user data is already cached, skip the API call.
+    if (res.locals.data) {
+      return next()
+    }
+
+    // Log a debug message to indicate that cached data is missing and data will be fetched from Google Drive.
+    logger.debug('res.locals.data is empty in fetchAllDrives, fetching data from Google Drive')
+
+    // Fetch the list of users from the organization's directory and extract their email addresses.
+    const emailList = extractEmails(await getOrganizationUsersList({ userEmail: adminEmail }))
+
+    // Store the fetched user email list in res.locals for use by downstream middleware.
+    res.locals.users = emailList
+
+    // Proceed to the next middleware.
+    next()
+  } catch (err) {
+    // Log the error and return a 500 response if fetching user data fails.
+    logger.error('Error fetching or storing data:', err.message)
+    return res.status(500).json({ message: 'Failed to fetch data from Google Drive.', error: err.message })
+  }
+}
+
+/**
  * Controller function to fetch files from Google Drive with optional filtering.
  *
  * This function retrieves files from Google Drive, leveraging Redis for caching.
  * If cached data is unavailable, it fetches data directly from Google Drive, caches it for future use,
  * and returns the data. It also supports various filtering options provided via query parameters.
  */
-const getAllDrives = async (req, res, next) => {
+const fetchAllDrives = async (req, res, next) => {
   try {
     // Extract admin's email id
     const { adminEmail } = res.locals
@@ -44,7 +129,7 @@ const getAllDrives = async (req, res, next) => {
       return next()
     }
 
-    logger.debug('res.locals.data is empty in getAllDrives, fetching data from Google Drive')
+    logger.debug('res.locals.data is empty in fetchAllDrives, fetching data from Google Drive')
 
     // Fetch shared and personal drive files
     const sharedDrivesList = await fetchSharedDrivesFiles(adminEmail)
@@ -270,7 +355,9 @@ const fetchSharedDrivesFiles = async (adminEmail) => {
       })
 
       // Structure the files hierarchically
-      const structuredFiles = await structureDriveFiles(driveFiles, sharedDrive.name, sharedDrive.id)
+      // const structuredFiles = await structureDriveFiles(driveFiles, sharedDrive.name, sharedDrive.id)
+      const structuredFiles = await fetchStructuredDriveFilesAndFileCount(driveFiles, sharedDrive.name, sharedDrive.id)
+
       sharedDrivesWithFiles.push(structuredFiles)
     }
 
@@ -571,7 +658,9 @@ const fetchFilteredFilesWithPriority = async (
 }
 
 module.exports = {
-  getAllDrives,
+  fetchSharedDrives,
+  fetchUsersFromAdminDirectory,
+  fetchAllDrives,
   fetchEntireDriveStructureFromDrive,
   fetchDirectPathToRootFolderFromDriveOrReports,
   fetchFilteredFiles,

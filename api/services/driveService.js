@@ -21,7 +21,7 @@ const logger = require('../logger/logger')(__filename, 'Drive')
  * @returns {Promise<Array<Object>>} - An array of shared drive objects or an empty array if none are found.
  * @throws {Error} - Logs an error if the API request fails.
  */
-async function fetchAllSharedDrives(adminEmail, query = '', limit = config.ITEM_LIMIT) {
+async function fetchAllSharedDrives(adminEmail, query = '') {
   let drives = []
   let nextPageToken = null // Initialize the token for pagination
 
@@ -33,7 +33,7 @@ async function fetchAllSharedDrives(adminEmail, query = '', limit = config.ITEM_
       const drivesResponse = await drive.drives.list({
         useDomainAdminAccess: true, // needed if you want to see all domain shared drives
         fields: 'drives(orgUnitId, id, name, hidden, restrictions), nextPageToken',
-        pageSize: limit,
+        pageSize: 100, // 100 is the upper limit
         pageToken: nextPageToken,
         q: query, // pass the query if provided, otherwise undefined
       })
@@ -691,6 +691,36 @@ const fetchFilteredFilesFromDrive = async (
   }
 }
 
+/**
+ * Retrieves the total and used storage quota for a user's Google Drive.
+ * @param {object} driveInstance - Authenticated Google Drive API client instance.
+ * @param {string} userEmail - Email address of the user whose storage info to retrieve.
+ * @returns {Promise<{ total: string, used: string }>} An object with total and used storage (in bytes).
+ */
+async function getMyDriveStorageQuota(adminEmail, userEmail) {
+  try {
+    // Obtain an impersonated Drive client instance to ensure the API request is executed under proper credentials.
+    const drive = await getImpersonatedClientInstanceForUser({
+      impersonatedUser: userEmail,
+      typeOfInstance: 'drive',
+      adminEmail: adminEmail,
+    })
+
+    // Request the storage quota info for the authenticated user
+    const response = await drive.about.get({ fields: 'storageQuota' })
+
+    // Extract the storageQuota object from the response
+    const { storageQuota } = response.data
+
+    // Return the values as provided by the API (bytes as strings)
+    return storageQuota
+  } catch (error) {
+    console.error(`Error fetching storage quota for ${userEmail}:`, error.message)
+    // Propagate the error after logging, so calling code can handle it
+    throw error
+  }
+}
+
 module.exports = {
   fetchAllSharedDrives,
   fetchFilteredSharedDrives,
@@ -707,4 +737,5 @@ module.exports = {
   findOwnerOfItemViaDomainUsers,
   fetchSharedDriveCreatorInfo,
   fetchUserEmailFromDirectory,
+  getMyDriveStorageQuota,
 }

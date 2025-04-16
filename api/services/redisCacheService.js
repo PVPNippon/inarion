@@ -182,7 +182,6 @@ const deleteKeyInRedis = async (key, redisTransaction = null) => {
   }
 }
 
-// TODO (r.hidaka): Consider splitting this function into two functions: deleteKey(key) and deleteKeys(keys).
 /**
  * Deletes keys in Redis.
  *
@@ -328,9 +327,6 @@ const updateJsonInRedis = async (key, jsonObject, redisTransaction = null, ttl) 
  * @param {string} key - The key associated with the JSON object to set.
  * @param {Object} jsonObj - An object to set with `key`.
  *
- * // TODO (r.hidaka): Technically, even if `jsonObj` is an empty object, null, a string, a number or an array, this function can store it in Redis with no errors.
- * //                  Consider throwing an error if `jsonObj` is not a non-empty object to be consistent with {@link setHash} and {@link overwriteHash}.
- *
  * @param {number} [ttl] - An optional integer specifying the TTL in seconds for the key.
  * @param {string} [ttlMode] - An optional string specifying the mode for the TTL.
  *   If `ttl` is not specified as an integer, `ttlMode` is ignored.
@@ -356,8 +352,6 @@ const updateJsonInRedis = async (key, jsonObject, redisTransaction = null, ttl) 
  *      {@link https://redis.io/docs/latest/commands/exec/}
  */
 function setJsonWithTtlMode(key, jsonObj, ttl, ttlMode) {
-  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
-
   const multi = redisClient.multi()
 
   multi.json.set(key, '$', jsonObj)
@@ -388,9 +382,6 @@ function setJsonWithTtlMode(key, jsonObj, ttl, ttlMode) {
  *     key_N: jsonObj_N
  *   }
  *   ```
- * // TODO (r.hidaka): Technically, even if `jsonObj_i` (i = 1, ..., N) is an empty object, null, a string, a number or an array, this function can store it in Redis with no errors.
- * //                  Consider throwing an error if they are not a non-empty object to be consistent with {@link setHash} and {@link overwriteHash}.
- *
  * @param {number} [ttl] - An optional integer specifying the TTL in seconds for all the keys.
  * @param {string} [ttlMode] - An optional string specifying the mode for the TTL.
  *   If `ttl` is not specified as an integer, `ttlMode` is ignored.
@@ -470,8 +461,6 @@ const getJsonFromRedis = async (key, redisTransaction = null) => {
  * @see {@link https://redis.io/docs/latest/commands/json.mget/}
  */
 function getJsons(keys) {
-  // TODO (r.hidaka): VALIDATION: `keys` should be an array of non-empty strings
-
   if (keys.length === 0) {
     return Promise.resolve([])
   }
@@ -625,9 +614,6 @@ const updateHashInRedis = async (key, hashObject, redisTransaction = null, ttl) 
  *      {@link https://redis.io/docs/latest/commands/exec/}
  */
 function setHashWithTtlMode(key, hashObj, ttl, ttlMode) {
-  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
-  // TODO (r.hidaka): VALIDATION: `hashObj` should be a non-empty object whose values are strings
-
   const multi = redisClient.multi()
 
   multi.hSet(key, hashObj)
@@ -685,8 +671,6 @@ function setHashWithTtlMode(key, hashObj, ttl, ttlMode) {
  *      {@link https://redis.io/docs/latest/commands/exec/}
  */
 function setHashesWithTtlMode(keysToHashesObj, ttl, ttlMode) {
-  // TODO (r.hidaka): VALIDATION: Check the format of `keysToHashesObj`
-
   const multi = redisClient.multi()
 
   Object.entries(keysToHashesObj).forEach(([key, hash]) => multi.hSet(key, hash))
@@ -753,9 +737,6 @@ const getHashFieldFromRedis = async (key, field, redisTransaction = null) => {
  * @see {@link https://redis.io/docs/latest/commands/hmget/}
  */
 function getHashValues(key, fields) {
-  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
-  // TODO (r.hidaka): VALIDATION: `fields` should be an array of non-empty strings
-
   // If `fields` is an empty array, hmGet(key, fields) returns a Promise object which resolves to an error.
   // I prefer the returned Promise object to resolve to an empty array in that case.
   if (fields.length === 0) {
@@ -777,8 +758,6 @@ function getHashValues(key, fields) {
  * @see {@link https://redis.io/docs/latest/commands/hvals/}
  */
 function getAllHashValues(key) {
-  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
-
   return redisClient.hVals(key)
 }
 
@@ -794,8 +773,6 @@ function getAllHashValues(key) {
  * @see {@link https://redis.io/docs/latest/commands/hkeys/}
  */
 function getAllHashFields(key) {
-  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
-
   return redisClient.hKeys(key)
 }
 
@@ -817,8 +794,6 @@ function getAllHashFields(key) {
  *      {@link https://redis.io/docs/latest/commands/exec/}
  */
 function getHashes(keys) {
-  // TODO (r.hidaka): VALIDATION: `keys` should be an array of non-empty strings
-
   if (keys.length === 0) {
     return Promise.resolve([])
   }
@@ -894,9 +869,6 @@ const deleteHashFieldsFromRedis = async (key, fields, redisTransaction = null) =
  *      {@link https://redis.io/docs/latest/commands/exec/}
  */
 function overwriteHash(key, hashObj, ttl) {
-  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
-  // TODO (r.hidaka): VALIDATION: `hashObj` should be a non-empty object whose values are non-empty strings
-
   const multi = redisClient.multi()
 
   multi.del(key)
@@ -943,8 +915,6 @@ function overwriteHash(key, hashObj, ttl) {
  *      {@link https://redis.io/docs/latest/commands/exec/}
  */
 function overwriteHashes(keysToHashesObj, ttl) {
-  // TODO (r.hidaka): VALIDATION: Check the format of `keysToHashesObj`
-
   const multi = redisClient.multi()
 
   const keys = Object.keys(keysToHashesObj)
@@ -1181,13 +1151,9 @@ const updateSortedSetInRedis = async (
 const getSortedSetMembers = async (key, startCount = 1, endCount = -1, redisTransaction = null) => {
   try {
     const client = getClient(redisTransaction)
+    const options = startCount === 1 && endCount === -1 ? undefined : { BY: 'SCORE' }
 
-    const members = await client.zRange(key, startCount, endCount, { BY: 'SCORE' })
-    if (members.length === 0) {
-      return []
-    }
-    // console.log('members = ', members)
-    return members
+    return await client.zRange(key, startCount, endCount, options)
   } catch (err) {
     logger.error(`Error retrieving members of sorted set "${key}":`, err)
     throw err

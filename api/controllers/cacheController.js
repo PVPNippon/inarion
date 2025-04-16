@@ -191,7 +191,7 @@ async function fetchDataFromCache(key, dataType) {
  * @returns {Promise<*|boolean>} Returns the fetched data if available, or false if a cache miss occurs.
  * @throws {Error} If an unsupported data type is provided or if an error occurs during retrieval.
  */
-async function fetchSetOfFilesFromCache(key, startCount, endCount, dataType) {
+async function fetchSetOfFilesFromCache(key, dataType, startCount, endCount) {
   try {
     let result
     switch (dataType) {
