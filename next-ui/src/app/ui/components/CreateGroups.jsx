@@ -1,10 +1,20 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 'use client'
 import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { apiClient } from '@/utils/apiClient'
+// import { Input } from '@/components/ui/input'
+import { Input } from '@/components/ui/legacy-input'
+//import { apiClient } from '@/utils/apiClient'
 import axios from 'axios'
 import CsvDownloadButton from 'react-json-to-csv'
+import { CustomSpinnerComponentWithText } from '@/components/ui/custom-spinner'
+const email = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL //temporarily bypass login and jwttoken check
 
 /**
  * Component for creating a single group.
@@ -34,7 +44,6 @@ export function CreateGroup() {
   const [group, setGroup] = useState(null)
   const [clickCount, setClickCount] = useState(0)
   const [error, setError] = useState(null)
-  let email
 
   useEffect(() => {
     const createGroup = async (req, res) => {
@@ -42,7 +51,6 @@ export function CreateGroup() {
         if (inputValue === '') {
           return
         }
-        email = 'testadmin@pvp-test-domain2.com'
         const response = await axios.post(
           `http://localhost:4000/api/groups/?userEmail=${email}`,
 
@@ -122,14 +130,12 @@ export function CreateGroupsByCsv() {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [failedGroups, setFailedGroups] = useState([])
-  let email
 
   useEffect(() => {
     const createGroups = async (req, res) => {
       try {
         if (data.length === 0) return
         setLoading(true)
-        email = 'testadmin@pvp-test-domain2.com'
         const response = await axios.post(
           `http://localhost:4000/api/groups/?userEmail=${email}`,
 
@@ -182,8 +188,9 @@ export function CreateGroupsByCsv() {
         column A.
       </small>
       <div className="flex w-full max-w-sm items-center space-x-2 mb-7 mt-3">
-        <div className="flex">
-          <input
+        <div className="flex gap-x-11">
+          <Input
+            className="w-[200px]"
             accept=".csv"
             id="create-groups-csv-input" //N.B. the id must be unique or it will clash with other compoments
             onChange={() => {
@@ -212,7 +219,7 @@ export function CreateGroupsByCsv() {
           </pre>
         </div>
       </div>
-      {loading && <div className="loader items-center justify-center"></div>}
+      {loading && <CustomSpinnerComponentWithText text="Creating groups..." />}
       {group && (
         <div>
           <div>{`Result: ${group.message}`}</div>
@@ -261,12 +268,11 @@ export function CreateGroupsWithSerialNumbers() {
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [failedGroups, setFailedGroups] = useState([])
-  let email
 
   function serialEmails(nrOfGroups, inputValue) {
     let emails = []
     for (let i = 1; i <= nrOfGroups; i++) {
-      emails.push(inputValue + i + '@pvp-test-domain2.com')
+      emails.push(inputValue + i + '@' + process.env.NEXT_PUBLIC_DOMAIN)
     }
     return emails
   }
@@ -279,7 +285,6 @@ export function CreateGroupsWithSerialNumbers() {
       if (confirm(`Are you sure you want to create ${nrOfGroups} groups with email base ${inputValue}?`)) {
         setLoading(true)
         try {
-          email = 'testadmin@pvp-test-domain2.com'
           const data = serialEmails(nrOfGroups, inputValue)
 
           const response = await axios.post(
@@ -336,7 +341,7 @@ export function CreateGroupsWithSerialNumbers() {
           placeholder="Enter a group email base"
         />
         <div className="flex">
-          <input
+          <Input
             type="number"
             id="numInput"
             min="1"
@@ -351,7 +356,7 @@ export function CreateGroupsWithSerialNumbers() {
         </Button>
       </div>
 
-      {loading && <div className="loader items-center justify-center"></div>}
+      {loading && <CustomSpinnerComponentWithText text="Creating groups..." />}
       {group && (
         <div>
           <div>{`Result: ${group.message}`}</div>

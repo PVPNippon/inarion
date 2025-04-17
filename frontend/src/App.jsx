@@ -1,75 +1,75 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 // src/App.js
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import RegisterForm from './components/RegisterForm';
-import OAuthCallback from './components/OAuthCallback';
-import ProjectDisplay from './components/ProjectDisplay';
-import Result from './components/Result';
-import { ValueProvider } from './contexts/ValueContext';
+import React from 'react'
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import RegisterForm from './components/RegisterForm'
+import OAuthCallback from './components/OAuthCallback'
+import ProjectDisplay from './components/ProjectDisplay'
+import Result from './components/Result'
+import { ValueProvider } from './contexts/ValueContext'
 
-import { LoggedInUserProvider } from './contexts/LoggedInUserContext';
-import NumberDisplay from './components/NumberDisplay';
-import RegisteOrLogin from './components/RegisterOrLoginForm';
-import LoggedInUserDetails from './components/LoggedInUserDetails';
-import Logout from './components/Logout';
-import ListMyDriveFiles from './components/ListMyDriveFiles';
+import { LoggedInUserProvider } from './contexts/LoggedInUserContext'
+import NumberDisplay from './components/NumberDisplay'
+import RegisteOrLogin from './components/RegisterOrLoginForm'
+import LoggedInUserDetails from './components/LoggedInUserDetails'
+import Logout from './components/Logout'
+import ListMyDriveFiles from './components/ListMyDriveFiles'
 
-import FileSettings from './components/FileSettings';
-import ListDomainUsers from './components/ListDomainUsers';
-import HomePage from './components/HomePage';
-import { ProjectDataProvider } from './contexts/ProjectDataContext';
-import ListSharedDriveFiles from './components/ListSharedDriveFiles';
+import FileSettings from './components/FileSettings'
+import ListDomainUsers from './components/ListDomainUsers'
+import HomePage from './components/HomePage'
+import { ProjectDataProvider } from './contexts/ProjectDataContext'
+import ListSharedDriveFiles from './components/ListSharedDriveFiles'
 
 function App() {
   return (
     <ValueProvider>
       <LoggedInUserProvider>
         <ProjectDataProvider>
-        <Router>
-          <nav>
-            <Link to="/">Home</Link>
-
-            <Link to="/register">Register</Link>
-            <Link to="/display">Display Number</Link>
-            <Link to="/profile">Profile</Link>
-            {/* Link to the logout route */}
-            <Link to="/mydrive-files">List My Drive Files</Link> {/* Link to the logout route */}
-            <Link to="/shared-drives">Shared Drives</Link>
-            <Link to="/users">List All Users</Link> 
-            <Link to="/home-page">Home Page</Link> 
-
-
-          </nav>
-          <Routes>
-            {/* <Route path="/" element={<RegisterForm />} /> */}
-            <Route path="/" element={<RegisteOrLogin />} />
-            <Route path="/test-register" element={<RegisteOrLogin />} />
-            <Route path="/oauth2callback" element={<OAuthCallback />} />
-            <Route path="/project" element={<ProjectDisplay />} />
-            <Route path="/result" element={<Result />} />
-            <Route path="/register" element={<RegisteOrLogin />} />
-            {/* <Route path="/display" element={<NumberDisplay />} /> */}
-            <Route path="/profile" element={<LoggedInUserDetails />} />
-            <Route path="/logout" element={<Logout />} /> {/* Logout route */}
-            <Route path="/users" element={<ListDomainUsers />} />
-            <Route path="/home-page" element={<HomePage />} />
-
-            <Route path="/mydrive-files" element={<ListMyDriveFiles />} /> {/* Home route displays list of files */}
-            <Route path="/shared-drives" element={<ListSharedDriveFiles />} /> {/* Home route displays list of files */}
-            <Route path="/mydrive-files/file-settings/:fileId" element={< FileSettings />}/>
-          </Routes>
-        </Router>
-      </ProjectDataProvider>
+          <Router>
+            <nav>
+              <Link to="/">Home</Link>
+              <Link to="/register">Register</Link>
+              <Link to="/display">Display Number</Link>
+              <Link to="/profile">Profile</Link>
+              {/* Link to the logout route */}
+              <Link to="/mydrive-files">List My Drive Files</Link> {/* Link to the logout route */}
+              <Link to="/shared-drives">Shared Drives</Link>
+              <Link to="/users">List All Users</Link>
+              <Link to="/home-page">Home Page</Link>
+            </nav>
+            <Routes>
+              {/* <Route path="/" element={<RegisterForm />} /> */}
+              <Route path="/" element={<RegisteOrLogin />} />
+              <Route path="/test-register" element={<RegisteOrLogin />} />
+              <Route path="/oauth2callback" element={<OAuthCallback />} />
+              <Route path="/project" element={<ProjectDisplay />} />
+              <Route path="/result" element={<Result />} />
+              <Route path="/register" element={<RegisteOrLogin />} />
+              {/* <Route path="/display" element={<NumberDisplay />} /> */}
+              <Route path="/profile" element={<LoggedInUserDetails />} />
+              <Route path="/logout" element={<Logout />} /> {/* Logout route */}
+              <Route path="/users" element={<ListDomainUsers />} />
+              <Route path="/home-page" element={<HomePage />} />
+              <Route path="/mydrive-files" element={<ListMyDriveFiles />} /> {/* Home route displays list of files */}
+              <Route path="/shared-drives" element={<ListSharedDriveFiles />} />{' '}
+              {/* Home route displays list of files */}
+              <Route path="/mydrive-files/file-settings/:fileId" element={<FileSettings />} />
+            </Routes>
+          </Router>
+        </ProjectDataProvider>
       </LoggedInUserProvider>
     </ValueProvider>
-  );
+  )
 }
 
-export default App;
-
-
-
-
+export default App
 
 // import React from 'react';
 // import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';

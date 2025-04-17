@@ -1,9 +1,17 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 'use client'
 import React, { useState, useEffect, useContext } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { apiClient } from '@/utils/apiClient'
+//import { apiClient } from '@/utils/apiClient'
 import axios from 'axios'
+const email = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL //temporarily bypass login and jwttoken check
 
 //Please note that it's a temporary UI created hastily for testing/visualization purposes and it's not dev-quality
 
@@ -30,7 +38,6 @@ function ListGroupSettings() {
   const [group, setGroup] = useState(null)
   const [clickCount, setClickCount] = useState(0)
   const [error, setError] = useState(null)
-  let email
 
   useEffect(() => {
     const getSettings = async (req, res) => {
@@ -38,15 +45,6 @@ function ListGroupSettings() {
         if (inputValue === '') {
           return
         }
-        //getting email and token from local storage is a temporary measure, will change in the future
-        // email = window.localStorage.getItem('email')
-        // console.log('email:', email)
-        email = 'testadmin@pvp-test-domain2.com'
-
-        //N.B.the token validity is 1 hour, when started getting the 401 error, sign out and sign in back
-        // const token = localStorage.getItem('jwtToken')
-        // console.log('TOKEN', token)
-
         const response = await axios.get(
           `http://localhost:4000/api/groups/group/${inputValue}/settings?userEmail=${email}`,
 

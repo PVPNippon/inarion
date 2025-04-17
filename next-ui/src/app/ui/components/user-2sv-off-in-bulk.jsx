@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 'use client'
 import React, { useState, useEffect, useRef, useReducer } from 'react'
 
@@ -60,7 +67,7 @@ const uploadStateArray = [
   userStrings.uploadStates.showTable,
   userStrings.uploadStates.showDeletionResult,
 ]
-const email = 'testadmin@pvp-test-domain2.com' //TODO:temporary bypass, remove when the apiClient module is ready
+const email = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL
 
 /**
  * Returns the number of occurrences of a given value in an array.

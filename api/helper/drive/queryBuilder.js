@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const { MIME_TYPES_MAP } = require('./mimeType')
 
 // for OWNER query, changes should be made in drive contoller function so that only the specifc user's drive or a shared drive is searched

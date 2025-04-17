@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 require('dotenv').config()
 
 module.exports = {
@@ -27,6 +34,8 @@ module.exports = {
   INITIAL_DEPTH: process.env.INITIAL_DEPTH,
   PERSONAL_DRIVE: process.env.PERSONAL_DRIVE,
   SHARED_DRIVE: process.env.SHARED_DRIVE,
+  SHARED_DRIVES: process.env.SHARED_DRIVES,
+  USERS: process.env.USERS,
   DOMAIN_TEST: process.env.DOMAIN_TEST,
   SUPER_ADMIN_EMAIL: process.env.SUPER_ADMIN_EMAIL,
   CLIENT_SERVICE_ACCOUNT_EMAIL: process.env.CLIENT_SERVICE_ACCOUNT_EMAIL,

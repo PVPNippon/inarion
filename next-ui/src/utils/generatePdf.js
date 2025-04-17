@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
 export const generatePdf = async (elementId) => {

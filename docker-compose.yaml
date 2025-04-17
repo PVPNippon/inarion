@@ -11,18 +11,7 @@ services:
     volumes:
       - ./api/logs:/usr/src/app/logs # Map host directory to container directory
     depends_on:
-      - frontend
       - redis
-
-  frontend:
-    build: ./frontend
-    container_name: frontend_react
-    ports:
-      - '3001:80'
-    environment:
-      - PORT=3001 # Set the environment variable to use port 3001
-
-    stdin_open: true
 
   ui:
     build: ./next-ui

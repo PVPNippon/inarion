@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const oauth2Client = require('../models/googleAuth') // Google OAuth2 client setup
 const config = require('../config/config') // Configuration settings
 const User = require('../models/User') // User model for database operations

@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const domainsService = require('../services/domainsService')
 const logger = require('../logger/logger')(__filename, 'Domains Controller')
 
@@ -7,7 +14,6 @@ exports.listAllDomains = async (req, res, next) => {
     return next()
   }
 
-  // TODO(m.okamoto): Will it be possible to get the logged-in email address from Redis/session in the future?
   // Retrieve the userEmail from the query parameter
   const { userEmail } = req.query
 

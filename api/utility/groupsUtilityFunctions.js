@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 function getGroupEmailsToIdsObj(groups) {
   if (!Array.isArray(groups)) {
     groups = [groups]
@@ -5,7 +12,7 @@ function getGroupEmailsToIdsObj(groups) {
 
   const emailsToIdsObj = {}
 
-  groups.forEach(group => {
+  groups.forEach((group) => {
     const id = group.id
 
     if (group.email) {
@@ -13,11 +20,11 @@ function getGroupEmailsToIdsObj(groups) {
     }
 
     if (group.aliases) {
-      group.aliases.forEach(alias => emailsToIdsObj[alias] = id)
+      group.aliases.forEach((alias) => (emailsToIdsObj[alias] = id))
     }
 
     if (group.nonEditableAliases) {
-      group.nonEditableAliases.forEach(nonEditableAlias => emailsToIdsObj[nonEditableAlias] = id)
+      group.nonEditableAliases.forEach((nonEditableAlias) => (emailsToIdsObj[nonEditableAlias] = id))
     }
   })
 
@@ -56,7 +63,7 @@ function extractEmailsFromUser(user) {
     return null
   }
 
-  const emails = user.emails.map(email => email.address)
+  const emails = user.emails.map((email) => email.address)
 
   return emails
 }
@@ -96,14 +103,14 @@ function extractTimestampFromGroupJoinLogForAdmin(joinLog, groupEmail, memberEma
 
   for (const event of joinLog.events) {
     // groupEmail is in parameters[].value where parameters[].name === GROUP_EMAIL
-    groupEmailInLog = event.parameters.find(parameter => parameter.name === 'GROUP_EMAIL')?.value
+    groupEmailInLog = event.parameters.find((parameter) => parameter.name === 'GROUP_EMAIL')?.value
 
     if (!groupEmailInLog || groupEmailInLog !== groupEmail) {
       continue
     }
 
     // memberEmail is in parameters[].value where parameters[].name === USER_EMAIL
-    memberEmailInLog = event.parameters.find(parameter => parameter.name === 'USER_EMAIL')?.value
+    memberEmailInLog = event.parameters.find((parameter) => parameter.name === 'USER_EMAIL')?.value
 
     if (memberEmailInLog && memberEmailsSet.has(memberEmailInLog)) {
       return joinLog.id.time
@@ -121,7 +128,7 @@ function extractTimestampFromGroupJoinLogForGroups(joinLog, groupEmail, memberEm
 
   for (const event of joinLog.events) {
     // groupEmail is in parameters[].value where parameters[].name === group_email
-    groupEmailInLog = event.parameters.find(parameter => parameter.name === 'group_email')?.value
+    groupEmailInLog = event.parameters.find((parameter) => parameter.name === 'group_email')?.value
 
     if (!groupEmailInLog || groupEmailInLog !== groupEmail) {
       continue
@@ -130,7 +137,7 @@ function extractTimestampFromGroupJoinLogForGroups(joinLog, groupEmail, memberEm
     if (event.name === 'add_user' || event.name === 'approve_join_request') {
       // For eventName: add_user, approve_join_request
       // memberEmail is in parameters[].value where parameters[].name === user_email
-      memberEmailInLog = event.parameters.find(parameter => parameter.name === 'user_email')?.value
+      memberEmailInLog = event.parameters.find((parameter) => parameter.name === 'user_email')?.value
     } else {
       // For eventName: accept_invitation, join, join_via_mail
       // memberEmail is in actor.email
@@ -153,7 +160,7 @@ function extractTimestampFromGroupJoinLogForGroupsEnterprise(joinLog, groupEmail
 
   for (const event of joinLog.events) {
     // groupEmail is in parameters[].value where parameters[].name === group_id
-    groupEmailInLog = event.parameters.find(parameter => parameter.name === 'group_id')?.value
+    groupEmailInLog = event.parameters.find((parameter) => parameter.name === 'group_id')?.value
 
     if (!groupEmailInLog || groupEmailInLog !== groupEmail) {
       continue
@@ -162,7 +169,7 @@ function extractTimestampFromGroupJoinLogForGroupsEnterprise(joinLog, groupEmail
     if (event.name === 'add_member' || event.name === 'approve_join_request') {
       // For eventName: add_member, approve_join_request
       // memberEmail is in parameters[].value where parameters[].name === member_id
-      memberEmailInLog = event.parameters.find(parameter => parameter.name === 'member_id')?.value
+      memberEmailInLog = event.parameters.find((parameter) => parameter.name === 'member_id')?.value
     } else {
       // For eventName: accept_invitation, join
       // memberEmail is in actor.email
