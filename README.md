@@ -1,39 +1,82 @@
-# Workspace Suite
+# Inarion 🦊🦊🦊
 
 ## Table of Contents
 
 - [Introduction](#introduction)
+- [License](#license)
+- [Tech Stack](#tech-stack)
 - [Features](#features)
 - [Installation](#installation)
-- [Steps](#steps)
-- [GitHub](#github)
 - [Configuration](#configuration)
+- [How to use](#how-to-use)
 - [Testing](#testing)
-- [Acknowledgements](#acknowledgements)
+- [Logging](#logging)
 - [Database Schema](#database-schema)
+- [APIs](#apis)
+- [Contributors](#contributors)
+- [Contributing](#contributing)
+- [Team Contact Information](#team-contact-information)
 
 ## Introduction
 
-The Google Workspace Admin Suite is a platform designed to bring extended domain management functionality to GWS Super Admins. This repository hosts the code for that platform.
+`Inarion` is a platform designed to bring extended domain management functionality to GWS Super Admins.  
+This project leverages the Google Workspace APIs to provide the more expansive and granular experience that many Google Workspace Domain Admins are looking for.  
+The suite is built to streamline administrative tasks, enhance security oversight, and provide in-depth insights into user and domain activity.  
+By utilizing the Google Workspace Admin SDK, this platform enables administrators to manage permissions, monitor user activity, and automate bulk actions across multiple accounts.  
+The platform is built using a modular architecture, allowing administrators to easily integrate new features and customize the suite to meet their specific needs.  
+This repository hosts the code for that platform.
+
+## License
+
+This project is source available under a non-commercial license. For more information, please see our [License](LICENSE.md) file.
+
+## Tech Stack
+
+**Frontend:**
+
+- [React](https://reactjs.org/)
+- [Next.js](https://nextjs.org/)
+
+**Backend:**
+
+- [Node.js](https://nodejs.org/)
+- [Express.js](https://expressjs.com/)
+
+**Database & Caching:**
+
+- [PostgreSQL](https://www.postgresql.org/) – Relational database
+- [Redis](https://redis.io/) – In-memory caching
+
+**Containerization:**
+
+- [Docker](https://www.docker.com/)
+
+**Logging:**
+
+- [Winston](https://github.com/winstonjs/winston)
+
+**Testing:**
+
+- [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) – Frontend component testing
+
+**Version Control:**
+
+- [Git](https://git-scm.com/)
 
 ## Features
 
 - **Audit Logging and Monitoring**  
-  Provides detailed logs and real-time monitoring to enhance security oversight.
+  Provides detailed logs and monitoring to enhance security oversight.
 - **Permission Management**  
-  Allows management and modification of permissions for Drive files, Calendar events, and groups.
+  Allows management and modification of permissions for Users, Drive files, and Google Groups.
 - **Advanced Reporting**  
-  Offers in-depth reports on user activity and domain health.
+  Offers in-depth reports on user and group activity and domain health.
 - **Bulk Actions**  
-  Enables automation of actions like updating user roles and applying settings across multiple accounts.
-- **Customizable Dashboards**  
-  Allows admins to personalize their dashboards with key metrics and tools.
-- **Real-Time Alerts**  
-  Delivers instant notifications for critical events and activities.
+  Enables automation of actions like deleting organization users, removing members from Googele Groups or and applying settings across multiple accounts.
+- **Comprehensive Dashboards**  
+  Allows admins to display comprehensive user and Google groups-related data..
 - **Domain Management**  
   Extends control over domain-wide settings and configurations.
-
-Find more about the platform in our [Design doc](https://docs.google.com/document/d/1Isz0NBSpngVcSoMmSf__bOB1ROaTUBx6kXqcV-efljg/edit#heading=h.yeifevu6kuwm).
 
 ## Installation
 
@@ -42,40 +85,40 @@ Find more about the platform in our [Design doc](https://docs.google.com/documen
 Before cloning and reusing this repository, ensure you have the following:
 
 1. **Google Workspace Super Admin Account**  
-   Necessary for accessing and managing domain-level settings.\
-   Test account credentials document will be provided by the Team members / management.
+   Necessary for accessing and managing domain-level settings.
 2. **Google Cloud Platform (GCP) Account**  
-   Required for setting up the necessary APIs, including enabling the Google Workspace Admin SDK.\
-   You may refer to the previously mentioned credentials document and use the same accounts for GCP console access. Further instructions are provided in the document.
+   Required for setting up the necessary [APIs](#apis), including enabling the Google Workspace Admin SDK.\
+   You should use the super admin account to use the same accounts for GCP console access. Further instructions are provided in the document.
 
 3. **Node.js & npm**  
    Ensure you have Node.js and npm installed for running the backend services.
 
 4. **PostgreSQL Database**  
-   A running instance of PostgreSQL is needed for database management. Ensure you have access credentials.
+    A running instance of PostgreSQL is needed for database management. Ensure you have access credentials.
+   While our internal development setup often runs the database on a Raspberry Pi, you can host your database instance anywhere you like (e.g., locally, on a dedicated server, or using a cloud provider).  
+   The application connects to the database using the following environment variables. Make sure these are set correctly in the environment where you run the project, pointing to your database instance:
+
+- POSTGRES_HOST: IP address of your database server.
+- POSTGRES_PORT: The port number PostgreSQL is listening on (usually 5432).
+- POSTGRES_USER: The username for database access. (default postgres)
+- POSTGRES_PASSWORD: The password for the database user.
+- POSTGRES_NAME: The specific database name to use.
 
 5. **Docker**  
    Download Docker from the [Official website](https://www.docker.com/).
 
-6. **Raspberry Pi** (Optional)\
-   A configured Raspberry Pi.
-
-7. **API Credentials**  
-   Set up and obtain the necessary API keys and OAuth 2.0 credentials from GCP for Google Workspace API integration.
-
-8. **Git**  
+6. **API Credentials**  
+   Set up and obtain the necessary API keys and OAuth 2.0 credentials from GCP for Google Workspace API integration following [these instructions](API_CREDENTIALS.md).
+7. **Git**  
    Version control system for managing the repository and any collaboration.
 
-9. **Environment Variables**  
-   Set up environment variables (e.g., API keys, database credentials) as described in the repository’s `.env.example` file.
-
-## Steps
+8. **HTTP Client**  
+   As most of features are not available in UI, you will need a http client like Postman(link) or Insomnia(link) to send requests to the backend server `http://localhost:4000/`
 
 ### PostgreSQL Database Installation
 
 1. Download PostgreSQL.
 2. Run the installer and keep proceeding "Next" without changing any settings.
-   - When the installer asks for the password for root user `postgres`, consult a team member to get the environment variables and common password.
 
 ### Database Initialization
 
@@ -84,7 +127,7 @@ Before cloning and reusing this repository, ensure you have the following:
 3. Right-click on “Databases” and click “Create Database”.
 4. Enter the Database name as `testdb` and click Save.
 5. Right-click on `testdb` and click "Query Tool".
-6. Copy the following [table creation queries](#database-schema) and paste them into the Query Tool.
+6. Copy the following [table creation queries](database_schema.sql) and paste them into the Query Tool.
 7. To execute, either press `F5` or click the "Play" button on the query tool.
 
 ### GitHub
@@ -98,180 +141,265 @@ Before cloning and reusing this repository, ensure you have the following:
    cd repository-name
    ```
 
-2. Create a folder keys inside the api folder and store the service account key inside.
-   • The service account key will be provided by a team member.
+2. Create a folder “credentials” inside the `api` folder and a file named `sa-key.json` and store the [service account key](API_CREDENTIALS.md#steps-to-issue-api-key) inside the file.
+
+3. (Optional): Generate [encryption keys](ENCRYPTION_KEYS.md).
 
 #### Running Locally
 
-1. Set Up Environment Variables: Create a .env file with necessary variables (e.g., database credentials, Google OAuth credentials).
-2. Start the Application: Build and run using Docker Compose:
+1. Set Up Environment Variables:
+
+- Create a .env file with necessary variables (e.g., database credentials, Google OAuth credentials).
+
+2. Start the Application:
+
+- Build and run using Docker Compose:
 
 ```bash
 docker-compose up --build
 ```
 
-3. Access the App: Visit http://localhost:3000 in the browser.
+3. Access the App:
+
+- Visit `http://localhost:3000` in the browser.
+
+4. Login with the superadmin account:
+
+- Click on “Login with google”
+- Click “Continue”
+- Check all boxes in the User consent screen and click “Allow”
+
+5. In your database, confirm that user and project data have been added to `Users`, `ServiceAccounts`, `ServiceAccountKeys` and `Projects` tables. Please note that these Project and Service accounts were created automatically during login and are `not` the same as the ones you created in [Prerequisites](#prerequisites).  
+   Note: the new project has been created with the name you indicated in .env in `PROJECT_NAME`.
+
+6. Enable necessary APIs in the newly created project:
+
+- In [Google Cloud Console](https://console.cloud.google.com/), select the newly created project at the top of the console.
+- In “quick access”, click on “Enabled APIs and services”(or click on the navigation button at the left top and select “APIs & Services > Enabled APIs and services”).
+- Make sure that these APIs are enabled:  
+  `Google Drive API`  
+  `Admin SDK API`  
+  `Drive Activity API`  
+  `Groups Settings API`
+- If necessary API is missing from the “Enabled APIs and services” list:
+
+  - Click on “+Enable APIs and Services”
+  - Type your API’s name in the search bar
+  - Select your API from the search result
+  - On the API page, click on the “enable” button under the API name
+
+7. Obtain newly-created service account Client ID:
+
+- Sign into Google Cloud Console with the superadmin account:
+- From the pulldown list at the top-left of the page, select your project.
+- Click on the navigation button at the left top and select “APIs & Services” > “Enabled APIs and services” > “Credentials”.
+- In the Credentials page, click on the service account email in the “Service Accounts” section
+- Click “Advanced settings”
+- In the “Domain-wide Delegation” section, copy the “Client ID”.
+
+8. Enable Domain-wide Delegation and add necessary scopes in [Admin console](https://admin.google.com):
+
+- Log into Admin Console with the superadmin account. From the left-side menu, select “Security” > “Access and data control” > “API controls”
+- On the “API controls” page, click on “MANAGE DOMAIN WIDE DELEGATION” in the “Domain wide delegation” section.
+- Click “ADD NEW”
+- Fill in the Client ID and list following [scopes](#apis), comma-separated:
+- Click “AUTHORIZE”
 
 ## Configuration
 
-The project uses a `.env` file for configuration:
+The project uses a `.env` file for configuration, check out the [env.example](.env.example) file for frontend and backend.
 
-- `GOOGLE_SERVICE_ACCOUNT_KEY_FILE`: Path to the service account key file for Google API access.
-- `GOOGLE_CLIENT_ID`: OAuth2 client ID for Google authentication.
-- `GOOGLE_CLIENT_SECRET`: OAuth2 client secret for Google authentication.
-- `REDIRECT_URI`: OAuth2 callback URL for redirecting after login.
-- `POSTGRES_HOST`: PostgreSQL server IP/hostname.
-- `POSTGRES_PORT`: PostgreSQL port (default: 5432).
-- `POSTGRES_USER`: PostgreSQL username.
-- `POSTGRES_PASSWORD`: PostgreSQL password.
-- `POSTGRES_DB`: Name of the PostgreSQL database.
-- `JWT_ACCESS_SECRET`: Secret key for signing access tokens.
-- `JWT_REFRESH_SECRET`: Secret key for signing refresh tokens.
-- `PORT`: App's running port.
-- `ORGANIZATION_ID`: Unique organization ID.
-- `API_BASE_URL`: Base URL for API requests.
+## How to use
 
-## Miscellaneous
+### User-related features:
 
-If you followed above steps to install and run the platform locally, you may encouter database connectivity issues in the initial run.\
-If you come across such issues, please refer to [this document](https://docs.google.com/document/d/12Etx9WJ9w6M5bPUpyGxPnQLsBm0e71mhPnsXOBGlV04/edit#heading=h.a7ogwbsjg1tn) to solve the connection issue by following the steps to add your Local IP address to the `pg_hba.conf` file
+#### API Endpoints:
+
+- User Management:
+
+  - GET http://localhost:4000/api/users/: List all users in the customer organization
+  - GET http://localhost:4000/api/users/preparations: Retrieves multiple sets of data related to users, organizational units, domains, groups, and role names.
+
+- User Roles and Permissions
+
+  - GET http://localhost:4000/api/users/role/assignments: List all role assignments
+  - GET http://localhost:4000/api/users/role/names: List all role names
+
+- User Organization Units
+
+  - GET http://localhost:4000/api/users/orgunits: List all OUs in the customer domain
+
+- User Security
+
+  - POST http://localhost:4000/api/users/2sv-off: Turn off 2-step verification for multiple users
+
+- User Deletion
+
+  - DELETE http://localhost:4000/api/users/: Delete multiple users
+
+#### Features/dev tools implemented in UI:
+
+Link:http://localhost:3000/en/people
+
+- User manager:
+  - allows to set dynamic filters for Organization Units, Domains, Google Groups, Roles, 2-step verification enrollment status and 2-step verification enforcement status. Screenshot - displays a table containing information for all users in the customer organization. The table has the following columns: “Name”, “Email address”, “Organization Unit”, “Enrolled in 2-step verification”, “2-step verification enforced”. Screenshot
+  - allows to bulk-delete multiple users by csv (Screenshots: 1 and 2)
+  - allows to turn-of 2-step verification for multiple users by csv
+
+### Groups-related features:
+
+#### API Endpoints:
+
+- Group Management
+
+  - GET http://localhost:4000/api/groups/: List all google groups in the customer organization
+  - GET http://localhost:4000/api/groups/group/:groupEmail: Get a google group by its email
+  - POST http://localhost:4000/api/groups/: Create a google group or multiple google groups
+
+- Group Members
+
+  - GET http://localhost:4000/api/groups/group/:groupEmail/members: List members of a group
+  - POST http://localhost:4000/api/groups/group/:groupEmail/members: Add members to a group
+  - POST http://localhost:4000/api/groups/members/export: List members of groups in CSV format
+  - DELETE http://localhost:4000/api/groups/group/:groupEmail/members: Delete multiple members from a group
+  - DELETE http://localhost:4000/api/groups/members/member/:memberEmail: Delete a member from multiple groups
+
+- Group Activity Logs
+
+  - GET http://localhost:4000/api/groups/activities: Get group activity logs (all group logs for all groups in the customer organization)
+  - GET http://localhost:4000/api/groups/joined-activities: Get group joined activity logs (all "add_member" and "accept_invitation" logs for all groups in the customer organization)
+
+- Group Hierarchy and Membership
+
+  - GET http://localhost:4000/api/groups/target/:targetEmail/hierarchy: Get group hierarchy relative to a group (or potentially a user in the future)
+  - GET http://localhost:4000/api/groups/target/:targetEmail/nested-table: Get nested membership table for an entity (group or user)
+
+- Group Settings
+  - GET http://localhost:4000/api/groups/group/:groupEmail/settings: Get a group's settings
+  - PUT http://localhost:4000/api/groups/group/:groupEmail/settings: Update a group's settings
+
+#### Features/dev tools implemented in UI:
+
+Link: `http://localhost:3000/en/groups`
+
+- “Dev tools” tab:
+
+  - Create a new google group
+  - Create multiple groups from a csv file
+  - Create multiple groups with serial-like numbers
+  - Add members to a group by from a csv file
+
+- “Features” tab:
+
+  - Export a csv with member detail for a group/multiple groups
+  - Remove multiple members from a group by CSV
+
+    Screenshots:
+    1
+    2
+    3
+
+  - Remove a member from multiple groups by CSV
+
+Link: `http://localhost:3000/en/groups/hierarchy`
+
+- Nested group membership:
+  displays a table of all groups that a given group or user is a member of, either directly or indirectly.
+  The table contains columns for the group email, the type of membership (direct or indirect), and the timestamp of when the membership was created.  
+  Screenshot:
+
+- Groups hierarchy graph:
+  displays a hierarchical representation of related groups for a given member email address
+
+Link: `http://localhost:3000/en/groups/groups_manager`
+
+- Groups manager page(UI only, not connected to backend):
+  Allows to set filters to search for groups in the customer organization which matched particular conditions. Displays search result as a table with following columns: Name, Email address, Members, Has external members, Who can leave group, Is admin created, Alias address. Every group row can be expanded and displays detailed information on access settings for the group. Search results can be downloaded as a csv file.  
+  Screenshots:
+  1
+  2
+  3
+
+### Drive-related features:
+
+#### API Endpoints:
+
+- Shared Drives List
+
+  - GET http://localhost:4000/api/drive/shared-drives: Retrieves a list of all Shared Drives within the customer's domain accessible via admin impersonation.
+
+- File metadata management
+
+  - GET http://localhost:4000/api/drive/all-drives: Retrieves metadata of all the files across all the shared drives and all the user’s personal drives via admin and user impersonation.
+
+- Drive Filters
+
+  - GET http://localhost:4000/api/drive/filters: Retrieves metadata of all the files that match the specific filter as requested by the user using the query parameters.
+
+    Here’s the list of filters that can be used:  
+    a) page (integer) - specify the page count  
+    b) owner (string) - email address of any user within the domain  
+    c) sharedDrive (string) - shared drive ID  
+    d)sharedWith (string) - email address of any user including external users  
+    e) type (string) - specify type of item eg- file or folder  
+    f) visibility (string) - link sharing options on the file, choose any from anyoneCanFind / anyoneWithLink / domainCanFind / domainWithLink / limited  
+    g) trashed (boolean) - specify if requested data is trashed or not  
+    h) listFilesInsideSharedDrives (boolean) - specify if items are to be fetched from on shared drives or all drives  
+    i)onlyListSharedDrives (boolean) - fetch information about the shared drives and not any item’s information  
+    j) hasMembers (boolean) - fetch items from shared drives that have members in it, will work ONLY when onlyListSharedDrives is true.  
+    k) hasManagers (boolean) - fetch items from shared drives that have managers/organizers in it, will work ONLY when onlyListSharedDrives is true.
+
+- Drive hierarchy structure
+
+  - GET http://localhost:4000/api/drive/drive-structure: Route to build and display a nested structure of an individual shared drive or a user’s personal drive.
+
+    Use the following query parameters to differentiate:  
+    a) id (string) - can be email of any user or ID of a shared drive  
+    b)driveName (string) - name of the shared drive, will work ONLY when ID of shared drive is provided.
+
+- Direct Path structure
+  - GET http://localhost:4000/api/drive/direct-path: Route to build and display a direct path from the specified item to the root folder of either a shared drive or a user’s personal drive.  
+    Query parameter used: itemId (string) - ID of an item that is either in a shared drive or a user’s personal drive.
+
+#### Features/dev tools implemented in UI:
+
+N/A
 
 ## Testing
 
-**[Section edit To be assigned]**
+Backend - N/A
+Frontend - testing-library
 
-## Acknowledgements
+## Logging
 
-TBD
+Winston is used for structured logging with transports for console output and log files (error.log, combined.log). All HTTP requests are logged via Express middleware, and errors are captured through a global error handler. Logs are formatted with timestamps and dumped into the database daily for centralized monitoring and analysis.
 
-## Database Schema
+## APIs
 
-```sql
-CREATE SEQUENCE "Users_id_seq" START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-
-CREATE TABLE IF NOT EXISTS public."Users"
-(
-    id integer NOT NULL DEFAULT nextval('"Users_id_seq"'::regclass),
-    email character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    "projectName" character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    tokens jsonb,
-    "createdAt" timestamp with time zone,
-    "updatedAt" timestamp with time zone NOT NULL,
-    CONSTRAINT "Users_pkey" PRIMARY KEY (id),
-    CONSTRAINT "Users_email_key" UNIQUE (email)
-)
-
-TABLESPACE pg_default;
-
-ALTER TABLE IF EXISTS public."Users"
-    OWNER to postgres;
-
---------------------------------------------------------------
-
-
-CREATE SEQUENCE "Projects_id_seq" START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-
-CREATE TABLE IF NOT EXISTS public."Projects"
-(
-    id integer NOT NULL DEFAULT nextval('"Projects_id_seq"'::regclass),
-    "projectId" character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    "projectName" character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    "organizationId" character varying(255) COLLATE pg_catalog."default",
-    "createdAt" timestamp with time zone,
-    "updatedAt" timestamp with time zone NOT NULL,
-    "userId" integer,
-    CONSTRAINT "Projects_pkey" PRIMARY KEY (id),
-    CONSTRAINT "Projects_projectId_key" UNIQUE ("projectId"),
-    CONSTRAINT "Projects_userId_fkey" FOREIGN KEY ("userId")
-        REFERENCES public."Users" (id) MATCH SIMPLE
-        ON UPDATE CASCADE
-        ON DELETE CASCADE
-)
-
-TABLESPACE pg_default;
-
-ALTER TABLE IF EXISTS public."Projects"
-    OWNER to postgres;
-
-
-
--------------------------------------------------------------------
-
-CREATE SEQUENCE "ServiceAccounts_id_seq" START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-
-CREATE TABLE IF NOT EXISTS public."ServiceAccounts"
-(
-    id integer NOT NULL DEFAULT nextval('"ServiceAccounts_id_seq"'::regclass),
-    "projectId" character varying(255) COLLATE pg_catalog."default",
-    "serviceAccountEmail" character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    "displayName" character varying(255) COLLATE pg_catalog."default",
-    "clientId" character varying(255) COLLATE pg_catalog."default",
-    "privateKey" text COLLATE pg_catalog."default",
-    "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "ServiceAccounts_pkey" PRIMARY KEY (id),
-    CONSTRAINT "ServiceAccounts_serviceAccountEmail_key" UNIQUE ("serviceAccountEmail"),
-    CONSTRAINT fk_project FOREIGN KEY ("projectId")
-        REFERENCES public."Projects" ("projectId") MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-)
-
-TABLESPACE pg_default;
-
-ALTER TABLE IF EXISTS public."ServiceAccounts"
-    OWNER to postgres;
-
----------------------------------------------------------------------------
-
-CREATE SEQUENCE "ServiceAccountKeys_id_seq" START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-
-
-CREATE TABLE IF NOT EXISTS public."ServiceAccountKeys"
-(
-    id integer NOT NULL DEFAULT nextval('"ServiceAccountKeys_id_seq"'::regclass),
-    "privateKeyId" character varying(255) COLLATE pg_catalog."default",
-    "privateKeyData" text COLLATE pg_catalog."default",
-    "validAfterTime" timestamp without time zone,
-    "validBeforeTime" timestamp without time zone,
-    "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    "serviceAccountEmail" character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    CONSTRAINT "ServiceAccountKeys_pkey" PRIMARY KEY (id),
-    CONSTRAINT "fk_serviceAccount" FOREIGN KEY ("serviceAccountEmail")
-        REFERENCES public."ServiceAccounts" ("serviceAccountEmail") MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE CASCADE
-)
-
-TABLESPACE pg_default;
-
-ALTER TABLE IF EXISTS public."ServiceAccountKeys"
-    OWNER to postgres;
---------------------------------------------------------------------------
-------
-
-CREATE SEQUENCE "Tokens_id_seq" START WITH 1 INCREMENT BY 1 NO MINVALUE NO MAXVALUE CACHE 1;
-
-CREATE TABLE IF NOT EXISTS public."Tokens"
-(
-    id integer NOT NULL DEFAULT nextval('"Tokens_id_seq"'::regclass),
-    "accessToken" text COLLATE pg_catalog."default" NOT NULL,
-    "refreshToken" text COLLATE pg_catalog."default",
-    scope character varying(255) COLLATE pg_catalog."default",
-    "tokenType" character varying(255) COLLATE pg_catalog."default",
-    "expiryDate" bigint,
-    "createdAt" timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    "userId" integer NOT NULL,
-    CONSTRAINT "Tokens_pkey" PRIMARY KEY (id)
-)
-
-TABLESPACE pg_default;
-
-ALTER TABLE IF EXISTS public."Tokens"
-    OWNER to postgres;
+```'https://www.googleapis.com/auth/cloud-platform',
+    'https://www.googleapis.com/auth/admin.directory.user',
+    'https://www.googleapis.com/auth/admin.directory.domain',
+    'https://www.googleapis.com/auth/activity',
+    ‘https://www.googleapis.com/auth/drive’,
+    'https://www.googleapis.com/auth/drive.activity',
+    'https://www.googleapis.com/auth/drive.activity.readonly',
+    'https://www.googleapis.com/auth/drive.metadata.readonly',
+    'https://www.googleapis.com/auth/admin.directory.group',
+    'https://www.googleapis.com/auth/admin.reports.audit.readonly',
+    'https://www.googleapis.com/auth/apps.groups.settings',
+    'https://www.googleapis.com/auth/admin.directory.user.security',
+    'https://www.googleapis.com/auth/admin.directory.rolemanagement',
+    'https://www.googleapis.com/auth/admin.directory.orgunit',
 ```
+
+## Contributors
+
+A list of contributors to this project can be found in [CONTRIBUTORS](CONTRIBUTORS.md) file.
+
+## Contributing
+
+Want to contribute to this project? Please read our [CONTRIBUTING](CONTRIBUTING.md) file to learn how to get started.
 
 ## Team Contact Information
 
-Email : project-wssuite@pvp.co.jp
+Email : [inarion@pvp.co.jp](mailto:inarion@pvp.co.jp)
