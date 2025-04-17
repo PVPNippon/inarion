@@ -11,7 +11,6 @@
 - [How to use](#how-to-use)
 - [Testing](#testing)
 - [Logging](#logging)
-- [Database Schema](#database-schema)
 - [APIs](#apis)
 - [Contributors](#contributors)
 - [Contributing](#contributing)
@@ -19,7 +18,7 @@
 
 ## Introduction
 
-`Inarion` is a platform designed to bring extended domain management functionality to GWS Super Admins.  
+Inarion is a platform designed to bring extended domain management functionality to GWS Super Admins.  
 This project leverages the Google Workspace APIs to provide the more expansive and granular experience that many Google Workspace Domain Admins are looking for.  
 The suite is built to streamline administrative tasks, enhance security oversight, and provide in-depth insights into user and domain activity.  
 By utilizing the Google Workspace Admin SDK, this platform enables administrators to manage permissions, monitor user activity, and automate bulk actions across multiple accounts.  
@@ -241,9 +240,10 @@ The project uses a `.env` file for configuration, check out the [env.example](.e
 
 Link:http://localhost:3000/en/people
 
-- User manager:
-  - allows to set dynamic filters for Organization Units, Domains, Google Groups, Roles, 2-step verification enrollment status and 2-step verification enforcement status. Screenshot - displays a table containing information for all users in the customer organization. The table has the following columns: “Name”, “Email address”, “Organization Unit”, “Enrolled in 2-step verification”, “2-step verification enforced”. Screenshot
-  - allows to bulk-delete multiple users by csv (Screenshots: 1 and 2)
+- User manager: 
+  - allows to set dynamic filters for Organization Units, Domains, Google Groups, Roles, 2-step verification enrollment status and 2-step verification enforcement status. [Screenshot](https://github.com/user-attachments/assets/6bcc2e2d-15f6-4d08-81e5-95bb0dfff7fe)
+  - displays a table containing information for all users in the customer organization. The table has the following columns: “Name”, “Email address”, “Organization Unit”, “Enrolled in 2-step verification”, “2-step verification enforced”. [Screenshot](https://github.com/user-attachments/assets/761c3be7-38a7-4a80-b2d4-30767a2f7df8)
+  - allows to bulk-delete multiple users by csv (Screenshots: [1](https://github.com/user-attachments/assets/03fe9db3-8469-45c9-9326-dbdf6d69d8fd) and [2](https://github.com/user-attachments/assets/155aaa31-c199-4a4f-8f0f-5dc67781ab7f))
   - allows to turn-of 2-step verification for multiple users by csv
 
 ### Groups-related features:
@@ -295,9 +295,9 @@ Link: `http://localhost:3000/en/groups`
   - Remove multiple members from a group by CSV
 
     Screenshots:
-    1
-    2
-    3
+    [1](https://github.com/user-attachments/assets/4fe30bc0-6723-448c-bae8-01344a861343)
+    [2](https://github.com/user-attachments/assets/49ed1ffb-3497-4d17-a0c6-e29e3c461e5d)
+    [3](https://github.com/user-attachments/assets/abe1563d-7b9d-4817-8028-ad914c05f5f9)
 
   - Remove a member from multiple groups by CSV
 
@@ -305,8 +305,7 @@ Link: `http://localhost:3000/en/groups/hierarchy`
 
 - Nested group membership:
   displays a table of all groups that a given group or user is a member of, either directly or indirectly.
-  The table contains columns for the group email, the type of membership (direct or indirect), and the timestamp of when the membership was created.  
-  Screenshot:
+  The table contains columns for the group email, the type of membership (direct or indirect), and the timestamp of when the membership was created. [Screenshot](https://github.com/user-attachments/assets/484f6452-85dc-4598-b20a-5550a450c6a8)
 
 - Groups hierarchy graph:
   displays a hierarchical representation of related groups for a given member email address
@@ -315,10 +314,10 @@ Link: `http://localhost:3000/en/groups/groups_manager`
 
 - Groups manager page(UI only, not connected to backend):
   Allows to set filters to search for groups in the customer organization which matched particular conditions. Displays search result as a table with following columns: Name, Email address, Members, Has external members, Who can leave group, Is admin created, Alias address. Every group row can be expanded and displays detailed information on access settings for the group. Search results can be downloaded as a csv file.  
-  Screenshots:
-  1
-  2
-  3
+Screenshots: 
+[1](https://github.com/user-attachments/assets/b8a086e3-1140-4eac-a2d7-c074f6ac1491)
+[2](https://github.com/user-attachments/assets/20c7924d-5637-40cd-81e4-95cbf2df540c)
+[3](https://github.com/user-attachments/assets/0360ffbf-f15a-43e7-bc8d-97d36b3074bc)
 
 ### Drive-related features:
 
