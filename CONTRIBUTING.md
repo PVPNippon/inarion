@@ -26,4 +26,4 @@ If you do not agree to these terms, **do not submit a pull request**.
 ## Questions or Feedback?
 
 - Open Github Issue.
-- Contact us at: [inarion@pvp.co.jp]
+- Contact us at: [contact@pvp.co.jp]
