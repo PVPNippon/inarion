@@ -15,6 +15,18 @@ Ensure the following files are up-to-date:
 
 ## Breaking Changes
 
+### April 17, 2025 - Updated api/config and renamed the file containing the service account credentials in api/credentials folder
+
+**Summary**:
+
+- Updated scopes in api/config file to match the ones in README.md
+- Renamed the file containing the service account credentials in api/credentials folder to "sa-key.json"
+
+**Impact**:
+
+- If you are using project other than "new-proj", you may need to add some [scopes](README.md#apis) to your domain-wide delegation in [Admin console](https://admin.google.com).
+- Everyone impacted: you need to rename the file containing the service account credentials in api/credentials folder to "sa-key.json".
+
 ### April 8, 2025 - Added .env to next-ui folder
 
 **Summary**:

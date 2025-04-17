@@ -16,7 +16,9 @@
 
 #### Navigate to the API Library:
 
-- Click the Navigation menu (the hamburger icon ☰) in the top-left corner. - Hover over or click on "APIs & Services". - In the sub-menu, click on "Library".
+- Click the Navigation menu (the hamburger icon ☰) in the top-left corner.
+- Hover over or click on "APIs & Services".
+- In the sub-menu, click on "Library".
 
 #### Search for the API:
 
@@ -29,7 +31,8 @@
 
 #### Enable the API:
 
-- On the Cloud Resource Manager API page, click the blue "ENABLE" button. - Wait a few moments for Google Cloud to enable the API for your selected project.
+- On the Cloud Resource Manager API page, click the blue "ENABLE" button.
+- Wait a few moments for Google Cloud to enable the API for your selected project.
 
 #### Repeat the same steps for “Identity and Access Management (IAM) API”.
 
