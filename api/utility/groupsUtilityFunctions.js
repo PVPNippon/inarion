@@ -5,6 +5,8 @@
  * See LICENSE.md file or contact licensing@pvp.co.jp
  */
 
+const { setTimeout } = require('timers/promises')
+
 function getGroupEmailsToIdsObj(groups) {
   if (!Array.isArray(groups)) {
     groups = [groups]
@@ -184,10 +186,55 @@ function extractTimestampFromGroupJoinLogForGroupsEnterprise(joinLog, groupEmail
   return null
 }
 
+async function exponentialBackoff(callback, maxRetries = 6, delay = 1000) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await callback()
+    } catch (error) {
+      console.log(`Attempt ${attempt} failed:`)
+
+      if (attempt === maxRetries) {
+        console.log('Max retries reached.')
+        throw error
+      }
+
+      if (isRetryableError(error)) {
+        const jitter = Math.floor(Math.random() * 1000)
+        await setTimeout(delay + jitter)
+        console.log(`Retrying after ${delay + jitter}ms...`)
+        delay *= 2
+      } else {
+        console.log('Non-retryable error encountered.')
+        throw error
+      }
+    }
+  }
+}
+
+function isRetryableError(error) {
+  const statusCode = error.status
+  const reason = error?.errors[0]?.reason
+  console.log(`statusCode: ${statusCode}, reason: ${reason}`)
+
+  // https://developers.google.com/workspace/admin/directory/v1/limits
+
+  // Groups Settings API の 403 'rateLimitExceeded' は 1 分くらい待たないと回復しないっぽい
+  if (statusCode === 403) {
+    return (reason === 'userRateLimitExceeded' || reason === 'quotaExceeded' || reason === 'rateLimitExceeded')
+  }
+
+  if (statusCode === 429) {
+    return reason === 'rateLimitExceeded'
+  }
+
+  return false
+}
+
 module.exports = {
   getGroupEmailsToIdsObj,
   sortGroupsByEmail,
   extractEmailsFromGroup,
   extractEmailsFromUser,
   getGroupJoinTimestamp,
+  exponentialBackoff,
 }

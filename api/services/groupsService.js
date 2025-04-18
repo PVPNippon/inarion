@@ -24,12 +24,9 @@ const groupsUtilityFunctions = require('../utility/groupsUtilityFunctions.js')
  */
 async function listGroups({ userEmail, client, query }) {
   //Retrieve an existing impersonated auth client for Directory API or create a new one
-  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
-  const groups = [] // Container for all groups retrieved
-  let groupsResponse // Response from the API
+  const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
 
-  // create request object
-  const requestObj = {
+  const requestParams = {
     customer: 'my_customer',
     maxResults: 200, //max allowed value
     orderBy: 'email',
@@ -37,24 +34,30 @@ async function listGroups({ userEmail, client, query }) {
 
   // Add query(filter) if it exists
   if (query) {
-    requestObj.query = query
+    requestParams.query = query
   }
 
-  // Fetch all groups
+  const groups = [] // Container for all groups retrieved
+  let groupsResponse // Response from the API
+
   do {
-    // Fetch groups
-    groupsResponse = await directory.groups.list(requestObj)
+    groupsResponse = await directoryClient.groups.list(requestParams)
 
     //if there are no groups in the organization, return an empty array
-    if (typeof groupsResponse.data.groups === 'undefined') break
+    if (typeof groupsResponse.data.groups === 'undefined') {
+      break
+    }
 
-    // Append the fetched groups to the groups array
     groups.push(...groupsResponse.data.groups)
+  } while ((requestParams.pageToken = groupsResponse.data.nextPageToken))
 
-    //repeat until there are no more pages(i.e. no nextPageToken returned by google)
-  } while ((requestObj.pageToken = groupsResponse.data.nextPageToken)) // Continue fetching groups while there are more pages
+  // Format group instances
+  groups.forEach(group => {
+    delete group.kind
+    delete group.etag
+  })
 
-  return groups // Return all fetched groups
+  return groups
 }
 
 /**

@@ -9,6 +9,7 @@ const groupsCacheService = require('../services/groupsCacheService.js')
 const usersCacheService = require('../services/usersCacheService.js')
 const groupsUtilityFunctions = require('../utility/groupsUtilityFunctions.js')
 const groupsService = require('../services/groupsService.js')
+const { getImpersonatedClientInstanceForAdmin } = require('../services/authService')
 
 /**
  * Middleware to retrieve all group instances from the cache.
@@ -562,6 +563,175 @@ async function storeNestedTables(req, res, next) {
   }
 }
 
+async function retrieveFilteredIds(req, res, next) {
+  if (req.query.adminCreated) {
+    res.locals.adminCreated = req.query.adminCreated.toLowerCase() === 'true'
+  }
+  try {
+    const filteredGroupIds = await groupsCacheService.getFilteredIds('adminCreated', res.locals.adminCreated)
+
+    if (filteredGroupIds !== null) {
+      res.locals.data = filteredGroupIds
+      res.locals.cached = true
+      return next()
+    }
+
+  } catch (error) {
+    console.log('Error retrieving a filter:', error)
+  }
+
+  let allGroupIds = null
+  try {
+    allGroupIds = await groupsCacheService.getAllIds(true)
+  } catch (error) {
+    console.log('Error retrieving all group IDs:', error)
+  }
+  if (allGroupIds === null) {
+    return next()
+  }
+
+  let rawGroups = null
+  try {
+    rawGroups = await groupsCacheService.getGroupsByIds(allGroupIds)
+  } catch (error) {
+    console.log('Error storing a filter:', error)
+  }
+  if (rawGroups === null) {
+    return next()
+  }
+
+  // There are no groups in the org
+  if (rawGroups.length === 0) {
+    res.locals.data = []
+    return next()
+  }
+
+  const groups = rawGroups.filter(group => group !== null)
+
+  // No group instances are in the cache
+  if (groups.length === 0) {
+    return next()
+  }
+
+  res.locals.data = groups.filter(group => group.adminCreated === res.locals.adminCreated).map(group => group.id)
+
+  next()
+}
+
+async function storeFilteredIds(req, res, next) {
+  next()
+
+  if (res.locals.cached) {
+    return
+  }
+
+  if (res.locals.statusCode === 500) {
+    return
+  }
+
+  try {
+    const result = await groupsCacheService.overwriteFilteredIds('adminCreated', res.locals.adminCreated, res.locals.data)
+    console.log('Stored all group ids and instances in the cache:', result)
+  } catch (error) {
+    console.log('Error storing all group ids and instances in the cache:', error)
+  }
+}
+
+async function storeAllSettings(req, res, next) {
+  const { userEmail } = req.query
+
+  let allIds = null
+
+  try {
+    allIds = await groupsCacheService.getAllIds(true)
+  } catch (error) {
+    console.log('Error retrieving all group IDs:', error)
+    res.locals.data = { message: 'Error retrieving all group IDs' }
+    res.locals.statusCode = 500
+    return next()
+  }
+
+  if (allIds === null) {
+    console.log('Group IDs are not in the cache')
+    res.locals.data = { message: 'Group IDs are not in the cache' }
+    res.locals.statusCode = 500
+    return next()
+  }
+
+  let rawGroups
+  try {
+    rawGroups = await groupsCacheService.getGroupsByIds(allIds)
+  } catch (error) {
+    console.log('Error retrieving all groups:', error)
+    res.locals.data = { message: 'Error retrieving all groups' }
+    res.locals.statusCode = 500
+    return next()
+  }
+
+  // There are no groups in the org
+  if (rawGroups.length === 0) {
+    res.locals.data = { message: 'There are no groups in the org' }
+    return next()
+  }
+
+  const groups = rawGroups.filter(group => group !== null)
+
+  // No group instances are in the cache
+  if (groups.length === 0) {
+    res.locals.data = { message: 'No group instances are in the cache' }
+    res.locals.statusCode = 500
+    return next()
+  }
+
+  let groupSettingsClient
+
+  try {
+    groupSettingsClient = await getImpersonatedClientInstanceForAdmin(userEmail, 'groups')
+  } catch (error) {
+    console.log('Error retrieving group settings client:', error)
+    res.locals.data = { message: 'Error retrieving group settings client' }
+    res.locals.statusCode = 500
+    return next()
+  }
+
+  // Around 1300/min is the limit
+  const BULK_NUM = 100
+  let num = 0
+
+  for (let i = 0; i < groups.length; i += BULK_NUM) {
+    const groupsChunk = groups.slice(i, i + BULK_NUM)
+    let settingsArray
+    try {
+      settingsArray = await Promise.all(groupsChunk.map(group => groupsUtilityFunctions.exponentialBackoff(() => groupsService.getSettings({ userEmail, groupEmail: group.email, client: groupSettingsClient }), 2, 60000)))
+    } catch (error) {
+      console.log('Error retrieving group settings:', error)
+      res.locals.data = {
+        message: 'Error retrieving group settings',
+        totalGroupsCount: groups.length,
+        succeededGroupsCount: num,
+      }
+      res.locals.statusCode = 500
+      return next()
+    }
+
+    try {
+      await Promise.all(settingsArray.map((settings, index) => groupsCacheService.setSettingsById(groupsChunk[index].id, settings.data)))
+    } catch (error) {
+      console.log('Error storing group settings in the cache:', error)
+      res.locals.data = {
+        message: 'Error storing group settings in the cache',
+        totalGroupsCount: groups.length,
+        succeededGroupsCount: num,
+      }
+      res.locals.statusCode = 500
+      return next()
+    }
+    num += groupsChunk.length
+    console.log('num =', num)
+  }
+  next()
+}
+
 module.exports = {
   retrieveAllGroups,
   storeAllGroups,
@@ -577,4 +747,9 @@ module.exports = {
 
   retrieveNestedTable,
   storeNestedTables,
+
+  retrieveFilteredIds,
+  storeFilteredIds,
+
+  storeAllSettings,
 }

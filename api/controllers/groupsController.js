@@ -662,3 +662,30 @@ exports.getNestedTable = async (req, res, next) => {
   }
   next()
 }
+
+
+exports.getFilteredIds = async (req, res, next) => {
+  if (res.locals.cached) {
+    return next()
+  }
+
+  if (res.locals.data) {
+    return next()
+  }
+
+  const { userEmail } = req.query
+  try {
+    // Fetch an array with all organization's groups
+    const groups = await groupsService.listGroups({
+      userEmail,
+    })
+
+    res.locals.data = groups.filter(group => group.adminCreated === res.locals.adminCreated).map(group => group.id)
+    logger.debug('Returning list of groups', { storeLocation: 'both' })
+  } catch (error) {
+    res.locals.statusCode = 500
+    res.locals.data = { message: 'Error fetching groups' }
+    logger.error(error)
+  }
+  next()
+}
