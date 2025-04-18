@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const { getImpersonatedClientInstanceForAdmin } = require('./authService')
 const logger = require('../logger/logger')(__filename, 'Users Service')
 
@@ -71,7 +78,6 @@ async function turnOffTwoSVForUser({ userEmail, client, twoSVUserEmail }) {
   //Retrieve an existing impersonated auth client for Directory API or create a new one
   const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
 
-  // TODO: Write the status codes for twoStepVerification.turnOff
   // twoStepVerification.turnOff returns a 204 response without any messages if 2sv was successfully turned off.
   // Successful only if the user's parameter "isEnrolledIn2Sv" is true AND "isEnforcedIn2Sv" is false.
   // The currently known error status patterns are listed below.
@@ -229,7 +235,6 @@ async function deleteUser({ userEmail, client, deleteUserEmail }) {
   // Retrieve an existing impersonated auth client for Directory API or create a new one
   const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
 
-  //TODO(m.okamoto): Write the status codes for users.delete
   // users.delete returns a 204 response without any messages if an user deleted successfully.
   // The currently known error status patterns are listed below.
   // 400
@@ -270,7 +275,6 @@ async function deleteUser({ userEmail, client, deleteUserEmail }) {
  * @throws {Error} - Throws an error if there is an issue with the API call.
  */
 async function deleteUsers({ userEmail, client, deleteUserEmails }) {
-  // TODO(m.okamoto): I will think about the function to raise an alert later if the user to be deleted is SA or Admin.
   logger.debug('Reached deleteUsers endpoint.')
   // Retrieve an existing impersonated auth client for Directory API or create a new one
   const directoryClient = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
@@ -395,7 +399,6 @@ async function listRoleNames({ userEmail, client }) {
   return roleNames // Return the role names
 }
 
-// TODO(m.okamoto): pagenation ないのでリファクタリングする
 async function listRoleAssignments({ userEmail, client }) {
   logger.debug('Reached listRoleAssignments endpoint.')
   //Retrieve an existing impersonated auth client for Directory API or create a new one
@@ -449,6 +452,45 @@ async function listOrgUnits({ userEmail, client }) {
   return response.data
 }
 
+async function watchUsers({ userEmail, client }) {
+  console.log('watchUsers called with userEmail:', userEmail)
+  // logger.debug('Reached watchUsers endpoint.')
+  //Retrieve an existing impersonated auth client for Directory API or create a new one
+  const directory = client ?? (await getImpersonatedClientInstanceForAdmin(userEmail, 'directory'))
+  let changesResponse // Response from the API
+
+  const channelId = 12345
+
+  // create request object
+  const requestObj = {
+    resource: {
+      id: channelId,
+      type: 'web_hook',
+      address: 'http://localhost:4000/api/users/watch?userEmail=${userEmail}',
+    },
+
+    customer: 'my_customer',
+    maxResults: 100,
+    orderBy: 'email',
+    events: ['ADD', 'DELETE', 'UPDATE', 'MAKE_ADMIN', 'UNDELETE'],
+    projection: 'BASIC',
+    showDeleted: false,
+    sortOrder: 'ASCENDING',
+    viewType: 'admin_view',
+  }
+
+  // Fetch all changes
+  // Fetch changes
+  changesResponse = await directory.users.watch(requestObj)
+
+  return {
+    channelId: channelId,
+    resourceId: watchResponse.data.resourceId,
+    expiration: watchResponse.data.expiration,
+    ...watchResponse.data,
+  }
+}
+
 module.exports = {
   listUsers,
   turnOffTwoSVForUsersWithRateLimit,
@@ -456,4 +498,5 @@ module.exports = {
   listRoleNames,
   listRoleAssignments,
   listOrgUnits,
+  watchUsers,
 }

@@ -1,9 +1,15 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 'use client'
 import React, { useContext, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
-import ClearAllCookies from '../serveractions/ClearAllCookies'
 
 /**
  * A React component that performs a logout action.
@@ -44,8 +50,6 @@ function Logout() {
           }
         )
         if (response.status === 200) {
-          //Clear all cookies(test)
-          ClearAllCookies
           // Clear the email in context
           setEmail('')
           // Redirect to the registration page

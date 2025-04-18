@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const { google } = require('googleapis')
 const config = require('../config/config')
 const redisCacheService = require('../services/redisCacheService')
@@ -190,16 +197,17 @@ async function initializeGoogleAuth(credentials) {
       credentials: credentials,
       // Specify the required scopes API access.
       scopes: [
+        'https://www.googleapis.com/auth/admin.directory.user',
+        'https://www.googleapis.com/auth/admin.directory.domain',
+        'https://www.googleapis.com/auth/activity',
         'https://www.googleapis.com/auth/drive',
-        'https://www.googleapis.com/auth/drive.metadata.readonly',
+        'https://www.googleapis.com/auth/drive.activity',
         'https://www.googleapis.com/auth/drive.activity.readonly',
+        'https://www.googleapis.com/auth/drive.metadata.readonly',
         'https://www.googleapis.com/auth/admin.directory.group',
-        'https://www.googleapis.com/auth/admin.directory.user.readonly',
         'https://www.googleapis.com/auth/admin.reports.audit.readonly',
         'https://www.googleapis.com/auth/apps.groups.settings',
         'https://www.googleapis.com/auth/admin.directory.user.security',
-        'https://www.googleapis.com/auth/admin.directory.user',
-        'https://www.googleapis.com/auth/admin.directory.domain',
         'https://www.googleapis.com/auth/admin.directory.rolemanagement',
         'https://www.googleapis.com/auth/admin.directory.orgunit',
       ],

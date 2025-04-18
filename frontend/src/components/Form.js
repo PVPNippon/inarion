@@ -1,18 +1,25 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 // src/Form.js
-import React, { useContext, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ValueContext } from '../contexts/ValueContext';
+import React, { useContext, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { ValueContext } from '../contexts/ValueContext'
 
 const Form = () => {
-  const [inputValue, setInputValue] = useState('');
-  const { setValue } = useContext(ValueContext);
-  const navigate = useNavigate();
+  const [inputValue, setInputValue] = useState('')
+  const { setValue } = useContext(ValueContext)
+  const navigate = useNavigate()
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    setValue(inputValue);
-    navigate('/result');
-  };
+    e.preventDefault()
+    setValue(inputValue)
+    navigate('/result')
+  }
 
   return (
     <form onSubmit={handleSubmit}>
@@ -24,9 +31,7 @@ const Form = () => {
       />
       <button type="submit">Save</button>
     </form>
-  );
-};
+  )
+}
 
-export default Form;
-
-
+export default Form

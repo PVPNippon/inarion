@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 'use client'
 import React, { useState, useEffect, useRef, useReducer } from 'react'
 
@@ -34,6 +41,7 @@ import {
   CustomTableCell,
 } from '@/components/ui/custom-table'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { CustomSpinner } from '@/components/ui/custom-spinner'
 
 //icons
 import { Download, CloudUpload, X, Check, CircleX, TriangleAlert, CircleAlert } from 'lucide-react'
@@ -57,7 +65,7 @@ const uploadStateArray = [
   groupStrings.uploadStates.showTable,
   groupStrings.uploadStates.showDeletionResult,
 ]
-const email = 'testadmin@pvp-test-domain2.com' //TODO:temporary bypass, remove when the apiClient module is ready
+const email = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL //temporarily bypass login and jwttoken check
 
 /**
  * Returns the number of occurrences of a given value in an array.
@@ -297,11 +305,11 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
   [
     {
       "Member Name [ optional ]": "Group1",
-      "Member Email [ required ]": "group@pvp-test-domain2.com"
+      "Member Email [ required ]": "group@yourdomain.com"
   },
   {
       "Member Name [ optional ]": "Group2",
-      "Member Email [ required ]": "group2@pvp-test-domain2.com"
+      "Member Email [ required ]": "group2@yourdomain.com"
   }
 ]) 
 
@@ -464,7 +472,6 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
           aria-describedby={undefined}
           customHeight="h-[826px]"
           customWidth="w-[880px]"
-          customDialogCloseClassName="right-4 top-[-38px]"
           className="space-y-14"
         >
           <div className="flex flex-col p-4 space-y-7">
@@ -576,7 +583,7 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
               {/* Upload in progress spinner */}
               {uploadState.status === groupStrings.uploadStates.uploadInProgress && (
                 <div className={`${groupsStyles.uploadArea} border-dashed`}>
-                  <div className="loader"></div>
+                  <CustomSpinner />
                   <p>Upload in progress</p>
                 </div>
               )}
@@ -795,7 +802,7 @@ function CsvFileBadge({ fileName, dispatchUploadState, resetStates }) {
 function Loader() {
   return (
     <div className={`${groupsStyles.uploadAreaExtended} border-dashed`}>
-      <div className="loader"></div>
+      <CustomSpinner />
       <p>Removal in progress</p>
     </div>
   )
@@ -820,7 +827,7 @@ function Warning({ filteredOutData }) {
           <div className={`w-fit ${groupsStyles.secondaryTextChart5} cursor-pointer `}>See details</div>
         </DialogTrigger>
       </div>
-      <CustomWidthDialogContent customDialogCloseClassName="right-4 top-4" className="min-w-[600px]">
+      <CustomWidthDialogContent className="min-w-[600px]">
         <DialogHeader>
           <DialogTitle>
             <span className="leading-7">Exclusion details</span>

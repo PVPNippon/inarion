@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const config = require('../config/config')
 const {
   checkIfKeyExistsInCache,
@@ -15,6 +22,91 @@ const { createRedisKey } = require('../utility/utilityFunctions')
 const logger = require('../logger/logger')(__filename, 'Cache Middleware')
 
 // ---------------------------- Store ----------------------------
+
+/**
+ * Middleware to store the list of shared drives in Redis cache.
+ *
+ * This middleware first checks if the response already contains cached data to avoid redundant storage.
+ * If not, it retrieves the shared drives from res.locals, stores them in Redis as a sorted set,
+ * and then sets the cached data in res.locals for downstream processing.
+ *
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object containing shared drives in res.locals.sharedDrives.
+ * @param {Function} next - Callback to the next middleware.
+ * @returns {Promise<void>} Proceeds to the next middleware after caching the shared drives.
+ */
+const storeSharedDrivesInCache = async (req, res, next) => {
+  try {
+    // Skip caching if data is already present in res.locals.
+    if (res.locals.data) {
+      return next()
+    }
+
+    const { sharedDrives } = res.locals
+
+    // Store the shared drives in Redis as a sorted set for efficient range queries.
+    await storeDataInCache({
+      key: createRedisKey(config.DOMAIN_TEST, config.SHARED_DRIVES),
+      data: sharedDrives,
+      dataType: config.SORTED_SETS,
+    })
+
+    // Set the cached shared drives data in res.locals for further middleware consumption.
+    res.locals.data = sharedDrives
+
+    // Proceed to the next middleware.
+    next()
+  } catch (error) {
+    // Log error details and return a 500 response if caching fails.
+    logger.error('Error faced in cache middleware, unable to store data in Redis', error.message)
+    return res.status(500).json({
+      message: 'Error faced in cache middleware, unable to store data in Redis',
+      error: error.message,
+    })
+  }
+}
+
+/**
+ * Middleware to store the list of users in Redis cache.
+ *
+ * This middleware checks if user data is already cached in res.locals. If not, it retrieves the user list,
+ * stores it in Redis as a sorted set, and then makes the cached data available in res.locals for subsequent middleware.
+ *
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object containing users in res.locals.users.
+ * @param {Function} next - Callback to the next middleware.
+ * @returns {Promise<void>} Proceeds to the next middleware after caching the user data.
+ */
+const storeUsersInCache = async (req, res, next) => {
+  try {
+    // Avoid duplicate caching if the data already exists.
+    if (res.locals.data) {
+      return next()
+    }
+
+    const { users } = res.locals
+
+    // Store the user list in Redis as a sorted set.
+    await storeDataInCache({
+      key: createRedisKey(config.DOMAIN_TEST, config.USERS),
+      data: users,
+      dataType: config.SORTED_SETS,
+    })
+
+    // Make the cached users data available for downstream processes.
+    res.locals.data = users
+
+    // Proceed to the next middleware.
+    next()
+  } catch (error) {
+    // Log error details and return a 500 response if data storage fails.
+    logger.error('Error faced in cache middleware, unable to store data in Redis', error.message)
+    return res.status(500).json({
+      message: 'Error faced in cache middleware, unable to store data in Redis',
+      error: error.message,
+    })
+  }
+}
 
 /**
  * Middleware to store Google Drive data and filters in Redis cache.
@@ -300,6 +392,84 @@ const storeFilteredFilesFromCache = async (req, res, next) => {
 // ---------------------------- Fetch --------------------------------
 
 /**
+ * Middleware to fetch shared drives from Redis cache.
+ *
+ * This middleware sets a temporary admin email (to be replaced with dynamic retrieval)
+ * and attempts to fetch cached shared drives stored as a sorted set in Redis.
+ * If cached data exists, it is attached to res.locals.data for further processing.
+ *
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ * @param {Function} next - Callback to the next middleware.
+ * @returns {Promise<void>} Proceeds to the next middleware after fetching cached shared drives.
+ */
+const fetchSharedDrivesFromCache = async (req, res, next) => {
+  try {
+    res.locals.adminEmail = config.SUPER_ADMIN_EMAIL
+
+    // Retrieve cached shared drives from Redis, expecting data stored as SORTED SETS.
+    const cachedData = await fetchSetOfFilesFromCache(
+      createRedisKey(config.DOMAIN_TEST, config.SHARED_DRIVES),
+      config.SORTED_SETS
+    )
+
+    // If cached data exists, assign it to res.locals.data for downstream middleware.
+    if (cachedData.length != 0) {
+      res.locals.data = cachedData
+    }
+
+    // Proceed to the next middleware.
+    next()
+  } catch (error) {
+    // Log the error and respond with a 500 error if the fetch operation fails.
+    logger.error('Error fetching data or filters from Redis:', error.message)
+    return res.status(500).json({
+      message: 'Error fetching data or filters from Redis',
+      error: error.message,
+    })
+  }
+}
+
+/**
+ * Middleware to fetch users from Redis cache.
+ *
+ * This middleware sets a temporary admin email (to be updated later with dynamic values)
+ * and attempts to retrieve cached user data stored as a sorted set in Redis.
+ * If the cache contains data, it is assigned to res.locals.data for further processing.
+ *
+ * @param {Object} req - Express request object.
+ * @param {Object} res - Express response object.
+ * @param {Function} next - Callback to the next middleware.
+ * @returns {Promise<void>} Proceeds to the next middleware after fetching cached user data.
+ */
+const fetchUsersFromCache = async (req, res, next) => {
+  try {
+    res.locals.adminEmail = config.SUPER_ADMIN_EMAIL
+
+    // Retrieve cached users from Redis, stored as SORTED SETS.
+    const cachedData = await fetchSetOfFilesFromCache(
+      createRedisKey(config.DOMAIN_TEST, config.USERS),
+      config.SORTED_SETS
+    )
+
+    // If there is cached data, attach it to res.locals.data.
+    if (cachedData.length != 0) {
+      res.locals.data = cachedData
+    }
+
+    // Proceed to the next middleware.
+    next()
+  } catch (error) {
+    // Log the error and return a 500 error response if the cache fetch fails.
+    logger.error('Error fetching data or filters from Redis:', error.message)
+    return res.status(500).json({
+      message: 'Error fetching data or filters from Redis',
+      error: error.message,
+    })
+  }
+}
+
+/**
  * Middleware to fetch Google Drive data and filters from Redis cache.
  *
  * This function retrieves cached data for Google Drive files from Redis. If query
@@ -313,8 +483,7 @@ const storeFilteredFilesFromCache = async (req, res, next) => {
  */
 const fetchDriveDataFromCache = async (req, res, next) => {
   try {
-    // TODO(a.mason): Replace hardcoded admin email with dynamic retrieval from session or JWT
-    res.locals.adminEmail = 'testadmin@pvp-test-domain2.com'
+    res.locals.adminEmail = config.SUPER_ADMIN_EMAIL
 
     const filters = req.query // Extract filters from response locals
 
@@ -404,8 +573,7 @@ const fetchEntireDriveStructureFromCache = async (req, res, next) => {
       res.locals.data = cachedData
     }
 
-    // TODO: Replace hardcoded admin email with dynamic retrieval from session or JWT
-    res.locals.adminEmail = 'testadmin@pvp-test-domain2.com'
+    res.locals.adminEmail = config.SUPER_ADMIN_EMAIL
     res.locals.personalDrive = personalDrive
     res.locals.driveName = driveName
     res.locals.id = id
@@ -471,8 +639,7 @@ const fetchDirectPathToRootFolderFromCache = async (req, res, next) => {
       res.locals.data = cachedData
     }
 
-    // TODO(a.mason): Replace hardcoded admin email with dynamic retrieval from session or JWT
-    res.locals.adminEmail = 'testadmin@pvp-test-domain2.com'
+    res.locals.adminEmail = config.SUPER_ADMIN_EMAIL
     res.locals.itemId = itemId
 
     // Proceed to the next middleware
@@ -591,7 +758,7 @@ const fetchFilteredFilesFromCache = async (req, res, next) => {
 
     if (keyExistsInCache) {
       // Attempt to fetch a specific page of files from the cached sorted set.
-      const cachedPageFiles = await fetchSetOfFilesFromCache(listOfFilesKey, startIndex, endIndex, config.SORTED_SETS)
+      const cachedPageFiles = await fetchSetOfFilesFromCache(listOfFilesKey, config.SORTED_SETS, startIndex, endIndex)
 
       if (cachedPageFiles && cachedPageFiles.length > 0) {
         // If the complete page is available, store the data for further processing.
@@ -628,8 +795,7 @@ const fetchFilteredFilesFromCache = async (req, res, next) => {
       res.locals.owner = owner || sharedDrive
     }
 
-    // TODO: Replace hardcoded admin email with dynamic retrieval from session or JWT.
-    res.locals.adminEmail = 'testadmin@pvp-test-domain2.com'
+    res.locals.adminEmail = config.SUPER_ADMIN_EMAIL
 
     next()
   } catch (error) {
@@ -708,7 +874,7 @@ const fetchFiltersFromCache = async (filters) => {
 async function fetchAllItemsFromCache(count, cursor = '0') {
   try {
     let allItemsData = []
-    const pattern = 'pvp-test-domain2.com:item:*:info' // Define your key pattern
+    const pattern = `${config.DOMAIN_TEST}:item:*:info` // Define your key pattern
     const { fetchedKeys, nextCursor } = await fetchMultipleKeysFromCache(pattern, count, cursor)
 
     // Fetch data for each key based on dataType
@@ -880,12 +1046,16 @@ const storeItemInfo = async (item, redisTransaction) => {
 
 module.exports = {
   // store in cache
+  storeSharedDrivesInCache,
+  storeUsersInCache,
   storeDriveDataInCache,
   storeEntireDriveStructureInCache,
   storeDirectPathToRootFolderInCache,
   storeFilteredFilesFromCache,
 
   // fetch from cache
+  fetchSharedDrivesFromCache,
+  fetchUsersFromCache,
   fetchDriveDataFromCache,
   fetchEntireDriveStructureFromCache,
   fetchDirectPathToRootFolderFromCache,

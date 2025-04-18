@@ -1,9 +1,15 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const express = require('express')
 const router = express.Router()
 const domainsController = require('../controllers/domainsController')
 const domainsCacheMiddleware = require('../middleware/domainsCacheMiddleware')
 const { encryptResponseMiddleware, decryptRequestMiddleware } = require('../controllers/crypto/cryptoMiddleware')
-// TODO(m.okamoto): Will be introduced in the future when a cache service for domains is created.
 
 router.use(decryptRequestMiddleware)
 

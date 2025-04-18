@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const express = require('express')
 const router = express.Router()
 const groupsController = require('../controllers/groupsController')
@@ -77,7 +84,7 @@ router.get(
 
 //route to get nested membership table for an entity (group or user)
 router.get(
-  '/target/:targetEmail/nested-table', 
+  '/target/:targetEmail/nested-table',
   groupsCacheMiddleware.retrieveNestedTable,
   groupsController.getNestedTable,
   groupsCacheMiddleware.storeNestedTables

@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const redisClient = require('../config/redis.js')
 //Important! This file will be deprecated.
 //Please use api/services/redisCacheService.js instead.
@@ -18,8 +25,6 @@ const redisClient = require('../config/redis.js')
  * @see {@link https://redis.io/docs/latest/commands/hgetall/}
  */
 function getHash(key) {
-  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
-
   // If `key` does not exist, hGetAll(key) returns a Promise object which resolves to an empty object ({}).
   // I prefer the returned Promise object to resolve to null in that case.
   return redisClient.hGetAll(key).then((hash) => (Object.keys(hash).length > 0 ? hash : null))
@@ -37,8 +42,6 @@ function getHash(key) {
  * @see {@link https://redis.io/docs/latest/commands/hkeys/}
  */
 function getAllHashFields(key) {
-  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
-
   return redisClient.hKeys(key)
 }
 
@@ -57,8 +60,6 @@ function getAllHashFields(key) {
  * @see {@link https://redis.io/docs/latest/commands/hget/}
  */
 function getHashValue(key, field) {
-  // TODO (r.hidaka): VALIDATION: `key` and `field` should be non-empty strings
-
   return redisClient.hGet(key, field)
 }
 
@@ -78,9 +79,6 @@ function getHashValue(key, field) {
  * @see {@link https://redis.io/docs/latest/commands/hmget/}
  */
 function getHashValues(key, fields) {
-  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
-  // TODO (r.hidaka): VALIDATION: `fields` should be an array of non-empty strings
-
   // If `fields` is an empty array, hmGet(key, fields) returns a Promise object which resolves to an error.
   // I prefer the returned Promise object to resolve to an empty array in that case.
   if (fields.length === 0) {
@@ -102,8 +100,6 @@ function getHashValues(key, fields) {
  * @see {@link https://redis.io/docs/latest/commands/hvals/}
  */
 function getAllHashValues(key) {
-  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
-
   return redisClient.hVals(key)
 }
 
@@ -125,8 +121,6 @@ function getAllHashValues(key) {
  *      {@link https://redis.io/docs/latest/commands/exec/}
  */
 function getHashes(keys) {
-  // TODO (r.hidaka): VALIDATION: `keys` should be an array of non-empty strings
-
   if (keys.length === 0) {
     return Promise.resolve([])
   }
@@ -183,9 +177,6 @@ function getHashes(keys) {
  *      {@link https://redis.io/docs/latest/commands/exec/}
  */
 function setHash(key, hashObj, ttl, ttlMode) {
-  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
-  // TODO (r.hidaka): VALIDATION: `hashObj` should be a non-empty object whose values are strings
-
   const multi = redisClient.multi()
 
   multi.hSet(key, hashObj)
@@ -228,9 +219,6 @@ function setHash(key, hashObj, ttl, ttlMode) {
  *      {@link https://redis.io/docs/latest/commands/exec/}
  */
 function overwriteHash(key, hashObj, ttl) {
-  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
-  // TODO (r.hidaka): VALIDATION: `hashObj` should be a non-empty object whose values are non-empty strings
-
   const multi = redisClient.multi()
 
   multi.del(key)
@@ -290,8 +278,6 @@ function overwriteHash(key, hashObj, ttl) {
  *      {@link https://redis.io/docs/latest/commands/exec/}
  */
 function setHashes(keysToHashesObj, ttl, ttlMode) {
-  // TODO (r.hidaka): VALIDATION: Check the format of `keysToHashesObj`
-
   const multi = redisClient.multi()
 
   Object.entries(keysToHashesObj).forEach(([key, hash]) => multi.hSet(key, hash))
@@ -337,8 +323,6 @@ function setHashes(keysToHashesObj, ttl, ttlMode) {
  *      {@link https://redis.io/docs/latest/commands/exec/}
  */
 function overwriteHashes(keysToHashesObj, ttl) {
-  // TODO (r.hidaka): VALIDATION: Check the format of `keysToHashesObj`
-
   const multi = redisClient.multi()
 
   const keys = Object.keys(keysToHashesObj)
@@ -369,8 +353,6 @@ function overwriteHashes(keysToHashesObj, ttl) {
  * @see {@link https://redis.io/docs/latest/commands/json.get/}
  */
 function getJson(key) {
-  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
-
   return redisClient.json.get(key)
 }
 
@@ -389,8 +371,6 @@ function getJson(key) {
  * @see {@link https://redis.io/docs/latest/commands/json.mget/}
  */
 function getJsons(keys) {
-  // TODO (r.hidaka): VALIDATION: `keys` should be an array of non-empty strings
-
   if (keys.length === 0) {
     return Promise.resolve([])
   }
@@ -409,8 +389,6 @@ function getJsons(keys) {
  * @param {string} key - The key associated with the JSON object to set.
  * @param {Object} jsonObj - An object to set with `key`.
  *
- * // TODO (r.hidaka): Technically, even if `jsonObj` is an empty object, null, a string, a number or an array, this function can store it in Redis with no errors.
- * //                  Consider throwing an error if `jsonObj` is not a non-empty object to be consistent with {@link setHash} and {@link overwriteHash}.
  *
  * @param {number} [ttl] - An optional integer specifying the TTL in seconds for the key.
  * @param {string} [ttlMode] - An optional string specifying the mode for the TTL.
@@ -437,8 +415,6 @@ function getJsons(keys) {
  *      {@link https://redis.io/docs/latest/commands/exec/}
  */
 function setJson(key, jsonObj, ttl, ttlMode) {
-  // TODO (r.hidaka): VALIDATION: `key` should be a non-empty string
-
   const multi = redisClient.multi()
 
   multi.json.set(key, '$', jsonObj)
@@ -469,9 +445,6 @@ function setJson(key, jsonObj, ttl, ttlMode) {
  *     key_N: jsonObj_N
  *   }
  *   ```
- * // TODO (r.hidaka): Technically, even if `jsonObj_i` (i = 1, ..., N) is an empty object, null, a string, a number or an array, this function can store it in Redis with no errors.
- * //                  Consider throwing an error if they are not a non-empty object to be consistent with {@link setHash} and {@link overwriteHash}.
- *
  * @param {number} [ttl] - An optional integer specifying the TTL in seconds for all the keys.
  * @param {string} [ttlMode] - An optional string specifying the mode for the TTL.
  *   If `ttl` is not specified as an integer, `ttlMode` is ignored.
@@ -517,7 +490,6 @@ function setJsons(keysToJsonsObj, ttl, ttlMode) {
   return multi.exec()
 }
 
-// TODO (r.hidaka): Consider splitting this function into two functions: deleteKey(key) and deleteKeys(keys).
 /**
  * Deletes keys in Redis.
  *

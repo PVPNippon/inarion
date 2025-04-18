@@ -1,11 +1,18 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 'use client'
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+const email = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL //temporarily bypass login and jwttoken check
 
 function AddMembersViaCsv() {
-  const email = 'testadmin@pvp-test-domain2.com'
   const [inputValue, setInputValue] = useState('')
   const [error, setError] = useState(null)
   const [data, setData] = useState([])
@@ -65,8 +72,10 @@ function AddMembersViaCsv() {
         </Button>
       </div>
 
-      <div className="flex">
-        <input
+      <div className="flex gap-x-11">
+        <Input
+          className="w-[200px]"
+          type="file"
           accept=".csv"
           id="add-members-csv-input" //N.B. the id must be unique or it will clash with other compoments
           onChange={() => {
@@ -87,7 +96,6 @@ function AddMembersViaCsv() {
 
             reader.readAsText(document.getElementById('add-members-csv-input').files[0])
           }}
-          type="file"
         />
         <pre id="add-members-csv-out">
           <p>File contents will appear here</p>

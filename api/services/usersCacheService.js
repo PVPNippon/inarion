@@ -1,6 +1,12 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const redisCacheService = require('../services/redisCacheService')
 const config = require('../config/config')
-// TODO (m.okamoto): implement logger in Redis (#267)
 
 /**
  * Retrieves an array of all unique user IDs stored in the cache.
@@ -17,7 +23,6 @@ const config = require('../config/config')
  *     or (C) all users were not listed before and only negative cache entries are in the cache.
  */
 async function getAllIds(requiresAllUsersListedBefore = false) {
-  // TODO(m.okamoto): Domain names: ${config.DOMAIN_TEST} will eventually stop being hard-coded
   // Create a hash that links a user ID to all email addresses owned by that user
   const key = `${config.DOMAIN_TEST}:users:id`
   const emailsToIdsObj = await redisCacheService.getHashFromRedis(key)
@@ -113,7 +118,6 @@ function getId(email) {
  * @see {@link redisCacheService.getJsons|getJsons}
  */
 function getUsersByIds(userIds) {
-  // TODO(m.okamoto): VALIDATION: userIds should be an array of non-empty strings.
   const keys = userIds.map((userId) => `${config.DOMAIN_TEST}:users:${userId}:info`)
   return redisCacheService.getJsons(keys)
 }
@@ -192,6 +196,37 @@ async function setUsers(users) {
   })
 
   await saveUserIdsToSet(users)
+
+  const ttl = Number(config.TTL)
+  return redisCacheService.setJsonsWithTtlMode(idsToUsersObj, ttl)
+}
+
+async function setOurOwnUsers(users) {
+  console.log('setOurOwnUsers amount of users:', users.length)
+  const ourOwnUsers = users.map((user) => ({
+    id: user.id,
+    primaryEmail: user.primaryEmail,
+    domain: user.primaryEmail.split('@')[1],
+    name: user.name,
+    isAdmin: user.isAdmin,
+    emails: user.emails,
+    customerId: user.customerId,
+    orgUnitPath: user.orgUnitPath,
+    isEnrolledIn2Sv: user.isEnrolledIn2Sv,
+    isEnforcedIn2Sv: user.isEnforcedIn2Sv,
+    // 必要な情報を足す
+    // roleName:
+  }))
+
+  const idsToUsersObj = {}
+
+  ourOwnUsers.forEach((user) => {
+    const id = user.id
+    const key = `${config.DOMAIN_TEST}:users:${id}:info`
+    idsToUsersObj[key] = user
+  })
+
+  await saveUserIdsToSet(ourOwnUsers) // setUser を廃止する場合追加
 
   const ttl = Number(config.TTL)
   return redisCacheService.setJsonsWithTtlMode(idsToUsersObj, ttl)
@@ -284,6 +319,72 @@ async function getIdsFromCache(key) {
   return ids
 }
 
+// Filter values cache
+
+async function saveOrgUnitFilterValuesCache(filterValues) {
+  const key = `${config.DOMAIN_TEST}:users:filters:orgUnit`
+  // Create an array of orgUnit paths and push the root path "/" to the array since orgUnits instance doesn't have "/"
+  const orgUnitsArray = [...filterValues.map((filterValue) => filterValue.orgUnitPath), '/']
+
+  return redisCacheService.addToSetInRedis(key, orgUnitsArray)
+}
+
+async function saveDomainFilterValuesCache(filterValues) {
+  const key = `${config.DOMAIN_TEST}:users:filters:domain`
+  // Filter only the primary domain and subdomains since alias domains never be used in primary email address.
+  const domainsArray = filterValues.map((filterValue) => filterValue.domainName)
+
+  return redisCacheService.addToSetInRedis(key, domainsArray)
+}
+
+async function saveIsEnrolledIn2SvValuesCache(users) {
+  const trueKey = `${config.DOMAIN_TEST}:users:filters:isEnrolledIn2Sv:true`
+  const falseKey = `${config.DOMAIN_TEST}:users:filters:isEnrolledIn2Sv:false`
+
+  const trueCounts = users.filter((user) => user.isEnrolledIn2Sv).map(() => 'true')
+
+  const falseCounts = users.filter((user) => !user.isEnrolledIn2Sv).map(() => 'false')
+
+  console.log('2svEnrolled/trueCounts:', trueCounts.length)
+  console.log('2svEnrolled/falseCounts:', falseCounts.length)
+
+  return Promise.all([
+    redisCacheService.addToSortedSetInRedis(trueKey, trueCounts, null, null, (currentIndex) => currentIndex + 1),
+    redisCacheService.addToSortedSetInRedis(falseKey, falseCounts, null, null, (currentIndex) => currentIndex + 1),
+  ])
+}
+
+async function saveIsEnforcedIn2SvValuesCache(users) {
+  const trueKey = `${config.DOMAIN_TEST}:users:filters:isEnforcedIn2Sv:true`
+  const falseKey = `${config.DOMAIN_TEST}:users:filters:isEnforcedIn2Sv:false`
+
+  const trueCounts = users.filter((user) => user.isEnforcedIn2Sv).map(() => 'true')
+
+  const falseCounts = users.filter((user) => !user.isEnforcedIn2Sv).map(() => 'false')
+
+  console.log('2svEnforced/trueCounts:', trueCounts.length)
+  console.log('2svEnforced/falseCounts:', falseCounts.length)
+
+  return Promise.all([
+    redisCacheService.addToSortedSetInRedis(trueKey, trueCounts, null, null, (currentIndex) => currentIndex + 1),
+    redisCacheService.addToSortedSetInRedis(falseKey, falseCounts, null, null, (currentIndex) => currentIndex + 1),
+  ])
+}
+
+async function saveGroupFilterValuesCache(filterValues) {
+  const key = `${config.DOMAIN_TEST}:users:filters:group`
+  const groupsArray = filterValues.map((filterValue) => filterValue.email)
+
+  return redisCacheService.addToSetInRedis(key, groupsArray)
+}
+
+async function saveRoleNameFilterValuesCache(filterValues) {
+  const key = `${config.DOMAIN_TEST}:users:filters:roleName`
+  const roleNamesArray = filterValues.map((filterValue) => filterValue.roleName)
+
+  return redisCacheService.addToSetInRedis(key, roleNamesArray)
+}
+
 /**
  * Retrieves the nested table of a user from the cache.
  *
@@ -323,10 +424,17 @@ module.exports = {
   getFilteredUsersByIds,
   overwriteIds,
   setUsers,
+  setOurOwnUsers,
   saveUserIdsToSet,
   saveFilteredUsersCache,
   getIntersectionIdOfSets,
   getIdsFromCache,
+  saveOrgUnitFilterValuesCache,
+  saveDomainFilterValuesCache,
+  saveIsEnrolledIn2SvValuesCache,
+  saveIsEnforcedIn2SvValuesCache,
+  saveGroupFilterValuesCache,
+  saveRoleNameFilterValuesCache,
   getNestedTableById,
   setNestedTableById,
 }

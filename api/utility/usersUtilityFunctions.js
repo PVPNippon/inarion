@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const groupsService = require('../services/groupsService')
 const usersService = require('../services/usersService')
 const logger = require('../logger/logger')(__filename, 'Users Utility Functions')
@@ -48,7 +55,6 @@ function filterUsersByDomain(users, domain) {
   return users.filter((user) => user.primaryEmail.split('@')[1] === domain)
 }
 
-// TODO(m.okamoto): 別のファイルへ切り分けた方が良い
 async function filterUsersByGroup(users, groupEmail, userEmail) {
   // line 53 to 61 is needed only if error handling is needed
   const group = await groupsService.getGroupByEmail({
@@ -103,6 +109,7 @@ async function filterUsersByRoleName(users, roleName, userEmail) {
     }
 
     // If assigneeType is group
+    // MVP に入れなくてもいいかもしれない
     if (assigneeType === 'group') {
       // fetching members of the group with ID assignedTo value
       const members = await groupsService.listGroupMembers({
@@ -126,8 +133,6 @@ async function filterUsersByRoleName(users, roleName, userEmail) {
     return roleNamesMap[roleName].includes(assignedTo)
   })
 }
-
-// TODO(m.okamoto): After fetching all users information, store each user's information in cache in the specific format
 
 module.exports = {
   getUserEmailsToIdsObj,

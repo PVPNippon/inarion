@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const logBuffer = [] // Buffer to hold log entries
 const MAX_LOG_BUFFER_SIZE = 50 // Increase buffer size for large-scale testing
 const FLUSH_INTERVAL = 100 // Shorten flush interval for rapid flush testing

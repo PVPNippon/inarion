@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const logger = require('../logger/logger')(__filename, 'Domain Users Controller')
 const { getOrganizationUsersList } = require('../services/adminService')
 require('dotenv').config()

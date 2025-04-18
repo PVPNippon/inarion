@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const logger = require('../logger/logger')(__filename, 'Groups')
 const groupsService = require('../services/groupsService')
 const { getNestedTable, getHierarchy } = require('../services/nestedGroupsService')
@@ -637,7 +644,7 @@ exports.getNestedTable = async (req, res, next) => {
   const { userEmail } = req.query
   const { targetEmail } = req.params
   const targetType = res.locals.targetType
-  
+
   try {
     const result = await groupsService.getNestedTables({
       userEmail,

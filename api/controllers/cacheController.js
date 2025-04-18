@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 /**
  * @fileoverview Abstraction layer for Redis-based caching mechanisms.
  * Provides utility functions to store, fetch, and clear data in Redis with support for
@@ -184,7 +191,7 @@ async function fetchDataFromCache(key, dataType) {
  * @returns {Promise<*|boolean>} Returns the fetched data if available, or false if a cache miss occurs.
  * @throws {Error} If an unsupported data type is provided or if an error occurs during retrieval.
  */
-async function fetchSetOfFilesFromCache(key, startCount, endCount, dataType) {
+async function fetchSetOfFilesFromCache(key, dataType, startCount, endCount) {
   try {
     let result
     switch (dataType) {

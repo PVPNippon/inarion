@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const { getImpersonatedClientInstanceForAdmin } = require('./authService')
 const groupsUtilityFunctions = require('../utility/groupsUtilityFunctions.js')
 
@@ -87,7 +94,7 @@ async function getGroupByEmail({ userEmail, groupEmail, client }) {
  * a boolean indicating whether to include indirect members, and optionally an existing impersonated auth client for Directory API.
  * It uses these values to authorize make a request to the Google Admin Directory API
  * to retrieve the list of members of the group.
- * 
+ *
  * @param {Object} params - The object containing the `userEmail`, `groupEmail`, `includeDerivedMembership` and optional `client` in the request body.
  * @param {string} params.userEmail - The email address of the user performing the action.
  * @param {string} params.groupEmail - The email address of the group to retrieve the members of.
@@ -123,7 +130,7 @@ async function listGroupMembers({ userEmail, groupEmail, includeDerivedMembershi
   } while ((requestParams.pageToken = membersResponse.data.nextPageToken))
 
   // Format member instances
-  members.forEach(member => {
+  members.forEach((member) => {
     delete member.kind
     delete member.etag
 
@@ -1069,16 +1076,16 @@ async function getNestedTables({ userEmail, targetEmail, targetType = 'group', c
   }
 
   let groups
-  
+
   try {
     groups = await listParents({ userEmail, targetEmail, client: directoryClient })
   } catch (error) {
     throw new Error('Error listing parents')
   }
 
-  let originalTarget  // Target instance (group or user)
+  let originalTarget // Target instance (group or user)
   let originalTargetId // Target's ID
-  let originalTargetPrimaryEmail  // Target's primary email address
+  let originalTargetPrimaryEmail // Target's primary email address
   let originalTargetEmailsSet // A set of target's email addresses (primary and aliases)
 
   // If a target is a user, we need to fetch groups which have "All Users In The Organization" separately
@@ -1102,15 +1109,20 @@ async function getNestedTables({ userEmail, targetEmail, targetType = 'group', c
     originalTargetId = originalTarget.id
     originalTargetPrimaryEmail = originalTarget.email
     originalTargetEmailsSet = new Set(groupsUtilityFunctions.extractEmailsFromGroup(originalTarget))
-  } else {  // targetType === 'user'
+  } else {
+    // targetType === 'user'
     try {
       originalTarget = await getUserByEmail({ userEmail, targetEmail, client: directoryClient })
     } catch (error) {
       throw new Error('Error getting the target user instance')
     }
-  
+
     try {
-      groupsWithAllUsersInOrg = await listParents({ userEmail, targetEmail: originalTarget.customerId, client: directoryClient })
+      groupsWithAllUsersInOrg = await listParents({
+        userEmail,
+        targetEmail: originalTarget.customerId,
+        client: directoryClient,
+      })
     } catch (error) {
       throw new Error('Error listing groups with All Users In The Organization')
     }
@@ -1122,7 +1134,7 @@ async function getNestedTables({ userEmail, targetEmail, targetType = 'group', c
         tables: {},
       }
     }
-    
+
     originalTargetId = originalTarget.id
     originalTargetPrimaryEmail = originalTarget.primaryEmail
     originalTargetEmailsSet = new Set(groupsUtilityFunctions.extractEmailsFromUser(originalTarget))
@@ -1155,7 +1167,11 @@ async function getNestedTables({ userEmail, targetEmail, targetType = 'group', c
     const allUsersInOrgSet = new Set(['*', 'All users in domain'])
 
     for (const groupWithAllUsersInOrg of groupsWithAllUsersInOrg) {
-      const timestamp = groupsUtilityFunctions.getGroupJoinTimestamp(joinLogs, groupWithAllUsersInOrg.email, allUsersInOrgSet)
+      const timestamp = groupsUtilityFunctions.getGroupJoinTimestamp(
+        joinLogs,
+        groupWithAllUsersInOrg.email,
+        allUsersInOrgSet
+      )
 
       const mapValue = directParentsMap.get(groupWithAllUsersInOrg.email)
 
@@ -1179,12 +1195,14 @@ async function getNestedTables({ userEmail, targetEmail, targetType = 'group', c
 
   const parentsMap = new Map()
   parentsMap.set(originalTargetPrimaryEmail, [...directParentsMap.values()])
-  
+
   while (groups.length > 0) {
-    const parentsArray = await Promise.allSettled(groups.map(group => listParents({ userEmail, targetEmail: group.email, client: directoryClient })))
+    const parentsArray = await Promise.allSettled(
+      groups.map((group) => listParents({ userEmail, targetEmail: group.email, client: directoryClient }))
+    )
     const nextGroups = []
 
-    groups.forEach(group => {
+    groups.forEach((group) => {
       parentsMap.set(group.email, [])
       idsToEmailsObj[group.id] = group.email
     })
@@ -1232,7 +1250,7 @@ async function getNestedTables({ userEmail, targetEmail, targetType = 'group', c
   return {
     id: originalTargetId,
     table: emailsTotablesObj[originalTargetPrimaryEmail],
-    tables: idsToTablesObj
+    tables: idsToTablesObj,
   }
 }
 
@@ -1248,11 +1266,15 @@ function createTables(parentsMap) {
   const tablesMap = new Map()
 
   for (const [targetEmail, directParents] of parentsMap) {
-    const table = directParents.map(directParent => ({ email: directParent.email, membership: 'Direct', timestamp: directParent.timestamp }))
-    let groupEmails = directParents.map(directParent => directParent.email)
+    const table = directParents.map((directParent) => ({
+      email: directParent.email,
+      membership: 'Direct',
+      timestamp: directParent.timestamp,
+    }))
+    let groupEmails = directParents.map((directParent) => directParent.email)
     const directParentsSet = new Set(groupEmails)
     const ancestorsMap = new Map()
-    
+
     while (groupEmails.length > 0) {
       const nextGroupEmails = []
 
@@ -1265,7 +1287,7 @@ function createTables(parentsMap) {
 
         for (const { email: parentEmail } of parents) {
           if (directParentsSet.has(parentEmail)) {
-            continue   
+            continue
           }
 
           const ancestor = ancestorsMap.get(parentEmail)
@@ -1273,7 +1295,11 @@ function createTables(parentsMap) {
           if (ancestor) {
             ancestor.inherited.add(groupEmail)
           } else {
-            ancestorsMap.set(parentEmail, { email: parentEmail, membership: 'Inherited', inherited: new Set([groupEmail]) })
+            ancestorsMap.set(parentEmail, {
+              email: parentEmail,
+              membership: 'Inherited',
+              inherited: new Set([groupEmail]),
+            })
             nextGroupEmails.push(parentEmail)
           }
         }
@@ -1292,7 +1318,6 @@ function createTables(parentsMap) {
 
   return Object.fromEntries(tablesMap)
 }
-
 
 module.exports = {
   listGroups,

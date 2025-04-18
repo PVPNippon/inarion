@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 'use client'
 import Graph from 'react-graph-vis'
 import { useEffect, useState } from 'react'
@@ -44,8 +51,6 @@ export default function GraphPage() {
 
       const currentWindowHeight = window.innerHeight
       const currentWindowWidth = window.innerWidth
-
-      console.log('CURRENT HEIGHT', currentWindowHeight)
 
       //I set default minheight to 1000px for smaller screens for now, need more testing
       currentWindowHeight > 1000 ? (height = `${currentWindowHeight - 100}px`) : (height = '1000px')
@@ -95,13 +100,6 @@ export default function GraphPage() {
         },
         height: height,
         width: width,
-        // groups: {
-        //   myGroup: { color: { background: 'red', border: 'red' }, font: { color: 'white' } },
-        //   parentGroup: { color: { background: 'blue', border: 'blue' }, font: { color: 'white' } },
-        //   childGroup: { color: { background: 'green', border: 'green' }, font: { color: 'white' } },
-        //   ancestorGroup: { color: { background: 'white', border: 'blue' }, font: { color: 'blue' } },
-        //   descendantGroup: { color: { background: 'white', border: 'greend' }, font: { color: 'green' } },
-        // },
       }
 
       setOptions(options)
@@ -115,8 +113,8 @@ export default function GraphPage() {
   return (
     <main>
       <h2>Visualized Group Hierarchy</h2>
-      <Button onClick={() => generatePdf('gr')}>Export PDF</Button>
-      <div id="gr">
+      {/* <Button onClick={() => generatePdf('gr')}>Export PDF</Button>  disabled for now because html2canvas doesn't support oklch colors */}
+      <div>
         <Graph
           graph={graph}
           options={options}
@@ -214,7 +212,6 @@ export default function GraphPage() {
              * @returns {void}
              */
             function manageClustering(nodesToCluster, a, allNodes) {
-              console.log('ALL NODES:', allNodes)
               let clusteredNodeCount = 0
 
               //remove cluster click listener if there is one
@@ -277,8 +274,6 @@ export default function GraphPage() {
               network.clustering.cluster(clusterOptions)
 
               clusterClickListener = (params) => {
-                console.log('CLICK EVENT PARAMS', params)
-
                 //check if cluster is clicked
                 //its ID should start with "cluster", and not contain "@"(in case someone decides to name a group or user as "cluster")
                 if (
@@ -309,11 +304,9 @@ export default function GraphPage() {
 
                   //select first 10 nodes
                   const nodesToShow = allClusterNodes.slice(0, 10)
-                  console.log('NODES TO SHOW', nodesToShow)
 
                   //select remaining nodes
                   const nodesToRecluster = allClusterNodes.slice(10)
-                  console.log('NODES TO RECLUSTER', nodesToRecluster)
 
                   //remove cid from nodes which won't be reclustered
                   nodesToShow.forEach((node) => {
@@ -379,11 +372,7 @@ export default function GraphPage() {
             const lowestNodeHeight = Math.max(...lengthArray) //N.B. the lowest node has a positive y value
             const highestNodeHeight = Math.min(...lengthArray) //N.B. the highest node has a negative y value
 
-            console.log('HIGHEST NODE HEIGHT', highestNodeHeight) //N.B. the highest node has a negative y value
-            console.log('LOWEST NODE HEIGHT', lowestNodeHeight) //N.B. the lowest node has a positive y value
-
             //apply clustering and layering only if the graph is not a perfect tree(for now)
-
             lengthArray.reduce((counters, num) => {
               counters[num] = (counters[num] || 0) + 1
               if (counters[num] >= 10) {
@@ -407,7 +396,6 @@ export default function GraphPage() {
 
                 const sameLevelNodesSortedInX = Object.entries(nodesWithXValue)
                 sameLevelNodes = sameLevelNodesSortedInX.sort((a, b) => a[1] - b[1]).map((a) => a[0]) //sort nodes by x value, so that the cluster nodes always appears in the further right part of the graph
-                console.log('NODES AFTER SORTING BY X', sameLevelNodes)
                 allNodes.push(sameLevelNodes)
 
                 //if there are more than 20 nodes at the same height, cluster them

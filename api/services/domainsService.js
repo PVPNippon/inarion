@@ -1,7 +1,13 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const { getImpersonatedClientInstanceForAdmin } = require('./authService')
 const logger = require('../logger/logger')(__filename, 'Domains Service')
 
-// TODO(m.okamoto): pagenation ないのでリファクタリングする
 async function listDomains({ userEmail, client }) {
   logger.debug('Reached listDomains endpoint.')
   //Retrieve an existing impersonated auth client for Directory API or create a new one

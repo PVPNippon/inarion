@@ -1,28 +1,28 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
-
-const Input = React.forwardRef(({ className, type, hasIcon, ...props }, ref) => {
+function Input({ className, type, ...props }) {
   return (
-    <div className="relative w-full">
-      {hasIcon && (
-        <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <input
+      type={type}
+      data-slot="input"
+      className={cn(
+        'border-input file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
+        'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
+        'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
+        className
       )}
-      <input
-        type={type}
-        className={cn(
-          'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-muted-foreground text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:font-bold file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-input focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50',
-          hasIcon ? 'pl-10' : '', // Add padding when the icon is present
-          className
-        )}
-        ref={ref}
-        {...props}
-      />
-    </div>
+      {...props}
+    />
   )
-})
-Input.displayName = 'Input'
+}
 
 export { Input }

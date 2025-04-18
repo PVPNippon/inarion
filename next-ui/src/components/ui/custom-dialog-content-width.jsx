@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 'use client'
 import * as React from 'react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
@@ -20,7 +27,7 @@ const CustomWidthDialogContent = React.forwardRef(
       >
         {children}
         <DialogPrimitive.Close
-          className={`absolute ${customDialogCloseClassName} rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:none  disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"`}
+          className={`absolute top-4 right-4 ${customDialogCloseClassName} rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:none  disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"`}
         >
           <Cross2Icon className="h-4 w-4" />
           <span className="sr-only">Close</span>

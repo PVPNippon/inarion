@@ -1,19 +1,31 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const express = require('express')
 const router = express.Router()
 const usersController = require('../controllers/usersController')
 const usersCacheMiddleware = require('../middleware/usersCacheMiddleware')
 // Currently, encryption/decryption is turned on/off in .env
 const { encryptResponseMiddleware, decryptRequestMiddleware } = require('../controllers/crypto/cryptoMiddleware')
-// TODO(m.okamoto): Will be introduced in the future when a cache service for users is created.
 
 // decryptRequestMiddleware should be transparent to all requests which do not have the body
 router.use(decryptRequestMiddleware)
 
-// TODO(m.okamoto): 前準備用のエンドポイント追加
 // ユーザーリスト取得
 // フィルター取得
 // 全フィルターのユーザーセットを作る (全フィルターの値の数分ループ)
-router.get('/preparations', usersController.getPreparations)
+router.get(
+  '/preparations',
+  usersController.getPreparations,
+  usersCacheMiddleware.storeAllUsersAsPreparations,
+  usersCacheMiddleware.storeAllFiltersAsPreparations
+)
+
+router.post('/watch', usersController.watchUsers)
 
 // route to list all users in customer organization
 router.get(

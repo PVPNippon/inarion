@@ -1,3 +1,10 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 const groupsCacheService = require('../services/groupsCacheService.js')
 const usersCacheService = require('../services/usersCacheService.js')
 const groupsUtilityFunctions = require('../utility/groupsUtilityFunctions.js')
@@ -29,7 +36,7 @@ async function retrieveAllGroups(req, res, next) {
       return next()
     }
 
-    const groups = rawGroups.filter(group => group !== null)
+    const groups = rawGroups.filter((group) => group !== null)
 
     // No group instances are in the cache
     if (groups.length === 0) {
@@ -47,7 +54,7 @@ async function retrieveAllGroups(req, res, next) {
 
 /**
  * Middleware to store all group instances in the cache.
- * 
+ *
  * Note that this function removes all negative caches.
  *
  * @param {Object} req - The request object.
@@ -80,7 +87,7 @@ async function storeAllGroups(req, res, next) {
 
     const result = await Promise.allSettled([
       groupsCacheService.overwriteIds(emailsToIdsObj),
-      groupsCacheService.setGroups(groups)
+      groupsCacheService.setGroups(groups),
     ])
     console.log('Stored all group ids and instances in the cache:', result)
   } catch (error) {
@@ -100,7 +107,7 @@ async function retrieveGroup(req, res, next) {
 
   try {
     const groupId = await groupsCacheService.getId(groupEmail)
-    
+
     // No group ID corresponding to the group email is in the cache
     if (groupId === null) {
       return next()
@@ -143,7 +150,7 @@ async function storeGroup(req, res, next) {
   // `groupEmail` should be retrieved before calling next() because req.params is cleared after calling next()
   // Ref: https://github.com/expressjs/express/issues/4298#issuecomment-656770286
   const { groupEmail } = req.params
-  
+
   next()
 
   if (res.locals.cached) {
@@ -171,11 +178,11 @@ async function storeGroup(req, res, next) {
 
     const result = await Promise.allSettled([
       groupsCacheService.setIds(emailsToIdsObj),
-      groupsCacheService.setGroup(group)
+      groupsCacheService.setGroup(group),
     ])
-    console.log('Stored the group\'s id and instance in the cache:', result)
+    console.log("Stored the group's id and instance in the cache:", result)
   } catch (error) {
-    console.log('Error storing the group\'s id and instance in the cache:', error)
+    console.log("Error storing the group's id and instance in the cache:", error)
   }
 }
 
@@ -205,7 +212,7 @@ async function retrieveMembers(req, res, next) {
   if (groupId === null) {
     return next()
   }
-  
+
   if (groupId === 'NEGATIVE_CACHE') {
     res.locals.statusCode = 404
     res.locals.data = { message: 'Group does not exist or you do not have necessary permissions to see this group' }
@@ -238,7 +245,7 @@ async function retrieveMembers(req, res, next) {
 
 /**
  * Middleware to store the members of a group in the cache.
- * 
+ *
  * If the group's ID is not in the cache, this function calls an API to fetch the group instance and
  * stores the group's ID and instance as well as its members in the cache.
  *
@@ -282,12 +289,14 @@ async function storeMembers(req, res, next) {
     try {
       const result = await (includeDerivedMembership
         ? groupsCacheService.overwriteDescendantsById(cachedGroupId, members)
-        : groupsCacheService.overwriteMembersById(cachedGroupId, members)
-      )
-      
+        : groupsCacheService.overwriteMembersById(cachedGroupId, members))
+
       console.log(`Stored ${includeDerivedMembership ? 'direct and indirect' : 'direct'} members in the cache:`, result)
     } catch (error) {
-      console.log(`Error storing ${includeDerivedMembership ? 'direct and indirect' : 'direct'} members in the cache:`, error)
+      console.log(
+        `Error storing ${includeDerivedMembership ? 'direct and indirect' : 'direct'} members in the cache:`,
+        error
+      )
     }
     return
   }
@@ -300,7 +309,7 @@ async function storeMembers(req, res, next) {
     const { userEmail } = req.query
     group = await groupsService.getGroupByEmail({
       userEmail,
-      groupEmail
+      groupEmail,
     })
   } catch (error) {
     // Abort if the group instance cannot be fetched by the API
@@ -315,11 +324,11 @@ async function storeMembers(req, res, next) {
       groupsCacheService.setGroup(group),
       includeDerivedMembership
         ? groupsCacheService.overwriteDescendantsById(group.id, members)
-        : groupsCacheService.overwriteMembersById(group.id, members)
+        : groupsCacheService.overwriteMembersById(group.id, members),
     ])
-    console.log('Stored the group\'s id, instance and members in the cache:', result)
+    console.log("Stored the group's id, instance and members in the cache:", result)
   } catch (error) {
-    console.log('Error storing the group\'s id, instance and members in the cache:', error)
+    console.log("Error storing the group's id, instance and members in the cache:", error)
   }
 }
 
@@ -335,7 +344,7 @@ async function retrieveSettings(req, res, next) {
 
   try {
     const groupId = await groupsCacheService.getId(groupEmail)
-    
+
     if (groupId === null) {
       return next()
     }
@@ -363,7 +372,7 @@ async function retrieveSettings(req, res, next) {
 
 /**
  * Middleware to store the settings of a group in the cache.
- * 
+ *
  * If the group's ID is not in the cache, this function calls an API to fetch the group instance and
  * stores the group's ID and instance as well as its settings in the cache.
  *
@@ -429,7 +438,7 @@ async function storeSettings(req, res, next) {
     const { userEmail } = req.query
     group = await groupsService.getGroupByEmail({
       userEmail,
-      groupEmail
+      groupEmail,
     })
   } catch (error) {
     // Abort if the group instance cannot be fetched by the API
@@ -442,11 +451,11 @@ async function storeSettings(req, res, next) {
     const result = await Promise.allSettled([
       groupsCacheService.setIds(emailsToIdsObj),
       groupsCacheService.setGroup(group),
-      groupsCacheService.setSettingsById(group.id, settings)
+      groupsCacheService.setSettingsById(group.id, settings),
     ])
-    console.log('Stored the group\'s id, instance and settings in the cache:', result)
+    console.log("Stored the group's id, instance and settings in the cache:", result)
   } catch (error) {
-    console.log('Error storing the group\'s id, instance and settings in the cache:', error)
+    console.log("Error storing the group's id, instance and settings in the cache:", error)
   }
 }
 
@@ -479,8 +488,10 @@ async function retrieveNestedTable(req, res, next) {
   const { targetEmail } = req.params
 
   try {
-    const targetId = await ((targetType === 'group') ? groupsCacheService.getId(targetEmail) : usersCacheService.getId(targetEmail))
-    
+    const targetId = await (targetType === 'group'
+      ? groupsCacheService.getId(targetEmail)
+      : usersCacheService.getId(targetEmail))
+
     if (targetId === null) {
       return next()
     }
@@ -488,13 +499,15 @@ async function retrieveNestedTable(req, res, next) {
     if (targetId === 'NEGATIVE_CACHE') {
       res.locals.statusCode = 404
       res.locals.data = {
-        message: `${targetEmail} does not exist or you do not have necessary permissions to see ${targetEmail}`
+        message: `${targetEmail} does not exist or you do not have necessary permissions to see ${targetEmail}`,
       }
       res.locals.cached = true
       return next()
     }
 
-    const nestedTable = await ((targetType === 'group') ? groupsCacheService.getNestedTableById(targetId) : usersCacheService.getNestedTableById(targetId))
+    const nestedTable = await (targetType === 'group'
+      ? groupsCacheService.getNestedTableById(targetId)
+      : usersCacheService.getNestedTableById(targetId))
 
     if (nestedTable === null) {
       return next()
@@ -534,13 +547,14 @@ async function storeNestedTables(req, res, next) {
 
     if (targetType === 'group') {
       result = await groupsCacheService.setNestedTablesByIds(tables)
-    } else {  // targetType === 'user'
+    } else {
+      // targetType === 'user'
       const id = res.locals.id
       const table = res.locals.data
-      
+
       result = await Promise.allSettled([
         groupsCacheService.setNestedTablesByIds(tables),
-        usersCacheService.setNestedTableById(id, table)
+        usersCacheService.setNestedTableById(id, table),
       ])
     }
     console.log('Stored the tables in the cache:', result)
@@ -721,7 +735,7 @@ async function storeAllSettings(req, res, next) {
 module.exports = {
   retrieveAllGroups,
   storeAllGroups,
-  
+
   retrieveGroup,
   storeGroup,
 

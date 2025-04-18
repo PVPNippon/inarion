@@ -1,6 +1,13 @@
+/*
+ * © 2025 PVP Inc.
+ * Source available under non-commercial license.
+ * Commercial use prohibited without a commercial license.
+ * See LICENSE.md file or contact licensing@pvp.co.jp
+ */
+
 'use client'
-import React, { useContext } from 'react';
-import { LoggedInUserContext } from '../contexts/LoggedInUserContext';
+import React, { useContext } from 'react'
+import { LoggedInUserContext } from '../contexts/LoggedInUserContext'
 
 /**
  * A React component that displays the stored number and admin email.
@@ -8,7 +15,7 @@ import { LoggedInUserContext } from '../contexts/LoggedInUserContext';
  * @returns {JSX.Element} A React component that displays the stored number and admin email.
  */
 function NumberDisplay() {
-  const { number, adminEmail } = useContext(LoggedInUserContext); // Get the stored number and adminEmail from context
+  const { number, adminEmail } = useContext(LoggedInUserContext) // Get the stored number and adminEmail from context
 
   return (
     <div>
@@ -16,7 +23,7 @@ function NumberDisplay() {
       <p>Stored Number: {number}</p> {/* Display the stored number */}
       <p>Admin Email: {adminEmail}</p> {/* Display the stored admin email */}
     </div>
-  );
+  )
 }
 
-export default NumberDisplay;
+export default NumberDisplay
