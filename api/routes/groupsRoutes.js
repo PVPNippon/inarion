@@ -83,6 +83,18 @@ router.get(
   groupsCacheMiddleware.storeNestedTables
 )
 
+router.get(
+  '/ids',
+  groupsCacheMiddleware.retrieveFilteredIds,
+  groupsController.getFilteredIds,
+  groupsCacheMiddleware.storeFilteredIds
+)
+
+router.get(
+  '/init-settings',
+  groupsCacheMiddleware.storeAllSettings
+)
+
 router.use(encryptResponseMiddleware) // Encrypt request for all routes
 
 module.exports = router

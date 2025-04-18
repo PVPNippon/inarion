@@ -91,6 +91,22 @@ async function getAllIds(requiresAllGroupsListedBefore = false) {
   return [...uniqueIdsSet]
 }
 
+async function getFilteredIds(filterName, filterValue) {
+  const key = `${config.DOMAIN_TEST}:groups:filters:${filterName}:${filterValue}`
+  const filteredGroupIds = await redisCacheService.getSetMembers(key)
+
+  // If the specified filter is not in the cache, return null
+  if (filteredGroupIds.length === 0) {
+    return null
+  }
+
+  if (filteredGroupIds[0] === 'FILTER_PLACEHOLDER') {
+    return []
+  }
+
+  return filteredGroupIds
+}
+
 /**
  * Stores the mapping of group email to group ID in the cache in the form of a hash.
  *
@@ -149,6 +165,18 @@ function overwriteIds(emailsToIdsObj) {
   const key = `${config.DOMAIN_TEST}:groups:id`
   const ttl = Number(config.TTL)
   return redisCacheService.overwriteHash(key, emailsToIdsObj, ttl)
+}
+
+function overwriteFilteredIds(filterName, filterValue, ids) {
+  const key = `${config.DOMAIN_TEST}:groups:filters:${filterName}:${filterValue}`
+  if (ids.length === 0) {
+    ids.push('FILTER_PLACEHOLDER')
+  }
+  const ttl = Number(config.TTL)
+
+  const multi = redisCacheService.generateTransaction()
+  redisCacheService.updateSetInRedis(key, ids, multi, ttl)
+  return multi.exec()
 }
 
 /**
@@ -587,8 +615,10 @@ module.exports = {
   getId,
   getIds,
   getAllIds,
+  getFilteredIds,
   setIds,
   overwriteIds,
+  overwriteFilteredIds,
 
   /* Group Instances */
   getGroupById,
