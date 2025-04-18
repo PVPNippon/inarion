@@ -8,7 +8,7 @@ This software is released under a **source-available license** and is **not free
 - **Commercial use is prohibited** without a commercial license from PVP Inc.
 - "Commercial use" includes (but is not limited to) internal business user, SaaS offerings, customer-facing tools, or inclusion in paid products.
 
-Please refer to the ` LICENSE` file for full licensing terms.
+Please refer to the [LICENSE](LICENSE.md) file for full licensing terms.
 
 For commercial licensing, contact: **license@pvp.co.jp**
 

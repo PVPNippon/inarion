@@ -5,7 +5,7 @@
 node_modules
 # Ignore service account keys
 
-keys/
+#keys/
 .env
 credentials/
 ./api/config/config.js

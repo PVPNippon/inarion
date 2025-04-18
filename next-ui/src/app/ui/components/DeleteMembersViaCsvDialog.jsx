@@ -472,7 +472,6 @@ function DeleteMembersViaCsvDialog({ groupName, groupEmail }) {
           aria-describedby={undefined}
           customHeight="h-[826px]"
           customWidth="w-[880px]"
-          customDialogCloseClassName="right-4 top-[-38px]"
           className="space-y-14"
         >
           <div className="flex flex-col p-4 space-y-7">
@@ -828,7 +827,7 @@ function Warning({ filteredOutData }) {
           <div className={`w-fit ${groupsStyles.secondaryTextChart5} cursor-pointer `}>See details</div>
         </DialogTrigger>
       </div>
-      <CustomWidthDialogContent customDialogCloseClassName="right-4 top-4" className="min-w-[600px]">
+      <CustomWidthDialogContent className="min-w-[600px]">
         <DialogHeader>
           <DialogTitle>
             <span className="leading-7">Exclusion details</span>

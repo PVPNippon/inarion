@@ -21,7 +21,7 @@ If you do not agree to these terms, **do not submit a pull request**.
 2. Create a new branch from `main`.
 3. Make your changes.
 4. Submit a **Pull Request** with a clear description of your changes and why they are needed.
-5. Sign the Contributor License Agreement (CLA) when prompted via GitHub bot.
+5. Sign the [Contributor License Agreement (CLA)](CLA.md) when prompted via GitHub bot.
 
 ## Questions or Feedback?
 
